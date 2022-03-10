@@ -9,19 +9,11 @@ open PeanoNat.Nat
 open Datatypes
 open PCUICSafeChecker
 open Tm_util
+open Caml_bytestring
 
-let bytes_of_list l =
-  let bytes = Bytes.create (List.length l) in
-  let rec fill acc = function
-    | [] -> bytes
-    | c :: cs ->
-      Bytes.set bytes acc c;
-      fill (1 + acc) cs
-  in fill 0 l
-
-let pr_char_list l =
+let pr_string l =
   (* We allow utf8 encoding *)
-  str (Bytes.to_string (bytes_of_list l))
+  str (caml_string_of_bytestring l)
 
 let check env evm poly (c, ustate) =
   debug (fun () -> str"Quoting");
@@ -45,8 +37,8 @@ let check env evm poly (c, ustate) =
       uctx
   in
   match check with
-  | Coq_inl s -> Feedback.msg_info (pr_char_list s)
-  | Coq_inr s -> CErrors.user_err (pr_char_list s)
+  | Coq_inl s -> Feedback.msg_info (pr_string s)
+  | Coq_inr s -> CErrors.user_err (pr_string s)
 }
 
 VERNAC COMMAND EXTEND MetaCoqSafeCheck CLASSIFIED AS QUERY

@@ -1,74 +1,9 @@
 (* Distributed under the terms of the MIT license. *)
 From Coq Require Import ssreflect Morphisms Orders Setoid.
 From MetaCoq.Template Require Import utils.
+From MetaCoq.Template Require Export Kernames.
 From Coq Require Floats.SpecFloat.
 From Equations Require Import Equations.
-
-(** ** Reification of names ** *)
-
-(** [Comment taken from Coq's code]
-    - Id.t is the type of identifiers, that is morally a subset of strings which
-      only contains Unicode characters of the Letter kind (and a few more).
-      => [ident]
-    - Name.t is an ad-hoc variant of Id.t option allowing to handle optionally
-      named objects.
-      => [name]
-    - DirPath.t represents generic paths as sequences of identifiers.
-      => [dirpath]
-    - Label.t is an equivalent of Id.t made distinct for semantical purposes.
-      => [ident]
-    - ModPath.t are module paths.
-      => [modpath]
-    - KerName.t are absolute names of objects in Coq.
-      => [kername]
-
-    And also :
-    - Constant.t => [kername]
-    - variable => [ident]
-    - MutInd.t => [kername]
-    - inductive => [inductive]
-    - constructor => [inductive * nat]
-    - Projection.t => [projection]
-    - GlobRef.t => global_reference
-
-    Finally, we define the models of primitive types (uint63 and floats64).
-*)
-
-Definition ident   := string. (* e.g. nat *)
-Definition qualid  := string. (* e.g. Datatypes.nat *)
-
-(** Type of directory paths. Essentially a list of module identifiers. The
-    order is reversed to improve sharing. E.g. A.B.C is ["C";"B";"A"] *)
-Definition dirpath := list ident.
-#[global] Instance dirpath_eqdec : Classes.EqDec dirpath := _.
-
-Definition string_of_dirpath : dirpath -> string
-  := String.concat "." ∘ rev.
-
-(** The module part of the kernel name.
-    - MPfile is for toplevel libraries, i.e. .vo files
-    - MPbound are parameters of functors
-    - MPdot is for submodules
-*)
-Inductive modpath :=
-| MPfile  (dp : dirpath)
-| MPbound (dp : dirpath) (id : ident) (i : nat)
-| MPdot   (mp : modpath) (id : ident).
-Derive NoConfusion EqDec for modpath.
-
-Fixpoint string_of_modpath (mp : modpath) : string :=
-  match mp with
-  | MPfile dp => string_of_dirpath dp
-  | MPbound dp id _ => string_of_dirpath dp ^ "." ^ id
-  | MPdot mp id => string_of_modpath mp ^ "." ^ id
-  end.
-
-(** The absolute names of objects seen by kernel *)
-Definition kername := modpath × ident.
-#[global] Instance kername_eqdec : Classes.EqDec kername := _.
-
-Definition string_of_kername (kn : kername) :=
-  string_of_modpath kn.1 ^ "." ^ kn.2.
 
 (** Identifiers that are allowed to be anonymous (i.e. "_" in concrete syntax). *)
 Inductive name : Set :=
@@ -122,7 +57,7 @@ Definition string_of_relevance (r : relevance) :=
 (** Designation of a (particular) inductive type. *)
 Record inductive : Set := mkInd { inductive_mind : kername ;
                                   inductive_ind : nat }.
-Arguments mkInd _%string _%nat.
+Arguments mkInd _%bs _%nat.
 
 Derive NoConfusion EqDec for inductive.
 

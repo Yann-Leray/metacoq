@@ -8,7 +8,7 @@ open Tm_util
 module BaseExtractionDenoter =
 struct
   type t = Ast0.term
-  type quoted_ident = char list
+  type quoted_ident = Bytestring.String.t
   type quoted_int = Datatypes.nat
   type quoted_int63 = Uint63.t
   type quoted_float64 = Float64.t
@@ -124,8 +124,10 @@ struct
     (* | Coq_tInt i -> ACoq_tInt i *)
     (* | Coq_tFloat f -> ACoq_tFloat f *)
 
+  let unquote_string = Caml_bytestring.caml_string_of_bytestring
+
   let unquote_ident (qi: quoted_ident) : Id.t =
-    let s = list_to_string qi in
+    let s = unquote_string qi in
     Id.of_string s
 
   let unquote_relevance (r : relevance) : Sorts.relevance =
@@ -142,10 +144,7 @@ struct
     {Context.binder_name = unquote_name q.binder_name;
      Context.binder_relevance = unquote_relevance q.binder_relevance}
 
-  let rec unquote_int (q: quoted_int) : int = 
-    match q with
-    | Datatypes.O -> 0
-    | Datatypes.S x -> succ (unquote_int x)
+  let unquote_int (q: quoted_int) : int = Caml_nat.caml_int_of_nat q
   
   let unquote_evar env evm n l = 
     let id = Evar.unsafe_of_int (unquote_int n) in
@@ -193,7 +192,7 @@ struct
     match trm with
     | Universes0.Level.Coq_lzero -> Univ.Level.set
     | Universes0.Level.Level s ->
-      let s = list_to_string s in
+      let s = unquote_string s in
       let comps = CString.split_on_char '.' s in
       let last, dp = CList.sep_last comps in
       let dp = DirPath.make (List.map Id.of_string comps) in

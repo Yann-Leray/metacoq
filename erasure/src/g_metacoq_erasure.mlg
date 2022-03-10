@@ -23,7 +23,7 @@ let bytes_of_list l =
 
 let pr_char_list l =
   (* We allow utf8 encoding *)
-  str (Bytes.to_string (bytes_of_list l))
+  str (Caml_bytestring.caml_string_of_bytestring l)
 
 let check ~bypass ~fast env evm c =
   debug (fun () -> str"Quoting");

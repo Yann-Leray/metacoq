@@ -91,11 +91,12 @@ Defined.
 }.
 Next Obligation.
   rename x into s, y into s'.
-  destruct (string_dec s s').
+  destruct (eq_dec s s').
   - subst. rewrite eq_string_refl. constructor. reflexivity.
   - assert (string_compare s s' <> Eq).
     { intro bot. apply n. apply string_compare_eq. assumption. }
-    unfold eq_string. destruct (string_compare s s').
+    unfold eq_string, StringOT.eqb.
+    destruct (string_compare s s').
     + tauto.
     + constructor. assumption.
     + constructor. assumption.
@@ -144,7 +145,7 @@ Next Obligation.
   all: unfold eq_level.
   all: try solve [ constructor ; reflexivity ].
   all: try solve [ constructor ; discriminate ].
-  - destruct (eqb_spec s s0) ; nodec.
+  - destruct (eqb_spec t t0) ; nodec.
     constructor. f_equal. assumption.
   - destruct (eqb_spec n n0) ; nodec.
     constructor. subst. reflexivity.

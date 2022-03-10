@@ -1,6 +1,6 @@
 From Coq Require Import MSetList MSetAVL MSetFacts MSetProperties MSetDecide.
-From MetaCoq.Template Require Import utils BasicAst config.
 From Equations Require Import Equations.
+From MetaCoq.Template Require Import utils BasicAst config.
 Require Import ssreflect.
 
 Local Open Scope nat_scope.
@@ -86,7 +86,7 @@ Module Level.
 
   Definition eq_dec (l1 l2 : t) : {l1 = l2}+{l1 <> l2}.
   Proof.
-    decide equality. apply string_dec. apply Peano_dec.eq_nat_dec.
+    decide equality. apply Classes.eq_dec. apply Peano_dec.eq_nat_dec.
   Defined.
 
   Inductive lt_ : t -> t -> Prop :=
@@ -137,7 +137,7 @@ Module Level.
   Global Instance eqb_refl : Reflexive eqb.
   Proof.
     intros []; unfold eqb; cbnr.
-    - rewrite (ssreflect.iffRL (string_compare_eq s s)). all: auto. reflexivity.
+    - rewrite (ssreflect.iffRL (string_compare_eq _ _)). all: auto. reflexivity.
     - rewrite Nat.compare_refl. reflexivity.
   Qed.
 
@@ -145,7 +145,7 @@ Module Level.
   Proof.
     destruct l, l'; cbn; try constructor; try reflexivity; try discriminate.
     - apply iff_reflect. unfold eqb; cbn.
-      destruct (CompareSpec_string s s0); split; intro HH;
+      destruct (CompareSpec_string t0 t1); split; intro HH;
         try reflexivity; try discriminate; try congruence.
       all: inversion HH; subst; now apply irreflexivity in H.
     - apply iff_reflect. unfold eqb; cbn.

@@ -5,6 +5,7 @@ Decimal
 Hexadecimal
 Numeral0
 Nat0
+Caml_nat
 List0
 PeanoNat
 Specif
@@ -16,12 +17,19 @@ BinInt
 PrimInt63
 Uint0
 Int63
+Byte
 Ascii
+Byte0
+Caml_byte
 String0
+Bytestring
+Caml_bytestring
 Orders
 OrdersTac
 OrdersFacts
 OrdersLists
+OrderedType0
+OrderedTypeAlt
 Int0
 MSetInterface
 MSetFacts
@@ -61,6 +69,7 @@ MCUtils
 Signature
 All_Forall
 Config0
+Kernames
 Universes0
 BasicAst
 Environment

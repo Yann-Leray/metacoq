@@ -1,15 +1,14 @@
 (* Distributed under the terms of the MIT license. *)
-From MetaCoq.Template Require Import BasicAst uGraph TemplateMonad
+From MetaCoq.Template Require Import bytestring BasicAst uGraph TemplateMonad
      TemplateMonad.Extractable.
 
 (* Base types *)
 
-Register Coq.Strings.String.string as metacoq.string.type.
-Register Coq.Strings.String.EmptyString as metacoq.string.nil.
-Register Coq.Strings.String.String as metacoq.string.cons.
+Register bytestring.String.t as metacoq.string.type.
+Register bytestring.String.EmptyString as metacoq.string.nil.
+Register bytestring.String.String as metacoq.string.cons.
 
-Register Coq.Strings.Ascii.ascii as metacoq.ascii.type.
-Register Coq.Strings.Ascii.Ascii as metacoq.ascii.intro.
+Register Coq.Init.Byte.byte as metacoq.byte.type.
 
 Register Coq.Init.Datatypes.nat as metacoq.nat.type.
 Register Coq.Init.Datatypes.O as metacoq.nat.zero.
@@ -62,12 +61,12 @@ Register MetaCoq.Template.BasicAst.aname as metacoq.ast.aname.
 
 Register MetaCoq.Template.BasicAst.nAnon as metacoq.ast.nAnon.
 Register MetaCoq.Template.BasicAst.nNamed as metacoq.ast.nNamed.
-Register MetaCoq.Template.BasicAst.ident as metacoq.ast.ident.
-Register MetaCoq.Template.BasicAst.kername as metacoq.ast.kername.
-Register MetaCoq.Template.BasicAst.modpath as metacoq.ast.modpath.
-Register MetaCoq.Template.BasicAst.MPfile as metacoq.ast.MPfile.
-Register MetaCoq.Template.BasicAst.MPbound as metacoq.ast.MPbound.
-Register MetaCoq.Template.BasicAst.MPdot as metacoq.ast.MPdot.
+Register MetaCoq.Template.Kernames.ident as metacoq.ast.ident.
+Register MetaCoq.Template.Kernames.kername as metacoq.ast.kername.
+Register MetaCoq.Template.Kernames.modpath as metacoq.ast.modpath.
+Register MetaCoq.Template.Kernames.MPfile as metacoq.ast.MPfile.
+Register MetaCoq.Template.Kernames.MPbound as metacoq.ast.MPbound.
+Register MetaCoq.Template.Kernames.MPdot as metacoq.ast.MPdot.
 Register MetaCoq.Template.BasicAst.name as metacoq.ast.name.
 Register MetaCoq.Template.BasicAst.inductive as metacoq.ast.inductive.
 Register MetaCoq.Template.BasicAst.mkInd as metacoq.ast.mkInd.

@@ -47,7 +47,7 @@ Section print_term.
     | tConst c u => "x"
     | tInd (mkInd i k) u =>
       match lookup_ind_decl Σ i k with
-      | Some (_, body) => substring 0 1 (body.(ind_name))
+      | Some (_, body) => String.substring 0 1 (body.(ind_name))
       | None => "X"
       end
     | _ => "U"
@@ -121,34 +121,34 @@ Section print_term.
       match c with
       | {| decl_name := na; decl_type := ty; decl_body := None |} => 
         let na' := (fresh_name Γ na.(binder_name) (Some ty)) in
-        (na', ("(" ++ na' ++ " : " ++ print_term Γ true false ty ++ ")")%string)
+        (na', ("(" ^ na' ^ " : " ^ print_term Γ true false ty ^ ")")%bs)
       | {| decl_name := na; decl_type := ty; decl_body := Some b |} =>
         let na' := (fresh_name Γ na.(binder_name) (Some ty)) in
-        (na', ("(" ++ na' ++ " : " ++ print_term Γ true false ty ++ " := " ++
-          print_term Γ true false b ++ ")")%string)
+        (na', ("(" ^ na' ^ " : " ^ print_term Γ true false ty ^ " := " ^
+          print_term Γ true false b ^ ")")%bs)
       end.
     
     Fixpoint print_context_gen Γ Δ :=
       match Δ with
-      | [] => (Γ, ""%string)
+      | [] => (Γ, ""%bs)
       | d :: decls => 
         let '(Γ, s) := print_context_gen Γ decls in
         let '(na, s') := pr_context_decl Γ d in
         match decls with
-        | [] => (na :: Γ, (s ++ s')%string)
-        | _ => (na :: Γ, (s ++ " " ++ s')%string)
+        | [] => (na :: Γ, s ^ s')
+        | _ => (na :: Γ, s ^ " " ^ s')
         end
       end.
           
     Fixpoint print_context_names Γ Δ :=
       match Δ with
-      | [] => (Γ, ""%string)
+      | [] => (Γ, "")
       | d :: decls => 
         let '(Γ, s) := print_context_names Γ decls in
         let na := (fresh_name Γ d.(decl_name).(binder_name) (Some d.(decl_type))) in
         match decls with
-        | [] => (na :: Γ, (s ++ na)%string)
-        | _ => (na :: Γ, (s ++ " " ++ na)%string)
+        | [] => (na :: Γ, (s ^ na))
+        | _ => (na :: Γ, (s ^ " " ^ na))
         end
       end.
 
@@ -264,18 +264,18 @@ Notation print_context Σ := (print_context_gen Σ (print_term Σ true)).
 
 Definition print_one_cstr Σ Γ (mib : mutual_inductive_body) (c : constructor_body) : string :=
   let '(Γargs, s) := print_context Σ Γ c.(cstr_args) in
-  c.(cstr_name) ++ " : " ++ s ++ "_" ++ print_list (pr_term Σ Γargs true) " " c.(cstr_indices).
+  c.(cstr_name) ^ " : " ^ s ^ "_" ^ print_list (pr_term Σ Γargs true) " " c.(cstr_indices).
   
 Definition print_one_ind (short : bool) Σ Γ (mib : mutual_inductive_body) (oib : one_inductive_body) : string :=
   let '(Γpars, spars) := print_context Σ Γ mib.(ind_params) in
   let '(Γinds, sinds) := print_context Σ Γpars oib.(ind_indices) in
-  oib.(ind_name) ++ spars ++ sinds ++ pr_term Σ Γinds true (tSort oib.(ind_sort)) ++ ":=" ++ nl ++
+  oib.(ind_name) ^ spars ^ sinds ^ pr_term Σ Γinds true (tSort oib.(ind_sort)) ^ ":=" ^ nl ^
   if short then "..."
   else print_list (print_one_cstr Σ Γpars mib) nl oib.(ind_ctors).
 
 Fixpoint print_env_aux (short : bool) (prefix : nat) univs (Σ : global_declarations) (acc : string) := 
   match prefix with 
-  | 0 => match Σ with [] => acc | _ => ("..." ++ nl ++ acc)%string end
+  | 0 => match Σ with [] => acc | _ => ("..." ^ nl ^ acc) end
   | S n => 
   match Σ with
   | [] => acc
@@ -283,27 +283,28 @@ Fixpoint print_env_aux (short : bool) (prefix : nat) univs (Σ : global_declarat
     let Σ' := ({| universes := univs; declarations := Σ |}, mib.(ind_universes)) in
     let names := fresh_names Σ' [] (arities_context mib.(ind_bodies)) in
     print_env_aux short n univs Σ
-      ("Inductive " ++ 
-       print_list (print_one_ind short Σ' names mib) nl mib.(ind_bodies) ++ "." ++ 
-       nl ++ acc)%string
+      ("Inductive " ^ 
+       print_list (print_one_ind short Σ' names mib) nl mib.(ind_bodies) ^ "." ^ 
+       nl ^ acc)
   | (kn, ConstantDecl cb) :: Σ =>
     let Σ' := ({| universes := univs; declarations := Σ |}, cb.(cst_universes)) in
     print_env_aux short n univs Σ
       ((match cb.(cst_body) with 
         | Some _ => "Definition "
         | None => "Axiom "
-      end) ++ string_of_kername kn ++ " : " ++ pr_term Σ' nil true cb.(cst_type) ++
+      end) ^ string_of_kername kn ^ " : " ^ pr_term Σ' nil true cb.(cst_type) ^
       match cb.(cst_body) with
       | Some b => 
-        if short then ("..." ++ nl)%string
-        else (" := " ++ nl ++ pr_term Σ' nil true b ++ "." ++ nl)
+        if short then ("..." ^ nl)
+        else (" := " ^ nl ^ pr_term Σ' nil true b ^ "." ^ nl)
       | None => "."
-      end ++ acc)%string
+      end ^ acc)
   end
   end.
 
-Definition print_env (short : bool) (prefix : nat) Σ := print_env_aux short prefix Σ.(universes) Σ.(declarations) EmptyString.
+Definition print_env (short : bool) (prefix : nat) Σ := 
+  print_env_aux short prefix Σ.(universes) Σ.(declarations) "".
 
 Definition print_program (short : bool) (prefix : nat) (p : program) : string := 
-  print_env short prefix (fst p) ++ nl ++
+  print_env short prefix (fst p) ^ nl ^
   pr_term (empty_ext (fst p)) nil true (snd p). 

@@ -1,15 +1,82 @@
 
 (* Distributed under the terms of the MIT license. *)
-From Coq Require Import Lia MSetList OrderedTypeAlt OrderedTypeEx Ascii String.
-From MetaCoq.Template Require Import MCUtils BasicAst AstUtils.
+From Coq Require Import Lia MSetList OrderedTypeAlt OrderedTypeEx MSetAVL MSetFacts MSetProperties.
+From MetaCoq.Template Require Import utils.
 From Coq Require Import ssreflect.
 
+Local Open Scope string_scope2.
 Definition compare_ident := string_compare.
+
+(** ** Reification of names ** *)
+
+(** [Comment taken from Coq's code]
+    - Id.t is the type of identifiers, that is morally a subset of strings which
+      only contains Unicode characters of the Letter kind (and a few more).
+      => [ident]
+    - Name.t is an ad-hoc variant of Id.t option allowing to handle optionally
+      named objects.
+      => [name]
+    - DirPath.t represents generic paths as sequences of identifiers.
+      => [dirpath]
+    - Label.t is an equivalent of Id.t made distinct for semantical purposes.
+      => [ident]
+    - ModPath.t are module paths.
+      => [modpath]
+    - KerName.t are absolute names of objects in Coq.
+      => [kername]
+
+    And also :
+    - Constant.t => [kername]
+    - variable => [ident]
+    - MutInd.t => [kername]
+    - inductive => [inductive]
+    - constructor => [inductive * nat]
+    - Projection.t => [projection]
+    - GlobRef.t => global_reference
+
+    Finally, we define the models of primitive types (uint63 and floats64).
+*)
+
+Definition ident   := string. (* e.g. nat *)
+Definition qualid  := string. (* e.g. Datatypes.nat *)
+
+(** Type of directory paths. Essentially a list of module identifiers. The
+    order is reversed to improve sharing. E.g. A.B.C is ["C";"B";"A"] *)
+Definition dirpath := list ident.
 
 Module IdentOT := StringOT.
 
 Module DirPathOT := ListOrderedType IdentOT.
-  
+
+#[global] Instance dirpath_eqdec : Classes.EqDec dirpath := _.
+
+Definition string_of_dirpath (dp : dirpath) : string := 
+  String.concat "." (List.rev dp).
+
+(** The module part of the kernel name.
+    - MPfile is for toplevel libraries, i.e. .vo files
+    - MPbound are parameters of functors
+    - MPdot is for submodules
+*)
+Inductive modpath :=
+| MPfile  (dp : dirpath)
+| MPbound (dp : dirpath) (id : ident) (i : nat)
+| MPdot   (mp : modpath) (id : ident).
+Derive NoConfusion for modpath.
+
+Fixpoint string_of_modpath (mp : modpath) : string :=
+  match mp with
+  | MPfile dp => string_of_dirpath dp
+  | MPbound dp id _ => string_of_dirpath dp ^ "." ^ id
+  | MPdot mp id => string_of_modpath mp ^ "." ^ id
+  end.
+
+(** The absolute names of objects seen by kernel *)
+Definition kername := modpath × ident.
+
+Definition string_of_kername (kn : kername) :=
+  string_of_modpath kn.1 ^ "." ^ kn.2.
+
 (* Eval compute in DirPathOT.compare ["foo"; "bar"] ["baz"].
  *)
 
@@ -119,6 +186,21 @@ End ModPathComp.
 
 Module ModPathOT := OrderedType_from_Alt ModPathComp.
 
+Program Definition modpath_eq_dec (x y : modpath) : { x = y } + { x <> y } := 
+  match ModPathComp.compare x y with
+  | Eq => left _
+  | _ => right _
+  end.
+Next Obligation.
+  symmetry in Heq_anonymous.
+  now eapply ModPathComp.compare_eq in Heq_anonymous.
+Qed.
+Next Obligation.
+  rewrite ModPathOT.eq_refl in H. congruence.
+Qed.
+
+#[global] Instance modpath_EqDec : Classes.EqDec modpath := { eq_dec := modpath_eq_dec }.
+
 Module KernameComp.
   Definition t := kername.
 
@@ -191,10 +273,20 @@ Module KernameOT.
       now apply irreflexivity in H.
   Qed.
 
-  Definition eq_dec : forall x y, {eq x y} + {~ eq x y}.
-  Proof.
-    intros k k'. apply kername_eq_dec.
-  Defined.
+  Program Definition eqb_dec (x y : t) : { x = y } + { x <> y } := 
+    match compare x y with
+    | Eq => left _
+    | _ => right _
+    end.
+  Next Obligation.
+    symmetry in Heq_anonymous.
+    now eapply compare_eq in Heq_anonymous.
+  Qed.
+  Next Obligation.
+    apply H. rewrite OT.eq_refl in H. congruence.
+  Qed.
+
+  Global Instance eq_dec : Classes.EqDec t := { eq_dec := eqb_dec }.
 
 End KernameOT.
 

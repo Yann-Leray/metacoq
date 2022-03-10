@@ -182,7 +182,7 @@ Proof.
   induction mfix; simpl; auto.
 Qed.
 
-Definition tDummy := tVar ""%string.
+Definition tDummy := tVar "".
 
 Definition iota_red npar args (br : list name * term) :=
   substl (List.rev (List.skipn npar args)) br.2.

@@ -21,7 +21,8 @@ From MetaCoq.Erasure Require ErasureFunction EOptimizePropDiscr ERemoveParams EW
 Definition time : forall {A}, string -> (unit -> A) -> unit -> A :=
   fun A s f x => f x.
 
-Extract Constant time => "(fun c f x -> let s = Tm_util.list_to_string c in Tm_util.time (Pp.str s) f x)".
+Extract Constant time => 
+  "(fun c f x -> let s = Caml_bytestring.caml_string_of_bytestring c in Tm_util.time (Pp.str s) f x)".
 
 (* This is the total erasure function +
   let-expansion of constructor arguments and case branches +

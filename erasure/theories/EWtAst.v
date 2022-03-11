@@ -2,7 +2,7 @@
 From Coq Require Import ssreflect ssrbool.
 From MetaCoq.Template Require Import utils BasicAst Universes.
 From MetaCoq.PCUIC Require Import PCUICPrimitive.
-From MetaCoq.Erasure Require Import EAst EAstUtils ECSubst ELiftSubst ETyping.
+From MetaCoq.Erasure Require Import EAst EAstUtils EInduction ECSubst ELiftSubst ETyping.
 (* EEtaExpanded.*)
 From Equations Require Import Equations.
 Set Equations Transparent.
@@ -118,39 +118,55 @@ Module Constructors.
   Section Constructors.
   Context {Σ : global_context} {n : nat}.
   
+  Obligation Tactic := idtac.
   Program Definition tBox : eterm Σ n := tBox.
+  Next Obligation. cbn. exact eq_refl. Defined.
+  
   
   Program Definition tRel (i : nat) (Hi : i < n) : eterm Σ n := tRel i.
-  Next Obligation. simp well_scoped. eapply Nat.leb_le. lia. Qed.
+  Next Obligation. cbn; intros. eapply Nat.leb_le, Hi. Defined.
   
+  Lemma andP (a b : bool) : a -> b -> a && b.
+  Proof. destruct a, b; cbn; intros; try exact eq_refl; try discriminate. Defined.
+
   Program Definition tEvar k (l : list (eterm Σ n)) : eterm Σ n := tEvar k (map eterm_term l).
-  Next Obligation. 
-    simp well_scoped. induction l; cbn; simp well_scoped => //.
-    rewrite IHl andb_true_r. exact a. 
-  Qed.
+  Next Obligation.
+    cbn; intros.
+    induction l; cbn. exact eq_refl.
+    apply andP. exact a. exact IHl. 
+  Defined.
   
   Program Definition tLambda na (b : eterm Σ (S n)) : eterm Σ n := tLambda na b.
   Next Obligation.
-    simp well_scoped. exact b.
-  Qed.
-
+    intros. exact b.
+  Defined.
 
   Program Definition tLetIn na (b : eterm Σ n) (b' : eterm Σ (S n)) : eterm Σ n := tLetIn na b b'.
   Next Obligation.
-    simp well_scoped. apply/andP; split. exact b. exact b'.
-  Qed.
+    intros. cbn. apply andP. exact b. exact b'.
+  Defined.
+
+  Lemma ap {A B : Type} (f : A -> B) (x y : A) : x = y -> f x = f y.
+  Proof. destruct 1. exact eq_refl. Defined.
+
+  Lemma map_app {A B : Type} (f : A -> B) (l l' : list A) : map f (l ++ l') = map f l ++ map f l'.
+  Proof.
+    induction l; cbn. exact eq_refl.
+    now apply ap.
+  Defined.
 
   Program Definition tApp (f : eterm Σ n) (l : list (eterm Σ n)) (napp : ~~ isApp f) (nnil : l <> nil) : eterm Σ n :=
     mkApps f (map eterm_term l).
   Next Obligation.
-    induction l using rev_ind => //. 
+    induction l using rev_ind => //.
+    intros Hf Hl.
+    specialize (IHl Hf).
     rewrite map_app EAstUtils.mkApps_app /=.
-    simp well_scoped.
-    apply/andP; split.
+    apply andP.
     - destruct l; cbn; [exact f|].
-      apply IHl. congruence.
+      apply IHl. intros Heq. congruence.
     - exact x.
-  Qed.
+  Defined.
 
   Program Definition tConst kn (isdecl : declared_constant Σ kn) : eterm Σ n := tConst kn.
 
@@ -160,8 +176,9 @@ Module Constructors.
     (isdecl : declared_inductive Σ ci.1) : eterm Σ n :=
     tCase ci c (map (fun br : ∑ args, eterm Σ (#|args| + n) => (br.π1, proj1_sig br.π2)) brs).
   Next Obligation.
-    simp well_scoped. apply/andP; split.
-    - apply/andP; split => //. exact c.
+    intros. cbn.
+    destruct ci. apply andP.
+    - apply andP => //. exact c.
     - induction brs; simp well_scoped => //.
       cbn. rewrite IHbrs andb_true_r. exact a.π2.
   Qed.
@@ -169,21 +186,31 @@ Module Constructors.
   Program Definition tProj p (c : eterm Σ n) (isdecl : declared_projection Σ p) : eterm Σ n :=
     tProj p c.
   Next Obligation.
-    simp well_scoped. rewrite isdecl; exact c.
-  Qed.
+    now cbn; intros.
+  Defined.
+  Next Obligation.
+    now cbn.
+  Defined.
+  Next Obligation.
+    cbn.
+    intros. apply andP => //. exact c.
+  Defined.
+
   Definition edefs := ∑ mfix : mfixpoint term, well_scoped_mfix Σ (#|mfix| + n) mfix.
 
   Program Definition tFix (mfix : edefs) idx : eterm Σ n := (tFix mfix.π1 idx).
   Next Obligation.
-    simp well_scoped. exact mfix.π2.
-  Qed.
+    cbn; intros. exact mfix.π2.
+  Defined.
   
   Program Definition tCoFix (mfix : edefs) idx : eterm Σ n := (tCoFix mfix.π1 idx).
   Next Obligation.
-    simp well_scoped. exact mfix.π2.
-  Qed.
+    cbn; intros; exact mfix.π2.
+  Defined.
   End Constructors.
 End Constructors.
+
+Definition ebr_br Σ n := (fun br : ∑ args : list name, eterm Σ (#|args| + n) => (br.π1, proj1_sig br.π2)).
 
 Module View.
   Section view.
@@ -203,12 +230,42 @@ Module View.
     | tFix mfix idx : t (Constructors.tFix mfix idx)
     | tCoFix mfix idx : t (Constructors.tCoFix mfix idx).
     Derive Signature for t.
+
+    Equations view_term {e} (v : t e) : term := 
+    | tBox => EAst.tBox
+    | tRel i le => EAst.tRel i
+    | tEvar k l => EAst.tEvar k (map eterm_term l)
+    | tLambda na b => EAst.tLambda na b
+    | tLetIn na b b' => EAst.tLetIn na b b'
+    | tApp f l napp nnil => EAst.mkApps f (map eterm_term l)
+    | tConst kn isdecl => EAst.tConst kn
+    | tConstruct i k isdecl => EAst.tConstruct i k
+    | tCase ci c brs isdecl => EAst.tCase ci c (map (ebr_br Σ n) brs)
+    | tProj p c isdecl => EAst.tProj p c
+    | tFix mfix idx => EAst.tFix mfix.π1 idx
+    | tCoFix mfix idx => EAst.tCoFix mfix.π1 idx.
+
   End view.
+
+  Section ViewSizes.
+    Context {Σ : global_context} {n : nat}.
+
+    Lemma view_size_let_def {na} {b : eterm Σ n} {b' : eterm Σ (S n)} : size b < size (Constructors.tLetIn na b b').
+    Proof. cbn. lia. Qed.
+
+    Lemma view_size_let_body {na} {b : eterm Σ n} {b' : eterm Σ (S n)} : size b' < size (Constructors.tLetIn na b b').
+    Proof. cbn. lia. Qed.
+    
+    Lemma view_size_lambda {na} {b : eterm Σ (S n)} : size b < size (Constructors.tLambda na b).
+    Proof. cbn. lia. Qed.
+    
+  End ViewSizes.
+    
 End View.
     
 
 Lemma well_scoped_irr {Σ n t} (ws ws' : well_scoped Σ n t) : ws = ws'.
-Proof. apply uip. Qed.
+Proof. apply uip. Defined.
 
 Section view.
   Context {Σ : global_context} {n : nat}.
@@ -230,9 +287,7 @@ Section view.
     all:move/andP: ws => [] //.
   Qed.
 
-  Definition ebr_br := (fun br : ∑ args : list name, eterm Σ (#|args| + n) => (br.π1, proj1_sig br.π2)).
-
-  Lemma ws_brs_eq l ws : map ebr_br (ws_brs l ws) = l.
+  Lemma ws_brs_eq l ws : map (ebr_br Σ n) (ws_brs l ws) = l.
   Proof. funelim (ws_brs l ws); cbn; auto. rewrite H. destruct t => //. Qed.
 
   Lemma andb_left {a b} : a && b -> a.
@@ -268,7 +323,7 @@ Section view.
     destruct x as [t ws].
     set (t' := t).
     destruct t;
-    try solve [evar (ws' : well_scoped Σ n t' = true); rewrite (well_scoped_irr ws ws'); subst ws' t';
+    try solve [evar (ws' : well_scoped Σ n    t' = true); rewrite (well_scoped_irr ws ws'); subst ws' t';
       unshelve econstructor; eauto].
     - evar (ws' : well_scoped Σ n t' = true); rewrite (well_scoped_irr ws ws'); subst ws' t'.
       unshelve econstructor. now eapply Nat.leb_le.
@@ -339,4 +394,46 @@ Section view.
       rewrite (well_scoped_irr ws ws'); subst ws' t'.
       econstructor.
   Defined.
+
+  Lemma view_term (t : eterm Σ n) (v : View.t t) : View.view_term v = t.
+  Proof.
+    induction v; cbn; reflexivity.
+  Qed.
+
+  Lemma view_view_term (t : eterm Σ n) : View.view_term (view t) = t.
+  Proof. apply view_term. Qed.
+
+  Lemma view_view_size (t : eterm Σ n) : size (View.view_term (view t)) = size t.
+  Proof. now rewrite view_view_term. Qed.
+
 End view.
+
+Opaque view.
+
+From Coq Require Import Relation_Definitions.
+
+Section test_view.
+  Context (Σ : global_context).
+  Import View.
+
+  Definition eterm_size : relation (∑ n, eterm Σ n) := 
+    MR lt (fun x : ∑ n, eterm Σ n => size x.π2).
+
+  Instance wf_size : WellFounded eterm_size.
+  Proof. unfold eterm_size. tc. Defined.
+
+  Equations? test_view (n : nat) (t : eterm Σ n) : bool 
+    by wf (n; t) eterm_size :=
+    test_view n t with view t := {
+      | tBox => true
+      | tRel i lei => false
+      | tApp f args notapp notnil => test_view n f
+      | _ => false
+    }.
+  Proof.
+    do 2 red. cbn. rewrite size_mkApps.
+    destruct args; cbn; try congruence. lia.
+  Qed.
+End test_view.
+
+

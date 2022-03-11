@@ -37,14 +37,12 @@ Definition make_wf_env_ext (Σ : global_env_ext) : EnvCheck wf_env_ext :=
 
 Definition gctx_wf_env : wf_env_ext.
 Proof.
-  let wf_proof := eval lazy in (make_wf_env_ext gctx) in 
+  let wf_proof := eval hnf in (make_wf_env_ext gctx) in 
   match wf_proof with
   | CorrectDecl ?x => exact x
   | _ => idtac wf_proof; fail "Couldn't prove the global environment is well-formed"
   end.
 Defined.
-
-
 
 (** There is always a proof of `forall x : Sort s, x -> x` *)
 

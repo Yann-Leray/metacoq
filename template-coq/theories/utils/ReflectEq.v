@@ -27,14 +27,19 @@ Proof.
   destruct (eqb_spec x y); auto; subst; intuition auto.
 Qed.
 
-#[global] Instance ReflectEq_EqDec :
-  forall A, ReflectEq A -> EqDec A.
-Proof.
-  intros A [eqb h] x y.
-  destruct (h x y).
-  - left. assumption.
-  - right. assumption.
-Defined.
+#[global, program] Instance ReflectEq_EqDec {A} (R : ReflectEq A) : EqDec A := {
+  eq_dec := fun x y => 
+    match eqb x y with
+    | true => left _
+    | false => right _
+    end }.
+Next Obligation.
+  now apply eqb_eq.
+Qed.
+Next Obligation.
+  rewrite eqb_refl in Heq_anonymous.
+  discriminate.
+Qed.
 
 Definition eq_dec_to_bool {A} `{EqDec A} x y :=
   match eq_dec x y with
@@ -43,16 +48,15 @@ Definition eq_dec_to_bool {A} `{EqDec A} x y :=
   end.
 
 (* Not an instance to avoid loops and making boolean definitions depend on sumbool ones *)
-#[global]
-Lemma EqDec_ReflectEq : forall A `{EqDec A}, ReflectEq A.
+#[global, program]
+Definition EqDec_ReflectEq A {E : EqDec A} : ReflectEq A := 
+  {| eqb := eq_dec_to_bool |}.
+Next Obligation.
 Proof.
-  intros A h.
-  unshelve econstructor.
-  - eapply eq_dec_to_bool.
-  - unfold eq_dec_to_bool.
-    intros x y. destruct (eq_dec x y).
-    all: constructor ; assumption.
-Defined.
+  unfold eq_dec_to_bool.
+  destruct (eq_dec x y).
+  all: constructor ; assumption.
+Qed.
 
 Ltac nodec :=
   let bot := fresh "bot" in

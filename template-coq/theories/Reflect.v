@@ -28,28 +28,6 @@ Next Obligation.
   reflexivity.
 Qed.
 
-Definition eq_level l1 l2 :=
-  match l1, l2 with
-  | Level.lzero, Level.lzero => true
-  | Level.Level s1, Level.Level s2 => eqb s1 s2
-  | Level.Var n1, Level.Var n2 => eqb n1 n2
-  | _, _ => false
-  end.
-
-#[global, program] Instance reflect_level : ReflectEq Level.t := {
-  eqb := eq_level
-}.
-Next Obligation.
-  destruct x, y.
-  all: unfold eq_level.
-  all: try solve [ constructor ; reflexivity ].
-  all: try solve [ constructor ; discriminate ].
-  - destruct (eqb_spec t t0) ; nodec.
-    constructor. f_equal. assumption.
-  - destruct (eqb_spec n n0) ; nodec.
-    constructor. subst. reflexivity.
-Defined.
-
 Definition eq_prop_level l1 l2 :=
   match l1, l2 with
   | PropLevel.lProp, PropLevel.lProp => true
@@ -187,28 +165,6 @@ Proof.
   destruct u as [[u1 u2] ?], v as [[v1 v2] ?]; cbn; clear; split.
   now inversion 1. intros ->. f_equal. apply uip.
 Qed.
-
-(* move in Universes.v ?? *)
-#[global] Instance eq_dec_UnivExpr : EqDec UnivExpr.t.
-Proof. intros e e'. decide equality; apply eq_dec. Qed.
-
-#[global] Instance eq_dec_univ0 : EqDec Universe.nonEmptyUnivExprSet.
-Proof.
-  intros u v.
-  assert (H : {UnivExprSet.elements u = UnivExprSet.elements v}
-              + {~ UnivExprSet.elements u = UnivExprSet.elements v}). {
-    decide equality. apply eq_dec. }
-  destruct H as [H|H]; [left; now apply eq_universe_iff' in H|right].
-  intro X; apply H; now apply eq_universe_iff' in X.
-Defined.
-
-#[global] Instance eq_dec_univ : EqDec Universe.t.
-Proof.
-  red. decide equality.
-  apply eq_dec_univ0.
-Defined.
-
-#[global] Instance reflect_eq_univ : ReflectEq Universe.t := EqDec_ReflectEq _.
 
 #[global] Instance reflect_case_info : ReflectEq case_info := EqDec_ReflectEq case_info.
 

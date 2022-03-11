@@ -160,8 +160,8 @@ Definition genLensN (baseName : String.t) : TM unit :=
     | (IndRef kn) :: _ =>
       let name := kn.(inductive_mind) in
       let ty := Ast.tInd
-        {| BasicAst.inductive_mind := name
-         ; BasicAst.inductive_ind := 0 (* TODO: fix for mutual records *) |} List.nil in
+        {| Kernames.inductive_mind := name
+         ; Kernames.inductive_ind := 0 (* TODO: fix for mutual records *) |} List.nil in
       tmBind (tmQuoteInductive name) (fun ind =>
           match getFields ind with
           | Some info =>

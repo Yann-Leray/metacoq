@@ -118,6 +118,8 @@ gen-src/primFloat.mli
 gen-src/primFloat.ml
 gen-src/decimalString.mli
 gen-src/decimalString.ml
+gen-src/reflectEq.mli
+gen-src/reflectEq.ml
 gen-src/mCString.ml
 gen-src/mCString.mli
 gen-src/mCUtils.ml
@@ -150,6 +152,16 @@ gen-src/orderedType0.mli
 gen-src/orderedType0.ml
 gen-src/orderedTypeAlt.mli
 gen-src/orderedTypeAlt.ml
+gen-src/decidableType.mli
+gen-src/decidableType.ml
+gen-src/fMapList.mli
+gen-src/fMapList.ml
+gen-src/fMapInterface.mli
+gen-src/fMapInterface.ml
+gen-src/fMapAVL.mli
+gen-src/fMapAVL.ml
+gen-src/fMapFacts.mli
+gen-src/fMapFacts.ml
 gen-src/peanoNat.ml
 gen-src/peanoNat.mli
 gen-src/plugin_core.ml

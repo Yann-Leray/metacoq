@@ -1,8 +1,9 @@
 
 (* Distributed under the terms of the MIT license. *)
-From Coq Require Import Lia MSetList OrderedTypeAlt OrderedTypeEx MSetAVL MSetFacts MSetProperties.
+From Coq Require Import Lia MSetList OrderedTypeAlt OrderedTypeEx FMapAVL FMapFacts MSetAVL MSetFacts MSetProperties.
 From MetaCoq.Template Require Import utils.
 From Coq Require Import ssreflect.
+From Equations Require Import Equations.
 
 Local Open Scope string_scope2.
 Definition compare_ident := string_compare.
@@ -234,7 +235,7 @@ Module KernameComp.
     
 End KernameComp.
 
-Module KernameOT.
+Module Kername.
  Include KernameComp.
  Module OT := OrderedType_from_Alt KernameComp.
 
@@ -273,29 +274,46 @@ Module KernameOT.
       now apply irreflexivity in H.
   Qed.
 
-  Program Definition eqb_dec (x y : t) : { x = y } + { x <> y } := 
-    match compare x y with
-    | Eq => left _
-    | _ => right _
+  Definition eqb kn kn' := 
+    match compare kn kn' with
+    | Eq => true
+    | _ => false
     end.
-  Next Obligation.
-    symmetry in Heq_anonymous.
-    now eapply compare_eq in Heq_anonymous.
-  Qed.
-  Next Obligation.
-    apply H. rewrite OT.eq_refl in H. congruence.
-  Qed.
 
-  Global Instance eq_dec : Classes.EqDec t := { eq_dec := eqb_dec }.
+  #[global, program] Instance reflect_kername : ReflectEq kername := {
+    eqb := eqb
+  }.
+  Next Obligation.
+    unfold eqb. destruct compare eqn:e.
+    - apply compare_eq in e. now constructor.
+    - constructor. intros e'; subst.
+      now rewrite OT.eq_refl in e.
+    - constructor. intros e'; subst.
+      now rewrite OT.eq_refl in e.
+  Qed.
+  
+  Definition eq_dec : forall (x y : t), { x = y } + { x <> y } := Classes.eq_dec.
 
-End KernameOT.
+End Kername.
+
+Module KernameMap := FMapAVL.Make Kername.OT.
+Module KernameMapFact := FMapFacts.WProperties KernameMap.
+
+Notation eq_kername := (eqb (A:=kername)) (only parsing).
+
+Lemma eq_kername_refl kn : eq_kername kn kn.
+Proof.
+  eapply ReflectEq.eqb_refl.
+Qed.
+
+Definition eq_constant := eq_kername.
 
 (* Local Open Scope string_scope.*)
 (* Eval compute in KernameOT.compare (MPfile ["fdejrkjl"], "A") (MPfile ["lfrk;k"], "B"). *)
   
-Module KernameSet := MSetAVL.Make KernameOT.
-Module KernameSetFact := MSetFacts.WFactsOn KernameOT KernameSet.
-Module KernameSetProp := MSetProperties.WPropertiesOn KernameOT KernameSet.
+Module KernameSet := MSetAVL.Make Kername.
+Module KernameSetFact := MSetFacts.WFactsOn Kername KernameSet.
+Module KernameSetProp := MSetProperties.WPropertiesOn Kername KernameSet.
 
 Lemma knset_in_fold_left {A} kn f (l : list A) acc : 
   KernameSet.In kn (fold_left (fun acc x => KernameSet.union (f x) acc) l acc) <->
@@ -312,3 +330,75 @@ Proof.
       destruct ina as [<-|ina'];
       intuition auto. right. now exists a'.
 Qed.
+
+(** Designation of a (particular) inductive type. *)
+Record inductive : Set := mkInd { inductive_mind : kername ;
+                                  inductive_ind : nat }.
+Arguments mkInd _%bs _%nat.
+
+Derive NoConfusion for inductive.
+
+Definition string_of_inductive (i : inductive) :=
+  string_of_kername (inductive_mind i) ^ "," ^ string_of_nat (inductive_ind i).
+
+Definition eq_inductive_def i i' :=
+  let 'mkInd i n := i in
+  let 'mkInd i' n' := i' in
+  eqb (i, n) (i', n').
+
+#[global, program] Instance reflect_eq_inductive : ReflectEq inductive := {
+  eqb := eq_inductive_def
+}.
+Next Obligation.
+  destruct x as [m n], y as [m' n']; cbn -[eqb].
+  case: eqb_spec ; nodec.
+  cbn. constructor. noconf p; reflexivity.
+Qed.
+
+Notation eq_inductive := (eqb (A:=inductive)).
+
+Lemma eq_inductive_refl i : eq_inductive i i.
+Proof.
+  apply ReflectEq.eqb_refl.
+Qed.
+
+Definition projection : Set := inductive * nat (* params *) * nat (* argument *).
+
+Definition eq_projection (p p' : projection) := eqb p p'.
+
+#[global, program] Instance reflect_eq_projection : ReflectEq projection := {
+  eqb := eq_projection
+}.
+Next Obligation.
+  unfold eq_projection.
+  case: eqb_spec ; nodec.
+  cbn. now constructor.
+Qed.
+
+Lemma eq_projection_refl i : eq_projection i i.
+Proof.
+  apply ReflectEq.eqb_refl.
+Qed.
+
+(** Kernel declaration references [global_reference] *)
+Inductive global_reference :=
+| VarRef : ident -> global_reference
+| ConstRef : kername -> global_reference
+| IndRef : inductive -> global_reference
+| ConstructRef : inductive -> nat -> global_reference.
+
+Derive NoConfusion EqDec for global_reference.
+
+Definition string_of_gref gr : string :=
+  match gr with
+  | VarRef v => v
+  | ConstRef s => string_of_kername s
+  | IndRef (mkInd s n) =>
+    "Inductive " ^ string_of_kername s ^ " " ^ (string_of_nat n)
+  | ConstructRef (mkInd s n) k =>
+    "Constructor " ^ string_of_kername s ^ " " ^ (string_of_nat n) ^ " " ^ (string_of_nat k)
+  end.
+
+#[global] Hint Resolve Kername.eq_dec : eq_dec.
+
+Definition gref_eq_dec (gr gr' : global_reference) : {gr = gr'} + {~ gr = gr'} := Classes.eq_dec gr gr'.

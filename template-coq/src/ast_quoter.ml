@@ -1,5 +1,6 @@
 open Names
 open Datatypes
+open Kernames
 open BasicAst
 open Ast0
 open Ast0.Env

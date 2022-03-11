@@ -184,7 +184,7 @@ Fixpoint lookup_mind_decl (id : kername) (decls : global_declarations)
  := match decls with
     | nil => None
     | (kn, InductiveDecl d) :: tl =>
-      if eq_kername kn id then Some d else lookup_mind_decl id tl
+      if kn == id then Some d else lookup_mind_decl id tl
     | _ :: tl => lookup_mind_decl id tl
     end.
 

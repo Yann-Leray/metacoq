@@ -1,5 +1,6 @@
 open Names
 open Constr
+open Kernames
 open BasicAst
 open Ast0
 open Env
@@ -18,7 +19,7 @@ struct
   type quoted_relevance = relevance
   type quoted_sort = Universes0.Universe.t
   type quoted_cast_kind = cast_kind
-  type quoted_kernel_name = BasicAst.kername
+  type quoted_kernel_name = kername
   type quoted_inductive = inductive
   type quoted_proj = projection
   type quoted_global_reference = global_reference
@@ -222,7 +223,7 @@ struct
   = (evm,  Univ.Instance.of_array (Array.of_list (List0.map unquote_level l)))
 
 
-  let unquote_global_reference (trm : BasicAst.global_reference) : GlobRef.t =
+  let unquote_global_reference (trm : Kernames.global_reference) : GlobRef.t =
     let open GlobRef in
     match trm with
     | VarRef id -> VarRef (unquote_ident id)

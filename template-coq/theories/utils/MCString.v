@@ -1,5 +1,5 @@
-From Coq Require Import Decimal DecimalString ZArith.
-From MetaCoq.Template Require Import MCCompare bytestring.
+From Coq Require Import ssreflect ssrbool Decimal DecimalString ZArith.
+From MetaCoq.Template Require Import MCCompare bytestring ReflectEq.
 
 Local Open Scope bs.
 Notation string := String.t.
@@ -41,11 +41,3 @@ Definition string_of_Z (z : Z) : string :=
   | Zpos p => string_of_positive p
   | Zneg p => "-" ++ string_of_positive p
   end.
-
-Definition eq_string := StringOT.eqb.
-
-Lemma eq_string_refl x : is_true (eq_string x x).
-Proof.
-  unfold eq_string, StringOT.eqb.
-  now rewrite StringOT.compare_refl.
-Qed.

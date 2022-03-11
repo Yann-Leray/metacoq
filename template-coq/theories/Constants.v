@@ -67,9 +67,15 @@ Register MetaCoq.Template.Kernames.modpath as metacoq.ast.modpath.
 Register MetaCoq.Template.Kernames.MPfile as metacoq.ast.MPfile.
 Register MetaCoq.Template.Kernames.MPbound as metacoq.ast.MPbound.
 Register MetaCoq.Template.Kernames.MPdot as metacoq.ast.MPdot.
+Register MetaCoq.Template.Kernames.inductive as metacoq.ast.inductive.
+Register MetaCoq.Template.Kernames.mkInd as metacoq.ast.mkInd.
+Register MetaCoq.Template.Kernames.global_reference as metacoq.ast.global_reference.
+Register MetaCoq.Template.Kernames.VarRef as metacoq.ast.VarRef.
+Register MetaCoq.Template.Kernames.ConstRef as metacoq.ast.ConstRef.
+Register MetaCoq.Template.Kernames.IndRef as metacoq.ast.IndRef.
+Register MetaCoq.Template.Kernames.ConstructRef as metacoq.ast.ConstructRef.
+
 Register MetaCoq.Template.BasicAst.name as metacoq.ast.name.
-Register MetaCoq.Template.BasicAst.inductive as metacoq.ast.inductive.
-Register MetaCoq.Template.BasicAst.mkInd as metacoq.ast.mkInd.
 Register MetaCoq.Template.BasicAst.def as metacoq.ast.def.
 Register MetaCoq.Template.BasicAst.mkdef as metacoq.ast.mkdef.
 Register MetaCoq.Template.BasicAst.cast_kind as metacoq.ast.cast_kind.
@@ -83,11 +89,6 @@ Register MetaCoq.Template.BasicAst.recursivity_kind as metacoq.ast.recursivity_k
 Register MetaCoq.Template.BasicAst.Finite as metacoq.ast.Finite.
 Register MetaCoq.Template.BasicAst.CoFinite as metacoq.ast.CoFinite.
 Register MetaCoq.Template.BasicAst.BiFinite as metacoq.ast.BiFinite.
-Register MetaCoq.Template.BasicAst.global_reference as metacoq.ast.global_reference.
-Register MetaCoq.Template.BasicAst.VarRef as metacoq.ast.VarRef.
-Register MetaCoq.Template.BasicAst.ConstRef as metacoq.ast.ConstRef.
-Register MetaCoq.Template.BasicAst.IndRef as metacoq.ast.IndRef.
-Register MetaCoq.Template.BasicAst.ConstructRef as metacoq.ast.ConstructRef.
 Register MetaCoq.Template.BasicAst.fresh_evar_id as metacoq.ast.fresh_evar_id.
 
 (* Universes *)

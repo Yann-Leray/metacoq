@@ -22,8 +22,6 @@ Ascii
 Byte0
 Caml_byte
 String0
-Bytestring
-Caml_bytestring
 Orders
 OrdersTac
 OrdersFacts
@@ -31,6 +29,11 @@ OrdersLists
 OrderedType0
 OrderedTypeAlt
 Int0
+FMapList
+FMapAVL
+DecidableType
+FMapInterface
+FMapFacts
 MSetInterface
 MSetFacts
 MSetDecide
@@ -54,6 +57,9 @@ MCRelations
 MCOption
 MCProd
 MCCompare
+ReflectEq
+Bytestring
+Caml_bytestring
 Monad_utils
 Sumbool
 Zeven

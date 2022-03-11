@@ -12,6 +12,7 @@ Require Export MCPrelude
         MCSquash
         MCRelations
         MCString
+        ReflectEq
         bytestring
 .
 

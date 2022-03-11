@@ -12,7 +12,7 @@ Require Import Coq.micromega.Lia.
 From Equations Require Import Equations. 
 Set Primitive Projections.
 Set Default Proof Using "Type".
-
+From MetaCoq.Template Require Import MCCompare ReflectEq.
 (** bytes *)
 
 Definition byte_parse (b : Byte.byte) : Byte.byte := b.
@@ -167,7 +167,8 @@ Module String.
 End String.
 
 Definition bs := String.t.
- 
+Notation string := String.t.
+
 Bind Scope bs_scope with bs.
 
 String Notation String.t String.parse String.print : bs_scope.
@@ -177,7 +178,7 @@ Notation "x ++ y" := (String.append x y) : bs_scope.
 Import String.
 
 (** comparison *)
-Require Import Coq.Structures.OrderedType.
+Require Import Orders Coq.Structures.OrderedType.
 
 Lemma to_N_inj : forall x y, Byte.to_N x = Byte.to_N y <-> x = y.
 Proof.
@@ -375,4 +376,124 @@ Module OT_bs <: OrderedType.OrderedType with Definition t := bs.
 
 End OT_bs.
 
-Global Instance string_eq_dec : EqDec bs := { eq_dec := OT_bs.eq_dec }.
+Module StringOT <: UsualOrderedType.
+  Definition t := string.
+
+  Definition eq : t -> t -> Prop := eq.
+  Definition eq_equiv : Equivalence eq := _.
+
+  Definition compare := bs_cmp.
+  Definition lt x y : Prop := compare x y = Lt.
+  
+  Lemma compare_eq : forall x y : string, compare x y = Eq <-> eq x y.
+  Proof.
+    intros.
+    unfold compare.
+    destruct (OT_bs.lm x y).
+    - subst. split; eauto. reflexivity.
+    - split; try discriminate.
+      eapply OT_bs.lt_not_eq in H. contradiction.
+    - split; try discriminate.
+      eapply OT_bs.lt_not_eq in H. intros H'; symmetry in H'. contradiction.
+  Qed.
+  
+  Lemma compare_refl x : compare x x = Eq.
+  Proof.
+    now apply compare_eq.
+  Qed.
+
+  Lemma compare_lt : forall x y : string, compare x y = Lt <-> compare y x = Gt.
+  Proof.
+    intros x y.
+    unfold compare.
+    destruct (OT_bs.lm x y).
+    all:split; try congruence; subst.
+    - intros hc.
+      fold (compare y y) in hc. now rewrite compare_refl in hc.
+    - intros _.
+      destruct (OT_bs.lm y x); subst.
+      * eapply OT_bs.lt_not_eq in H. elim H; reflexivity.
+      * eapply OT_bs.lt_trans in H; try eassumption.
+        eapply OT_bs.lt_not_eq in H. elim H; reflexivity.
+      * reflexivity.
+  Qed.
+
+  Definition compare_spec (x y : t) : CompareSpec (eq x y) (lt x y) (lt y x) (compare x y).
+  Proof.
+    case_eq (compare x y); intros H.
+    - apply CompEq. now apply compare_eq.
+    - apply CompLt; assumption.
+    - apply CompGt. red. now apply compare_lt.
+  Qed.
+  
+  #[local] Instance lt_transitive : Transitive lt.
+  Proof.
+    red. eapply OT_bs.lt_trans.
+  Qed.
+  
+  Lemma compare_sym (x y : string) : compare x y = CompOpp (compare y x).
+  Proof.
+    destruct (compare_spec x y).
+    - red in H; subst.
+      rewrite (proj2 (compare_eq _ _)); auto. reflexivity.
+    - rewrite (proj1 (compare_lt _ _)); auto.
+    - rewrite (proj2 (compare_lt _ _)); auto.
+      red in H.
+      now apply compare_lt.
+  Qed.
+  
+  Lemma compare_trans (x y z : string) c : compare x y = c -> compare y z = c -> compare x z = c.
+  Proof.
+    destruct (compare_spec x y); subst; intros <-;
+    destruct (compare_spec y z); subst; try congruence.
+    eapply transitivity in H0. 2:eassumption. red in H0. subst. now rewrite compare_refl.
+    eapply transitivity in H0. 2:eassumption. now red in H0.
+    eapply transitivity in H. 2:eassumption.
+    now apply compare_lt in H.
+  Qed.
+  
+  Definition lt_irreflexive : Irreflexive lt.
+  Proof.
+    intro x. red; unfold lt.
+    now rewrite compare_refl.
+  Qed.
+
+  Global Instance lt_strorder : StrictOrder lt.
+  Proof.
+    split.
+    - apply lt_irreflexive.
+    - apply lt_transitive.
+  Qed.
+
+  Definition lt_compat : Proper (eq ==> eq ==> iff) lt.
+  Proof.
+    unfold eq. intros x y e z t e'. subst; reflexivity.
+  Qed.
+ 
+  (* Bonus *)
+  Definition eqb (l1 l2 : t) : bool := 
+    match compare l1 l2 with Eq => true | _ => false end.
+
+  Definition eq_leibniz (x y : t) : eq x y -> x = y := id.
+
+  #[global] Program Instance reflect_eq_string : ReflectEq t := {
+    eqb := eqb
+  }.
+  Next Obligation.
+    rename x into s, y into s'.
+    unfold StringOT.eqb.
+    destruct (StringOT.compare s s') eqn:e.
+    - apply StringOT.compare_eq in e; red in e. subst. constructor; reflexivity.
+    - constructor. intros He; subst.
+      now rewrite StringOT.compare_refl in e.
+    - constructor. intros He; subst.
+      now rewrite StringOT.compare_refl in e.
+  Qed.
+
+  Definition eq_dec : EqDec t := eq_dec.
+
+End StringOT.
+
+Notation string_compare := StringOT.compare.
+Notation string_compare_eq := StringOT.compare_eq.
+Notation CompareSpec_string := StringOT.compare_spec.

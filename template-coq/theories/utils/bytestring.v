@@ -161,6 +161,7 @@ Module String.
   Fixpoint concat (sep : t) (s : list t) : t :=
     match s with
     | nil => EmptyString
+    | cons s nil => s
     | cons s xs => s ++ sep ++ concat sep xs
     end.
 

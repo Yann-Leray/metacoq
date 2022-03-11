@@ -461,13 +461,11 @@ Proof.
   apply PCUICWeakeningEnvConv.lookup_env_Some_fresh in H as not_fresh.
   econstructor.
   - unfold PCUICAst.declared_constant in *; cbn.
-    unfold eq_kername.
     inversion wfΣ; subst.
-    destruct kername_eq_dec as [<-|]; [congruence|].
+    destruct (eqb_spec kn0 kn) as [<-|]; [congruence|].
     eassumption.
   - unfold ETyping.declared_constant in *. cbn -[ReflectEq.eqb].
     inversion wfΣ; subst.
-    change (eq_kername kn0 kn) with (ReflectEq.eqb kn0 kn).
     destruct (ReflectEq.eqb_spec kn0 kn); [congruence|].
     eassumption.
   - unfold erases_constant_body in *.
@@ -476,9 +474,8 @@ Proof.
       assert (PCUICAst.declared_constant (add_global_decl Σ (kn, decl)) kn0 cb).
       { unfold PCUICAst.declared_constant.
         cbn.
-        unfold eq_kername.
         inversion wfΣ; subst.
-        destruct kername_eq_dec as [<-|]; [congruence|].
+        destruct (eqb_spec kn0 kn) as [<-|]; [congruence|].
         easy. }
       inversion wfΣ; subst.
       eapply declared_constant_inv in H4; eauto.
@@ -503,16 +500,16 @@ Proof.
     invs wfΣ.
     destruct H0. split. 2: eauto.
     destruct d. split; eauto.
-    red. cbn. unfold eq_kername. destruct kername_eq_dec; eauto.
+    red. cbn. cbn in *.
+    destruct (eqb_spec (inductive_mind ind) kn). cbn in *.
     subst. 
-    eapply PCUICWeakeningEnvConv.lookup_env_Some_fresh in H5. eauto. eapply H.
+    eapply PCUICWeakeningEnvConv.lookup_env_Some_fresh in H5. eauto. eapply H. exact H0.
   - econstructor; eauto.
     destruct H as [H H'].
     split; eauto. red in H |- *.
     inv wfΣ.
     unfold PCUICEnvironment.lookup_env.
-    simpl. unfold eq_kername.
-    destruct (kername_eq_dec (inductive_mind p.1) kn); auto. subst.
+    simpl. destruct (eqb_spec (inductive_mind p.1) kn); auto. subst.
     eapply PCUICWeakeningEnvConv.lookup_env_Some_fresh in H; eauto. contradiction.
     destruct H0 as [H0 H0'].
     split; eauto. red in H0 |- *.
@@ -716,8 +713,7 @@ Proof.
       apply IH in erg'. 2:{ depelim wf. now depelim o0. }
       assert (decl_ext: PCUICAst.declared_constant Σu kn' cst').
       { unfold PCUICAst.declared_constant in *; cbn in *.
-        unfold eq_kername in *.
-        now destruct kername_eq_dec; [|congruence]. }
+        destruct (eqb_spec kn' kn); [|congruence]. subst. contradiction. }
       specialize (proj1 erg' kn' cst' decl_ext) as (cst & decl'' & ? & ?).
       exists cst.
       split; [|split].
@@ -745,14 +741,13 @@ Proof.
       destruct decli as [decli ?]. split; auto.
       red in decli |- *. simpl in decli |- *.
       unfold PCUICEnvironment.lookup_env in decli |- *. simpl in *.
-      unfold eq_kername in decli |- *.
-      destruct kername_eq_dec. subst. discriminate. auto.
+      destruct (eqb_spec (inductive_mind k) kn).  subst. discriminate. auto.
       destruct IH as [mdecl' [idecl' [decli' er]]].
       exists mdecl', idecl'. split; auto.
       red. destruct decli'; split; auto.
       red in decli.
       unfold declared_minductive in *.
-      simpl. unfold eq_kername. destruct kername_eq_dec; subst; auto.
+      simpl. destruct (eqb_spec (inductive_mind k) kn); subst; auto.
       unfold PCUICAst.declared_minductive in decli.
       unfold PCUICEnvironment.lookup_env in decli.
       simpl in decli. rewrite eq_kername_refl in decli. intuition discriminate.
@@ -762,16 +757,15 @@ Proof.
       simpl in decli |- *.
       unfold PCUICAst.declared_minductive, PCUICEnvironment.lookup_env in decli.
       simpl in decli.
-      unfold eq_kername in decli |- *. simpl in *.
-      destruct kername_eq_dec. subst. noconf decli.
+      destruct (eqb_spec (inductive_mind k) kn). simpl in *. subst. noconf decli.
       destruct (Forall2_nth_error_left (proj1 H) _ _ H3); eauto.
       eexists _, _; intuition eauto. split; eauto. red.
-      simpl. unfold eq_kername. destruct kername_eq_dec; try congruence.
+      simpl. rewrite eqb_refl. congruence.
       destruct (proj2 IH _ _ _ (conj decli H3)) as [m' [i' [decli' ei]]].
       eexists _, _; intuition eauto.
       destruct decli'; red; split; eauto.
       red in d |- *. simpl.
-      case: eqb_spec; subst; try congruence.
+      apply neqb in n. destruct eqb; cbn in n; try congruence.
 Qed.       
 
 Lemma erases_global_erases_deps Σ Γ t T et Σ' :

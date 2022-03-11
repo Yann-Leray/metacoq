@@ -34,7 +34,7 @@ Section print_term.
     end.
 
   Definition is_fresh (Γ : list ident) (id : ident) :=
-    List.forallb (fun id' => negb (ident_eq id id')) Γ.
+    List.forallb (fun id' => negb (eqb id id')) Γ.
 
   Fixpoint name_from_term (t : term) :=
     match t with

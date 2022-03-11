@@ -25,7 +25,7 @@ Proof.
 Qed.
 
 Program Instance eqb_spec : ReflectEq byte := 
-  {| Reflect.eqb := eqb |}.
+  {| ReflectEq.eqb := eqb |}.
 Next Obligation.
   apply (reflect_equiv (NoConfusion x y)).
   split; intros. now apply noConfusion. now apply noConfusion_inv.

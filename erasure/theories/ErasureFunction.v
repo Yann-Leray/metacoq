@@ -1330,7 +1330,7 @@ Lemma lookup_env_closed {Σ kn decl} : ETyping.closed_env Σ -> ETyping.lookup_e
 Proof.
   induction Σ; cbn => //.
   move/andP => [] cla cle.
-  unfold eq_kername; destruct kername_eq_dec.
+  case: eqb_spec.
   move=> [= <-]. apply cla.
   now eapply IHΣ.
 Qed.

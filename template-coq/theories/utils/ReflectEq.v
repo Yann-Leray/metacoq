@@ -9,7 +9,7 @@ Class ReflectEq A := {
   eqb_spec : forall x y : A, reflect (x = y) (eqb x y)
 }.
 Arguments eqb : simpl never.
-Infix "==" := eqb (at level 20).
+Infix "==" := eqb (at level 70).
 
 Lemma eqb_eq {A} `{ReflectEq A} (x y : A) : x == y -> x = y.
 Proof.
@@ -22,7 +22,7 @@ Proof.
   destruct (eqb_spec x x); auto.
 Qed.
 
-Lemma neqb {A} {R : ReflectEq A} (x y : A) : ~~ x == y <-> x <> y.
+Lemma neqb {A} {R : ReflectEq A} (x y : A) : ~~ (x == y) <-> x <> y.
 Proof.
   destruct (eqb_spec x y); auto; subst; intuition auto.
 Qed.

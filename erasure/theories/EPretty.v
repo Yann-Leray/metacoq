@@ -42,7 +42,7 @@ Section print_term.
     List.forallb
       (fun decl =>
          match decl.(decl_name) with
-         | nNamed id' => negb (ident_eq id id')
+         | nNamed id' => negb (eqb id id')
          | nAnon => true
          end) Γ.
 

@@ -324,16 +324,16 @@ Proof.
     destruct X; cbn ; subst.
     all: destruct (eqb_annot_reflect na na') => /= //.
     2: apply/andb_and; split.
-    all: apply eq_dec_to_bool_refl.
+    all: eapply eqb_refl.
   - intros hcc'.
     eapply forallb2_bcompare_decl_All2_fold in hcc'; tea.
     eapply All2_fold_impl in hcc'; tea; simpl; intuition eauto.
     move: H.
     destruct d as [na [bod|] ty], d' as [na' [bod'|] ty']; cbn in * => //.
+    + destruct (eqb_annot_reflect na na') => // /=.
+      repeat case: eqb_spec => //; intros; subst; cbn; auto; constructor; auto.
     + destruct (eqb_annot_reflect na na') => //.
-      unfold eq_dec_to_bool. repeat destruct eq_dec => //; subst; cbn; auto; constructor; auto.
-    + destruct (eqb_annot_reflect na na') => //.
-      unfold eq_dec_to_bool. repeat destruct eq_dec => //; subst; cbn; auto; constructor; auto.
+      repeat case: eqb_spec => //; intros; subst; cbn; auto; constructor; auto.
 Qed.
 
 Lemma forallb_true {A : Type} (l : list A) : forallb xpredT l.

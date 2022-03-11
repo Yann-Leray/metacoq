@@ -212,7 +212,7 @@ Definition wf_predicateb mdecl idecl (p : predicate term) : bool :=
 Lemma wf_predicateP mdecl idecl p : reflect (wf_predicate mdecl idecl p) (wf_predicateb mdecl idecl p).
 Proof.
   rewrite /wf_predicate /wf_predicate_gen /wf_predicateb.
-  case: Reflect.eqb_spec => eqpars /= //.
+  case: ReflectEq.eqb_spec => eqpars /= //.
   * case: (forallb2P _ _ (forget_types (pcontext p)) (idecl_binder idecl :: ind_indices idecl)
       (fun na decl => eqb_annot_reflect na decl.(decl_name))); constructor => //.
     intros [_ Hi]; contradiction.

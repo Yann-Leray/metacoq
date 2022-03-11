@@ -339,42 +339,4 @@ Section view.
       rewrite (well_scoped_irr ws ws'); subst ws' t'.
       econstructor.
   Defined.
-
-    -
-    
-    - cbn. eapply View.tBox. econstructor. 
-  | (tRel i; ws) => View.tRel i _
-  | _ => todo "bla".
-    | tVar n => pvar n
-    | tEvar n l => pevar n l
-    | tBox => pbox
-    | tLambda n1 t => plam n1 t
-    | tLetIn n2 t0 t1 => plet n2 t0 t1
-    | tApp t2 t3 with inspect (decompose_app (tApp t2 t3)) := 
-      { | exist _ (t, l) da := 
-        let napp := decompose_app_notApp _ _ _ da in
-        let nonnil := decompose_app_app _ _ _ _ da in
-        rew [P] (eq_sym (decompose_app_inv da)) in papp t l napp nonnil }
-    | tConst k => pconst k
-    | tConstruct i n => pconstruct i n
-    | tCase ina c brs => pcase ina c brs
-    | tProj p c => pproj p c
-    | tFix mfix idx => pfix mfix idx
-    | tCoFix mfix idx => pcofix mfix idx.
-
-  MkAppsInd .case (P:=fun x => t x)
-    tBox tRel tVar 
-    (fun n l => tEvar n l) 
-    (fun n t => tLambda n t)
-    (fun n b t => tLetIn n b t)
-    (fun f l napp nnil => tApp f l napp nnil)
-    tConst
-    tConstruct
-    (fun p t l => tCase p t l)
-    (fun p t => tProj p t)
-    (fun mfix n => tFix mfix n)
-    (fun mfix n => tCoFix mfix n).
-
-Lemma view_mkApps
-
-
+End view.

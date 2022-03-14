@@ -86,8 +86,6 @@ struct
     | _ -> not_supported_verb trm "unquote_char"
 
   let unquote_string trm =
-    let env = Global.env () in
-    Feedback.msg_debug Pp.(str"Unquoting string " ++ Printer.pr_constr_env env (Evd.from_env env) trm);
     let rec go n trm =
       let (h,args) = app_full trm [] in
       if constr_equall h tEmptyString then

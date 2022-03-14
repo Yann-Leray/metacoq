@@ -1540,7 +1540,7 @@ Proof.
   unfold on_global_env.
   destruct Σ as [univs Σ]; cbn. intros [cu ond].
   induction ond; cbn in * => //.
-  case: eqb_spec => [-> [= <-]| ne].
+  case: eqb_specT => [-> [= <-]| ne].
   - exists ({| universes := univs; declarations := Σ |}, udecl).
     split; try constructor; tas.
     cbn. now split => //; exists [(kn, d)].

@@ -2260,9 +2260,8 @@ Section CheckEnv.
     let Σ := fst p in
     '(exist wfΣ eq) <- check_wf_ext (Σ, φ) ;;
     inft <- infer_term wfΣ (snd p) ;; 
-    ret _.
+    ret (inft.π1; _).
   Next Obligation.
-    exists inft.
     have [wfΣ] := (x.(wf_env_ext_wf)); sq. split; eauto.
   Qed.
 

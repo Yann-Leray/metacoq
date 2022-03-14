@@ -1244,7 +1244,7 @@ Section All_local_env.
     destruct Σ as [univs Σ]; rewrite /on_global_env /lookup_env; cbn.
     intros [cu Σp].
     induction Σp; simpl. congruence.
-    destruct (eqb_spec c kn); subst.
+    destruct (eqb_specT c kn); subst.
     - intros [= ->].
       exists ({| universes := univs; declarations := Σ |}).
       split.

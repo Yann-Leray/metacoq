@@ -68,7 +68,7 @@ Derive NoConfusion for modpath.
 Fixpoint string_of_modpath (mp : modpath) : string :=
   match mp with
   | MPfile dp => string_of_dirpath dp
-  | MPbound dp id _ => string_of_dirpath dp ^ "." ^ id
+  | MPbound dp id n => string_of_dirpath dp ^ "." ^ id ^ "." ^ string_of_nat n
   | MPdot mp id => string_of_modpath mp ^ "." ^ id
   end.
 
@@ -284,13 +284,11 @@ Module Kername.
     eqb := eqb
   }.
   Next Obligation.
-    unfold eqb. destruct compare eqn:e.
-    - apply compare_eq in e. now constructor.
-    - constructor. intros e'; subst.
-      now rewrite OT.eq_refl in e.
-    - constructor. intros e'; subst.
-      now rewrite OT.eq_refl in e.
-  Qed.
+    unfold eqb. destruct compare eqn:e; constructor.
+    - now apply compare_eq in e.
+    -intros e'; subst. now rewrite OT.eq_refl in e.
+    -intros e'; subst. now rewrite OT.eq_refl in e.
+  Defined.
   
   Definition eq_dec : forall (x y : t), { x = y } + { x <> y } := Classes.eq_dec.
 
@@ -387,7 +385,7 @@ Inductive global_reference :=
 | IndRef : inductive -> global_reference
 | ConstructRef : inductive -> nat -> global_reference.
 
-Derive NoConfusion EqDec for global_reference.
+Derive NoConfusion for global_reference.
 
 Definition string_of_gref gr : string :=
   match gr with
@@ -399,6 +397,27 @@ Definition string_of_gref gr : string :=
     "Constructor " ^ string_of_kername s ^ " " ^ (string_of_nat n) ^ " " ^ (string_of_nat k)
   end.
 
-#[global] Hint Resolve Kername.eq_dec : eq_dec.
+Definition gref_eqb (x y : global_reference) : bool :=
+  match x, y with
+  | VarRef i, VarRef i' => eqb i i'
+  | ConstRef c, ConstRef c' => eqb c c'
+  | IndRef i, IndRef i' => eqb i i'
+  | ConstructRef i k, ConstructRef i' k' => eqb i i' && eqb k k'
+  | _, _ => false
+  end.
+
+#[global, program] Instance grep_reflect_eq : ReflectEq global_reference := 
+  {| eqb := gref_eqb |}.
+Next Obligation.
+  destruct x, y; cbn; try constructor; try congruence.
+  - destruct (eqb_spec i i0); constructor; subst; auto; congruence.
+  - destruct (eqb_spec k k0); constructor; subst; auto; congruence.
+  - destruct (eqb_spec i i0); constructor; subst; auto; congruence.
+  - destruct (eqb_spec i i0); subst; cbn; auto; try constructor; try congruence.
+    destruct (eqb_spec n n0); constructor; subst; congruence.
+Defined.
 
 Definition gref_eq_dec (gr gr' : global_reference) : {gr = gr'} + {~ gr = gr'} := Classes.eq_dec gr gr'.
+
+#[global] Hint Resolve Kername.eq_dec : eq_dec.
+

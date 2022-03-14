@@ -18,6 +18,7 @@ for i = 0 to 255 do
   Printf.printf "| '\\%03i' -> Coq_x%02x\n" i i
 done;;
 *)
+(*
 Printf.printf "From Coq Require Import Byte.\n\n";;
 
 for i = 0 to 255 do 
@@ -51,3 +52,9 @@ for i = 0 to 255 do
   Printf.printf "  | x%02x => compare_byte_x%02x b'\n" i i
 done;;
 Printf.printf"  end.\n";;
+*)
+
+
+for i = 0 to 255 do 
+  Printf.printf "| x%02x -> <%%x%02x%%>\n" i i
+done

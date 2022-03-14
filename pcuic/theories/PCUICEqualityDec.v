@@ -164,7 +164,7 @@ Notation eqb_term_upto_univ Σ eq leq := (eqb_term_upto_univ_napp Σ eq leq 0).
 Ltac eqspec :=
   lazymatch goal with
   | |- context [ eqb ?u ?v ] =>
-    destruct (eqb_spec u v) ; nodec ; subst
+    destruct (eqb_specT u v) ; nodec ; subst
   end.
 
 Ltac eqspecs :=
@@ -298,7 +298,7 @@ Proof.
       now constructor.
 Qed.
 
-Definition eqb_univ_reflect : forall u u' : Universe.t, reflect (u = u') (eqb u u').
+Definition eqb_univ_reflect : forall u u' : Universe.t, reflectProp (u = u') (eqb u u').
 Proof.
   intros u u'.
   destruct (eqb_spec u u'); constructor; auto.
@@ -331,9 +331,9 @@ Proof.
     move: H.
     destruct d as [na [bod|] ty], d' as [na' [bod'|] ty']; cbn in * => //.
     + destruct (eqb_annot_reflect na na') => // /=.
-      repeat case: eqb_spec => //; intros; subst; cbn; auto; constructor; auto.
+      repeat case: eqb_specT => //; intros; subst; cbn; auto; constructor; auto.
     + destruct (eqb_annot_reflect na na') => //.
-      repeat case: eqb_spec => //; intros; subst; cbn; auto; constructor; auto.
+      repeat case: eqb_specT => //; intros; subst; cbn; auto; constructor; auto.
 Qed.
 
 Lemma forallb_true {A : Type} (l : list A) : forallb xpredT l.
@@ -547,7 +547,7 @@ Proof.
         intros H; now inv H.
       * constructor. intros H; now inv H.
   - cbn - [eqb].
-    destruct (eqb_spec s k) ; nodec. subst.
+    destruct (eqb_specT s k) ; nodec. subst.
     induction u in ui, ht, ht' |- *.
     + destruct ui.
       * constructor. constructor. constructor.

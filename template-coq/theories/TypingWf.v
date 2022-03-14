@@ -196,7 +196,7 @@ Proof.
   destruct Σ as [univs Σ]; cbn in *.
   rewrite /lookup_env /on_global_env /=.
   induction Σ in univs, Σ', k, d |- *; cbn => //.
-  destruct (eqb_spec k a.1).
+  destruct (eqb_spec k a.1) as [e|e].
   * move=> wfΣ' [=]. intros <- ext.
     destruct ext as [univeq [Σ'' eq]] => /=. cbn in *.
     subst univs. rewrite eq in wfΣ'.

@@ -483,13 +483,11 @@ Module StringOT <: UsualOrderedType.
   Next Obligation.
     rename x into s, y into s'.
     unfold StringOT.eqb.
-    destruct (StringOT.compare s s') eqn:e.
-    - apply StringOT.compare_eq in e; red in e. subst. constructor; reflexivity.
-    - constructor. intros He; subst.
-      now rewrite StringOT.compare_refl in e.
-    - constructor. intros He; subst.
-      now rewrite StringOT.compare_refl in e.
-  Qed.
+    destruct (StringOT.compare s s') eqn:e; constructor.
+    - apply StringOT.compare_eq in e; red in e. subst. reflexivity.
+    - intros He; subst. now rewrite StringOT.compare_refl in e.
+    - intros He; subst. now rewrite StringOT.compare_refl in e.
+  Defined.
 
   Definition eq_dec : EqDec t := eq_dec.
 
@@ -498,3 +496,50 @@ End StringOT.
 Notation string_compare := StringOT.compare.
 Notation string_compare_eq := StringOT.compare_eq.
 Notation CompareSpec_string := StringOT.compare_spec.
+
+(** To perform efficient pretty printing, one needs to use a tree structure 
+  to avoid quadratic overhead of appending strings. *)
+Module Tree.
+  Local Open Scope bs_scope.
+  Inductive t := 
+  | string : String.t -> t
+  | append : t -> t -> t.
+
+  Coercion string : String.t >-> t.
+
+  Infix "++" := append.
+
+  Fixpoint to_string_acc t acc := 
+    match t with
+    | string s => String.append s acc
+    | append s s' => to_string_acc s (to_string_acc s' acc)
+    end.
+
+  Definition to_string t := to_string_acc t "".
+
+  Definition string_of_list_aux {A} (f : A -> t) (sep : t) (l : list A) :=
+    let fix aux l :=
+        match l return t with
+        | nil => ""
+        | cons a nil => f a
+        | cons a l => f a ++ sep ++ aux l
+      end
+    in aux l.
+
+  Definition string_of_list {A} (f : A -> t) l :=
+    "[" ++ string_of_list_aux f "," l ++ "]".
+
+  Definition print_list {A} (f : A -> t) (sep : t) (l : list A) : t :=
+    string_of_list_aux f sep l.
+    
+  Fixpoint concat (sep : t) (s : list t) : t :=
+    match s with
+    | nil => EmptyString
+    | cons s nil => s
+    | cons s xs => s ++ sep ++ concat sep xs
+    end.
+
+  Definition parens (top : bool) (s : t) :=
+    if top then s else "(" ++ s ++ ")".
+    
+End Tree.

@@ -22,9 +22,9 @@ Instance reflect_prim_float : ReflectEq PrimFloat.float :=
   { eqb x y := eqb (ReflectEq := EqDec_ReflectEq SpecFloat.spec_float) (FloatOps.Prim2SF x) (FloatOps.Prim2SF y) }.
 Next Obligation.
   intros. cbn -[eqb].
-  destruct (eqb_spec (ReflectEq := EqDec_ReflectEq SpecFloat.spec_float) (FloatOps.Prim2SF x) (FloatOps.Prim2SF y)); constructor.
+  destruct (eqb_spec (ReflectEq := EqDec_ReflectEq SpecFloat.spec_float) (FloatOps.Prim2SF x) (FloatOps.Prim2SF y)) as [H|H]; constructor.
   now apply FloatAxioms.Prim2SF_inj.
-  intros e; apply n. rewrite e.
+  intros e; apply H. rewrite e.
   reflexivity.
 Qed.
 
@@ -217,12 +217,11 @@ Proof.
   cong.
 Defined.
 
-#[global] Instance Z_as_int : ReflectEq Int.Z_as_Int.t.
-Proof.
-  refine {| eqb := Z.eqb |}.
-  apply Z.eqb_spec.
-Defined.
-
+#[global, program] Instance Z_as_int : ReflectEq Int.Z_as_Int.t :=
+  { eqb := Z.eqb }.
+Next Obligation.
+  apply (reflect_reflectProp_2 Z.eqb_spec).
+Qed.
 
 Scheme level_lt_ind_dep := Induction for Level.lt_ Sort Prop.
 Scheme constraint_type_lt_ind_dep := Induction for ConstraintType.lt_ Sort Prop.

@@ -26,8 +26,23 @@ Definition print_list {A} (f : A -> string) (sep : string) (l : list A) : string
 Definition parens (top : bool) (s : string) :=
   if top then s else "(" ++ s ++ ")".
 
+Fixpoint string_of_uint n := 
+  match n with
+  | Nil => ""
+  | D0 n => "0" ++ string_of_uint n
+  | D1 n => "1" ++ string_of_uint n
+  | D2 n => "2" ++ string_of_uint n
+  | D3 n => "3" ++ string_of_uint n
+  | D4 n => "4" ++ string_of_uint n
+  | D5 n => "5" ++ string_of_uint n
+  | D6 n => "6" ++ string_of_uint n
+  | D7 n => "7" ++ string_of_uint n
+  | D8 n => "8" ++ string_of_uint n
+  | D9 n => "9" ++ string_of_uint n
+  end.
+
 Definition string_of_nat n : string :=
-  String.of_string (DecimalString.NilEmpty.string_of_uint (Nat.to_uint n)).
+  string_of_uint (Nat.to_uint n).
 
 #[global]
 Hint Resolve String.string_dec : eq_dec.

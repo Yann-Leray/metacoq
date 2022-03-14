@@ -388,7 +388,7 @@ Module Universe.
     destruct (eqb_spec (t_set x) (t_set y)); constructor.
     destruct x, y; cbn in *. subst.
     now rewrite (uip t_ne0 t_ne1).
-    intros e; subst x; apply n.
+    intros e; subst x; apply H.
     reflexivity.
   Qed.
 

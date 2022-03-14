@@ -4,12 +4,44 @@ Import ListNotations.
 
 (* Some reflection / EqDec lemmata *)
 
+Inductive reflectProp (P : Prop) : bool -> Prop :=
+ | reflectP : P -> reflectProp P true
+ | reflectF : ~ P -> reflectProp P false.
+Derive Signature for reflectProp.
+
+Lemma reflect_reflectProp {P b} : reflect P b -> reflectProp P b.
+Proof.
+  intros []; constructor; auto.
+Qed.
+
+(** If one really wants a computational version. *)
+Remark reflectProp_reflect {P b} : reflectProp P b -> reflect P b.
+Proof.
+  now destruct b; intros H; constructor; depelim H.
+Defined.
+
+Lemma reflect_reflectProp_1 {A} {P : A -> Prop} {b} : (forall x, reflect (P x) (b x)) -> (forall x, reflectProp (P x) (b x)).
+Proof.
+  intros f x. now apply reflect_reflectProp.
+Qed.
+
+Lemma reflect_reflectProp_2 {A B} {P : A -> B -> Prop} {b} : (forall x y, reflect (P x y) (b x y)) -> (forall x y, reflectProp (P x y) (b x y)).
+Proof.
+  intros f x y. now apply reflect_reflectProp.
+Qed.
+
 Class ReflectEq A := {
   eqb : A -> A -> bool ;
-  eqb_spec : forall x y : A, reflect (x = y) (eqb x y)
+  eqb_spec : forall x y : A, reflectProp (x = y) (eqb x y) (* Prevent using reflect in computational content *)
 }.
 Arguments eqb : simpl never.
 Infix "==" := eqb (at level 70).
+
+(* If one needs to eliminate a decidable equality in Type, e.g. when working with PCUIC derivations. *)
+Lemma eqb_specT {A} {HR : ReflectEq A} (x y : A) : reflect (x = y) (x == y).
+Proof.
+  eapply reflectProp_reflect. apply eqb_spec.
+Qed.
 
 Lemma eqb_eq {A} `{ReflectEq A} (x y : A) : x == y -> x = y.
 Proof.
@@ -101,7 +133,7 @@ Proof.
 Defined.
 
 #[global] Instance reflect_nat : ReflectEq nat := {
-  eqb_spec := PeanoNat.Nat.eqb_spec
+  eqb_spec := reflect_reflectProp_2 PeanoNat.Nat.eqb_spec
 }.
 
 

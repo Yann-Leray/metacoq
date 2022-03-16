@@ -159,7 +159,7 @@ Section Inversion.
         Σ ;;; Γ ⊢ tSort (Universe.sort_of_product s1 s2) ≤ T.
   Proof.
     intros Γ na A B T h. unshelve invtac h; eauto.
-    all: unfold typing_size at 2; fold (typing_size h1); fold (typing_size h2); lia.
+    all: unfold typing_size at 2; fold (typing_size h1); try fold na; fold (typing_size h2); lia.
   Qed.
 
   Lemma inversion_Lambda :

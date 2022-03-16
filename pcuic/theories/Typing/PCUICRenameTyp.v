@@ -798,7 +798,7 @@ Lemma typing_rename_prop : env_prop
     renaming (shiftnP #|Γ| P) Σ Δ Γ f ->
     Σ;;; Δ |- rename f t : rename f T) Σ) Γ).
 Proof.
-  apply typing_ind_env.
+  apply typing_ind_env. 4,5,6: cbn zeta.
 
   - intros Σ wfΣ Γ wfΓ HΓ. split; auto.
     induction HΓ; constructor; firstorder eauto.
@@ -814,7 +814,7 @@ Proof.
   - intros Σ wfΣ Γ wfΓ l X H0 P Δ f [hΔ hf].
     simpl. constructor. all: auto.
 
-  - intros Σ wfΣ Γ wfΓ na A B s1 s2 X hA ihA hB ihB P Δ f hf.
+  - intros Σ wfΣ Γ wfΓ a A B s1 s2 X hA ihA hB ihB P Δ f hf.
     rewrite /=. econstructor.
     + eapply ihA; eauto.
     + eapply ihB; eauto.
@@ -824,7 +824,7 @@ Proof.
       constructor.
       * destruct hf as [hΔ hf]. auto.
       * simpl. exists s1. eapply ihA; eauto.
-  - intros Σ wfΣ Γ wfΓ na A t s1 B X hA ihA ht iht P Δ f hf.
+  - intros Σ wfΣ Γ wfΓ a A t s1 B X hA ihA ht iht P Δ f hf.
     simpl.
      (* /andP [_ havB]. *)
     simpl. econstructor.
@@ -835,7 +835,7 @@ Proof.
       constructor.
       * destruct hf as [hΔ hf]. auto.
       * simpl. exists s1. eapply ihA; eauto.
-  - intros Σ wfΣ Γ wfΓ na b B t s1 A X hB ihB hb ihb ht iht P Δ f hf.
+  - intros Σ wfΣ Γ wfΓ a b B t s1 A X hB ihB hb ihb ht iht P Δ f hf.
     simpl. econstructor.
     + eapply ihB; tea.
     + eapply ihb; tea.

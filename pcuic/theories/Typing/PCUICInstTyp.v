@@ -366,7 +366,7 @@ Lemma type_inst {cf : checker_flags} : env_prop
     Σ ;;; Δ ⊢ σ : Γ ->
     Σ ;;; Δ |- t.[σ] : T.[σ]) Σ) Γ).
 Proof.
-  apply typing_ind_env.
+  apply typing_ind_env. 4,5,6: cbn zeta.
 
   - intros Σ wfΣ Γ wfΓ. auto.
     induction 1; constructor; firstorder auto.
@@ -374,7 +374,7 @@ Proof.
     eapply hσ. assumption.
   - intros Σ wfΣ Γ wfΓ l X H0 Δ σ hΔ hσ. simpl.
     econstructor. all: assumption.
-  - intros Σ wfΣ Γ wfΓ na A B s1 s2 X hA ihA hB ihB Δ σ hΔ hσ.
+  - intros Σ wfΣ Γ wfΓ a A B s1 s2 X hA ihA hB ihB Δ σ hΔ hσ.
     autorewrite with sigma. simpl.
     econstructor.
     + eapply ihA ; auto.
@@ -384,7 +384,7 @@ Proof.
       * eapply well_subst_Up. 2: assumption.
         econstructor ; auto.
         eexists. eapply ihA. all: auto.
-  - intros Σ wfΣ Γ wfΓ na A t s1 bty X hA ihA ht iht Δ σ hΔ hσ.
+  - intros Σ wfΣ Γ wfΓ a A t s1 bty X hA ihA ht iht Δ σ hΔ hσ.
     autorewrite with sigma.
     econstructor.
     + eapply ihA ; auto.
@@ -394,7 +394,7 @@ Proof.
       * eapply well_subst_Up. 2: assumption.
         constructor. 1: assumption.
         eexists. eapply ihA. all: auto.
-  - intros Σ wfΣ Γ wfΓ na b B t s1 A X hB ihB hb ihb ht iht Δ σ hΔ hσ.
+  - intros Σ wfΣ Γ wfΓ a b B t s1 A X hB ihB hb ihb ht iht Δ σ hΔ hσ.
     autorewrite with sigma.
     econstructor.
     + eapply ihB. all: auto.

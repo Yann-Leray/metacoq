@@ -114,8 +114,15 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T).
 
   Import T E.
 
+  Variant typ_or_rel_or_none := Typ (T : term) | SortRel (rel : relevance) | Sort.
+
+  Definition typ_or_rel_or_none_map f t := match t with
+  | Typ T => Typ (f T)
+  | SortRel _ | Sort => t
+  end.
+
   Section TypeLocal.
-    Context (typing : forall (Γ : context), term -> option term -> Type).
+    Context (typing : forall (Γ : context), term -> typ_or_rel_or_none -> Type).
 
     Inductive All_local_env : context -> Type :=
     | localenv_nil :
@@ -123,13 +130,13 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T).
 
     | localenv_cons_abs Γ na t :
         All_local_env Γ ->
-        typing Γ t None ->
+        typing Γ t (SortRel na.(binder_relevance)) ->
         All_local_env (Γ ,, vass na t)
 
     | localenv_cons_def Γ na b t :
         All_local_env Γ ->
-        typing Γ t None ->
-        typing Γ b (Some t) ->
+        typing Γ t (SortRel na.(binder_relevance)) ->
+        typing Γ b (Typ t) ->
         All_local_env (Γ ,, vdef na b t).
   Derive Signature NoConfusion for All_local_env.
   End TypeLocal.
@@ -139,7 +146,7 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T).
   Arguments localenv_cons_abs {_ _ _ _} _ _.
 
   Lemma All_local_env_fold P f Γ :
-    All_local_env (fun Γ t T => P (fold_context_k f Γ) (f #|Γ| t) (option_map (f #|Γ|) T)) Γ <~>
+    All_local_env (fun Γ t T => P (fold_context_k f Γ) (f #|Γ| t) (typ_or_rel_or_none_map (f #|Γ|) T)) Γ <~>
     All_local_env P (fold_context_k f Γ).
   Proof.
     split.
@@ -149,7 +156,7 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T).
       * destruct a as [na [b|] ty]; depelim H; specialize (IHΓ H); constructor; simpl; auto.
   Qed.
 
-  Lemma All_local_env_impl_ind {P Q : context -> term -> option term -> Type} {l} :
+  Lemma All_local_env_impl_ind {P Q : context -> term -> typ_or_rel_or_none -> Type} {l} :
     All_local_env P l ->
     (forall Γ t T, All_local_env Q Γ -> P Γ t T -> Q Γ t T) ->
     All_local_env Q l.
@@ -160,11 +167,12 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T).
   (** Well-formedness of local environments embeds a sorting for each variable *)
 
   Definition lift_typing (P : global_env_ext -> context -> term -> term -> Type) :
-  (global_env_ext -> context -> term -> option term -> Type) :=
+  (global_env_ext -> context -> term -> typ_or_rel_or_none -> Type) :=
     fun Σ Γ t T =>
       match T with
-      | Some T => P Σ Γ t T
-      | None => { s : Universe.t & P Σ Γ t (tSort s) }
+      | Typ T => P Σ Γ t T
+      | SortRel rel => { s : Universe.t & relevance_of_sort s = rel × P Σ Γ t (tSort s) }
+      | Sort => { s : Universe.t & P Σ Γ t (tSort s) }
       end.
 
   Definition on_local_decl (P : context -> term -> option term -> Type) Γ d :=
@@ -187,8 +195,8 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T).
     | localenv_over_cons_abs Γ na t
         (all : All_local_env (lift_typing typing Σ) Γ) :
         All_local_env_over Σ Γ all ->
-        forall (tu : lift_typing typing Σ Γ t None),
-          property Σ Γ all _ _ (projT2 tu) ->
+        forall (tu : lift_typing typing Σ Γ t (SortRel na.(binder_relevance))),
+          property Σ Γ all _ _ (tu.π2.2) ->
           All_local_env_over Σ (Γ ,, vass na t)
                              (localenv_cons_abs all tu)
 
@@ -196,8 +204,8 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T).
         (all : All_local_env (lift_typing typing Σ) Γ) (tb : typing Σ Γ b t) :
         All_local_env_over Σ Γ all ->
         property Σ Γ all _ _ tb ->
-        forall (tu : lift_typing typing Σ Γ t None),
-          property Σ Γ all _ _ (projT2 tu) ->
+        forall (tu : lift_typing typing Σ Γ t (SortRel na.(binder_relevance))),
+          property Σ Γ all _ _ (tu.π2.2) ->
           All_local_env_over Σ (Γ ,, vdef na b t)
                              (localenv_cons_def all tu tb).
   End TypeLocalOver.
@@ -304,17 +312,26 @@ Module DeclarationTyping (T : Term) (E : EnvironmentSig T)
 
   Import T E Ty L ET CS CT.
 
-  Definition isType `{checker_flags} (Σ : global_env_ext) (Γ : context) (t : term) :=
+  Definition isType `{checker_flags} (Σ : global_env_ext) (Γ : context) (t : term) : Type :=
     { s : _ & Σ ;;; Γ |- t : tSort s }.
+    (* lift_typing typing Σ Γ t Sort. *)
 
+  Definition isTypeRel `{checker_flags} (Σ : global_env_ext) (Γ : context) (t : term) (rel: relevance) : Type :=
+    { s : _ & relevance_of_sort s = rel × Σ ;;; Γ |- t : tSort s }.
+    (* lift_typing typing Σ Γ t (SortRel rel). *)
 
+  Definition isType_of_isTypeRel `{checker_flags} {Σ Γ t rel} (u: isTypeRel Σ Γ t rel) : isType Σ Γ t :=
+    match u with
+    | existT s (_, σ) => existT _ s σ
+    end.
+  
 
   (** *** Typing of inductive declarations *)
 
   Section GlobalMaps.
 
     Context {cf: checker_flags}.
-    Context (P : global_env_ext -> context -> term -> option term -> Type).
+    Context (P : global_env_ext -> context -> term -> typ_or_rel_or_none -> Type).
 
     Definition on_context Σ ctx :=
       All_local_env (P Σ) ctx.
@@ -325,23 +342,25 @@ Module DeclarationTyping (T : Term) (E : EnvironmentSig T)
     Fixpoint type_local_ctx Σ (Γ Δ : context) (u : Universe.t) : Type :=
       match Δ with
       | [] => wf_universe Σ u
-      | {| decl_body := None; decl_type := t |} :: Δ => (type_local_ctx Σ Γ Δ u * (P Σ (Γ ,,, Δ) t (Some (tSort u))))
-      | {| decl_body := Some b; decl_type := t |} :: Δ => (type_local_ctx Σ Γ Δ u * (P Σ (Γ ,,, Δ) t None * P Σ (Γ ,,, Δ) b (Some t)))
+      | {| decl_body := None; decl_type := t |} :: Δ =>
+        (type_local_ctx Σ Γ Δ u * (P Σ (Γ ,,, Δ) t (Typ (tSort u))))
+      | {| decl_body := Some b; decl_type := t |} :: Δ =>
+        (type_local_ctx Σ Γ Δ u * (P Σ (Γ ,,, Δ) t Sort * P Σ (Γ ,,, Δ) b (Typ t)))
       end.
 
     Fixpoint sorts_local_ctx Σ (Γ Δ : context) (us : list Universe.t) : Type :=
       match Δ, us with
       | [], [] => unit
       | {| decl_body := None; decl_type := t |} :: Δ, u :: us => 
-        (sorts_local_ctx Σ Γ Δ us * (P Σ (Γ ,,, Δ) t (Some (tSort u))))
+        (sorts_local_ctx Σ Γ Δ us * (P Σ (Γ ,,, Δ) t (Typ (tSort u))))
       | {| decl_body := Some b; decl_type := t |} :: Δ, us => 
-        (sorts_local_ctx Σ Γ Δ us * (P Σ (Γ ,,, Δ) t None * P Σ (Γ ,,, Δ) b (Some t)))
+        (sorts_local_ctx Σ Γ Δ us * (P Σ (Γ ,,, Δ) t Sort * P Σ (Γ ,,, Δ) b (Typ t)))
       | _, _ => False
       end.
 
     Implicit Types (mdecl : mutual_inductive_body) (idecl : one_inductive_body) (cdecl : constructor_body).
 
-    Definition on_type Σ Γ T := P Σ Γ T None.
+    Definition on_type Σ Γ T := P Σ Γ T Sort.
 
     Open Scope type_scope.
 
@@ -571,7 +590,7 @@ Module DeclarationTyping (T : Term) (E : EnvironmentSig T)
         sorts_local_ctx Σ (arities_context mdecl.(ind_bodies) ,,, mdecl.(ind_params))
                       cdecl.(cstr_args) cunivs;
       on_cindices : 
-        ctx_inst (fun Σ Γ t T => P Σ Γ t (Some T)) Σ (arities_context mdecl.(ind_bodies) ,,, mdecl.(ind_params) ,,, cdecl.(cstr_args))
+        ctx_inst (fun Σ Γ t T => P Σ Γ t (Typ T)) Σ (arities_context mdecl.(ind_bodies) ,,, mdecl.(ind_params) ,,, cdecl.(cstr_args))
                       cdecl.(cstr_indices)
                       (List.rev (lift_context #|cdecl.(cstr_args)| 0 ind_indices));
 
@@ -762,7 +781,7 @@ Module DeclarationTyping (T : Term) (E : EnvironmentSig T)
 
     Definition on_constant_decl Σ d :=
       match d.(cst_body) with
-      | Some trm => P Σ [] trm (Some d.(cst_type))
+      | Some trm => P Σ [] trm (Typ d.(cst_type))
       | None => on_type Σ [] d.(cst_type)
       end.
 
@@ -829,7 +848,7 @@ Module DeclarationTyping (T : Term) (E : EnvironmentSig T)
   Arguments onNpars {_ P Σ mind mdecl}.
   Arguments onVariance {_ P Σ mind mdecl}.
 
-  Lemma All_local_env_impl (P Q : context -> term -> option term -> Type) l :
+  Lemma All_local_env_impl (P Q : context -> term -> typ_or_rel_or_none -> Type) l :
     All_local_env P l ->
     (forall Γ t T, P Γ t T -> Q Γ t T) ->
     All_local_env Q l.
@@ -850,7 +869,7 @@ Module DeclarationTyping (T : Term) (E : EnvironmentSig T)
     intros. induction X; simpl; constructor; auto.
   Defined.
 
-  Lemma type_local_ctx_impl (P Q : global_env_ext -> context -> term -> option term -> Type) Σ Γ Δ u :
+  Lemma type_local_ctx_impl (P Q : global_env_ext -> context -> term -> typ_or_rel_or_none -> Type) Σ Γ Δ u :
     type_local_ctx P Σ Γ Δ u ->
     (forall Γ t T, P Σ Γ t T -> Q Σ Γ t T) ->
     type_local_ctx Q Σ Γ Δ u.
@@ -860,7 +879,7 @@ Module DeclarationTyping (T : Term) (E : EnvironmentSig T)
     intros. intuition auto. intuition auto.
   Qed.
 
-  Lemma sorts_local_ctx_impl (P Q : global_env_ext -> context -> term -> option term -> Type) Σ Γ Δ u :
+  Lemma sorts_local_ctx_impl (P Q : global_env_ext -> context -> term -> typ_or_rel_or_none -> Type) Σ Γ Δ u :
     sorts_local_ctx P Σ Γ Δ u ->
     (forall Γ t T, P Σ Γ t T -> Q Σ Γ t T) ->
     sorts_local_ctx Q Σ Γ Δ u.
@@ -900,13 +919,13 @@ Module DeclarationTyping (T : Term) (E : EnvironmentSig T)
       := localenv_nil.
 
     Definition wf_local_rel_abs {Σ Γ Γ' A na} :
-      wf_local_rel Σ Γ Γ' -> {u & Σ ;;; Γ ,,, Γ' |- A : tSort u }
+      wf_local_rel Σ Γ Γ' -> {u & relevance_of_sort u = na.(binder_relevance) × Σ ;;; Γ ,,, Γ' |- A : tSort u }
       -> wf_local_rel Σ Γ (Γ',, vass na A)
       := localenv_cons_abs.
 
     Definition wf_local_rel_def {Σ Γ Γ' t A na} :
       wf_local_rel Σ Γ Γ' ->
-      isType Σ (Γ ,,, Γ') A ->
+      isTypeRel Σ (Γ ,,, Γ') A na.(binder_relevance) ->
       Σ ;;; Γ ,,, Γ' |- t : A ->
       wf_local_rel Σ Γ (Γ',, vdef na t A)
       := localenv_cons_def.
@@ -919,9 +938,7 @@ Module DeclarationTyping (T : Term) (E : EnvironmentSig T)
       intros Σ Γ h. eapply All_local_env_impl.
       - exact h.
       - intros Δ t [] h'.
-        all: cbn.
-        + rewrite app_context_nil_l. assumption.
-        + rewrite app_context_nil_l. assumption.
+        all: cbn; rewrite app_context_nil_l; assumption.
     Defined.
 
     Lemma wf_local_local_rel Σ Γ :
@@ -942,10 +959,10 @@ Module DeclarationTyping (T : Term) (E : EnvironmentSig T)
       | localenv_nil => 0
 
       | localenv_cons_abs Γ na t wfΓ tty =>
-        (fn _ _ t _ (projT2 tty) + wf_local_size _ wfΓ)%nat
+        (fn _ _ t _ (tty.π2.2) + wf_local_size _ wfΓ)%nat
 
       | localenv_cons_def Γ na b t wfΓ tty tty' =>
-        (fn _ _ t _ (projT2 tty) + fn _ _ b t tty' + wf_local_size _ wfΓ)%nat
+        (fn _ _ t _ (tty.π2.2) + fn _ _ b t tty' + wf_local_size _ wfΓ)%nat
       end.
   End wf_local_size.
 
@@ -956,6 +973,7 @@ Module DeclarationTyping (T : Term) (E : EnvironmentSig T)
     intros HPQ.
     destruct T; simpl. 
     * apply HPQ.
+    * intros [s [Hr Hs]]; exists s. split; [apply Hr | now apply HPQ].
     * intros [s Hs]; exists s. now apply HPQ.
   Qed.
 

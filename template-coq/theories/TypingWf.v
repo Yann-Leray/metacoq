@@ -16,6 +16,8 @@ Existing Class wf.
   and the global context.
 *)
 
+Definition wf_decl_pred Σ Γ t T := (wf_decl_pred Σ Γ t (typ_or_rel_or_none_to_opt T)).
+
 Lemma All_local_env_wf_decl Σ :
   forall (Γ : context),
     All (wf_decl Σ) Γ -> All_local_env (wf_decl_pred Σ) Γ.
@@ -501,8 +503,11 @@ Section WfAst.
       WfAst.wf Σ t * WfAst.wf Σ T) Σ.
   Proof.
     apply on_global_env_impl => Σ' Γ t []; simpl; unfold wf_decl_pred;
-    intros; auto.
-    exists (Universe.lProp). wf.
+    intros.
+    - auto.
+    - destruct X0; destruct rel; [ exists Universe.lProp | exists Universe.lSProp ].
+      all: split; [ reflexivity | wf ].
+    - exists (Universe.lProp); destruct X0; wf.
   Qed.
 
   Lemma Forall_decls_on_global_wf :
@@ -512,7 +517,8 @@ Section WfAst.
     on_global_env wf_decl_pred Σ.
   Proof.
     apply on_global_env_impl => Σ' Γ t []; simpl; unfold wf_decl_pred;
-    intros; auto. destruct X0 as [s ?]; intuition auto.
+    intros; auto.
+    all: destruct X0 as [s ?]; cbn; intuition.
   Qed.
 
   Hint Resolve on_global_wf_Forall_decls : wf.
@@ -531,8 +537,8 @@ Section WfAst.
   Proof.
     intros oib. apply onParams in oib.
     red in oib.
-    induction (ind_params mdecl) as [|[? [] ?] ?]; simpl in oib; inv oib; constructor;
-      try red in X0; try red in X1; try red; simpl; intuition auto.
+    induction (ind_params mdecl) as [|[? [] ?] ?];
+      inv oib; constructor; intuition.
   Qed.
 
   Lemma declared_inductive_wf_params {ind mdecl idecl} :
@@ -659,8 +665,8 @@ Section WfLookup.
       induction c as [|[? [] ?] ?]; simpl;
         destruct y; intuition auto;
         constructor;
-        try red; simpl; try red in a0, b0; intuition eauto.
-        now red in b. }
+        try red; simpl; try red in a0, b0; eauto.
+        now destruct b. }
     split => //.
     - now destruct onArity.
     - rewrite ind_arity_eq in onArity .
@@ -766,7 +772,7 @@ Section WfRed.
       eapply lookup_on_global_env in H as [Σ' [onΣ' [ext prf]]]; eauto.
       destruct decl; simpl in *.
       subst cst_body0; simpl in *; unfold on_constant_decl in prf; cbn in prf.
-      unfold wf_decl_pred in prf. intuition eauto using wf_extends.
+      unfold wf_decl_pred, typ_or_rel_or_none_to_opt, WfAst.wf_decl_pred in prf. intuition eauto using wf_extends.
     - apply wf_mkApps_inv in X.
       eapply nth_error_all in X; eauto.
     - simpl in *. econstructor; eauto. cbn.
@@ -959,7 +965,9 @@ Section TypingWf.
       try solve [split; try constructor; intuition auto with wf].
 
     - eapply All_local_env_wf_decls.
-      induction X; constructor; auto; red; intuition auto.
+      induction X; constructor; auto; red;
+      unfold wf_decl_pred, typ_or_rel_or_none_to_opt, WfAst.wf_decl_pred;
+      intuition auto.
     - split; wf. apply wf_lift.
       apply (nth_error_all H X).
     - split. constructor; auto. wf.
@@ -1028,7 +1036,10 @@ Section TypingWf.
     pose proof (env_prop_sigma typing_wf_gen _ wfΣ). red in X.
     unfold lift_typing in X. do 2 red in wfΣ.
     eapply on_global_env_impl; eauto; simpl; intros.
-    destruct T. red. apply X1. red. destruct X1 as [x [a wfs]]. split; auto.
+    unfold wf_decl_pred, typ_or_rel_or_none_to_opt, WfAst.wf_decl_pred.
+    destruct T. apply X1.
+    now destruct X1 as [x [a [wf1 wf2]]].
+    now destruct X1.
   Qed.
 
   Lemma typing_wf Σ (wfΣ : wf Σ.1) Γ t T :

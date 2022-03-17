@@ -121,6 +121,8 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T).
   | SortRel _ | Sort => t
   end.
 
+  Definition typ_or_rel_or_none_to_opt t := match t with Typ T => Some T | _ => None end.
+
   Section TypeLocal.
     Context (typing : forall (Γ : context), term -> typ_or_rel_or_none -> Type).
 
@@ -175,10 +177,10 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T).
       | Sort => { s : Universe.t & P Σ Γ t (tSort s) }
       end.
 
-  Definition on_local_decl (P : context -> term -> option term -> Type) Γ d :=
+  Definition on_local_decl (P : context -> term -> typ_or_rel_or_none -> Type) Γ d :=
     match d.(decl_body) with
-    | Some b => P Γ b (Some d.(decl_type))
-    | None => P Γ d.(decl_type) None
+    | Some b => P Γ b (Typ d.(decl_type))
+    | None => P Γ d.(decl_type) (SortRel d.(decl_name).(binder_relevance))
     end.
 
   Section TypeLocalOver.

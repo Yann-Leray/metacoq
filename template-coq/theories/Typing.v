@@ -1050,12 +1050,12 @@ Proof.
   destruct w.
   - simpl. congruence.
   - intros [=]. subst d Γ0.
-    exists w. simpl. destruct l. exists x. exists t0. pose (typing_size_pos t0).
+    exists w. simpl. destruct l as [x [? t0]]. exists x. exists t0. pose (typing_size_pos t0).
     simpl. split.
     + lia.
     + auto with arith.
   - intros [=]. subst d Γ0.
-    exists w. simpl. simpl in l. destruct l as [u h].
+    exists w. simpl. simpl in l. destruct l as [u [? h]].
     simpl in l0.
     exists u, l0, h. simpl.
     pose (typing_size_pos h).
@@ -1302,6 +1302,8 @@ Proof.
              destruct T.
              specialize (IH (_; _; _; X13)).
              apply IH.
+             destruct X13 as [u [e Hu]]. exists u. split; [apply e | idtac ].
+             apply (IH (_; _; _; Hu)).
              destruct X13 as [u Hu]. exists u.
              apply (IH (_; _; _; Hu)). }
            { clear -IH oncind.
@@ -1320,6 +1322,8 @@ Proof.
            destruct T.
            specialize (IH (_; _; _; X13)).
            apply IH.
+           destruct X13 as [u [e Hu]]. exists u. split; [apply e | idtac ].
+           apply (IH (_; _; _; Hu)).
            destruct X13 as [u Hu]. exists u.
            apply (IH (_; _; _; Hu)).
         -- apply (onIndices Xg).
@@ -1327,6 +1331,9 @@ Proof.
         eapply All_local_env_impl; eauto.
         intros. destruct T; simpl in X13.
         apply (IH ((Σ', udecl); (wfΣ; _; _; _; X13))).
+        constructor 1. simpl. subst Σ' Σg; cbn; lia.
+        destruct X13 as [u [e Hu]]. 
+        exists u; split; [apply e | idtac]; apply (IH ((Σ', udecl); (wfΣ; _; _; _; Hu))).
         constructor 1. simpl. subst Σ' Σg; cbn; lia.
         destruct X13 as [u Hu].
         exists u; apply (IH ((Σ', udecl); (wfΣ; _; _; _; Hu))).
@@ -1354,7 +1361,7 @@ Proof.
       clearbody foo. assert (wf_local_size Σ (@typing_size cf) Γ' foo < typing_size H) by lia.
       clear H1 H0 Hty.
       revert foo H2.
-      induction foo; simpl in *; try destruct t3 as [u Hu]; simpl in *; constructor.
+      induction foo; simpl in *; try destruct t3 as [u [e Hu]]; simpl in *; constructor.
       - simpl in *. apply IHfoo. lia.
       - red. apply (X14 _ _ _ Hu). lia.
       - simpl in *. apply IHfoo. lia.
@@ -1553,7 +1560,7 @@ Proof.
 Qed.
 
 Lemma All_local_env_app_inv
-      (P : context -> term -> option term -> Type) l l' :
+      (P : context -> term -> typ_or_rel_or_none -> Type) l l' :
   All_local_env P (l ,,, l') ->
   All_local_env P l * All_local_env (fun Γ t T => P (l ,,, Γ) t T) l'.
 Proof.
@@ -1588,7 +1595,7 @@ Proof.
     + apply IHX.
 Qed.
 
-Lemma All_local_env_app `{checker_flags} (P : context -> term -> option term -> Type) l l' :
+Lemma All_local_env_app `{checker_flags} (P : context -> term -> typ_or_rel_or_none -> Type) l l' :
   All_local_env P l * All_local_env (fun Γ t T => P (l ,,, Γ) t T) l' ->
   All_local_env P (l ,,, l').
 Proof.
@@ -1596,9 +1603,9 @@ Proof.
   intuition. destruct a. destruct decl_body.
   inv b. econstructor; eauto. inv b; econstructor; eauto. Qed.
 
-Lemma All_local_env_map `{checker_flags} (P : context -> term -> option term -> Type) f l :
+Lemma All_local_env_map `{checker_flags} (P : context -> term -> typ_or_rel_or_none -> Type) f l :
   (forall u, f (tSort u) = tSort u) ->
-  All_local_env (fun Γ t T => P (map (map_decl f) Γ) (f t) (option_map f T)) l -> All_local_env P (map (map_decl f) l).
+  All_local_env (fun Γ t T => P (map (map_decl f) Γ) (f t) (typ_or_rel_or_none_map f T)) l -> All_local_env P (map (map_decl f) l).
 Proof.
   intros Hf. induction 1; econstructor; eauto.
 Qed.
@@ -1641,7 +1648,7 @@ Definition on_wf_local_decl `{checker_flags} {Σ Γ}
   | {| decl_name := na; decl_body := Some b; decl_type := ty |}
     => fun H => P Σ Γ wfΓ b ty H
   | {| decl_name := na; decl_body := None; decl_type := ty |}
-    => fun H => P Σ Γ wfΓ _ _ (projT2 H)
+    => fun H => P Σ Γ wfΓ _ _ (H.π2.2)
    end H.
 
 

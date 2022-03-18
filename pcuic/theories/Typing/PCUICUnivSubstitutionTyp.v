@@ -2,7 +2,7 @@
 From Coq Require Import ssreflect CRelationClasses.
 From MetaCoq.Template Require Import utils config Universes uGraph.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICInduction PCUICOnFreeVars
-     PCUICLiftSubst PCUICEquality PCUICUnivSubst
+     PCUICLiftSubst PCUICEquality PCUICUnivSubst PCUICRelevance
      PCUICCases PCUICCumulativity PCUICTyping PCUICReduction PCUICWeakeningEnvConv PCUICWeakeningEnvTyp
      PCUICClosed PCUICPosition PCUICGuardCondition PCUICUnivSubstitutionConv.
 
@@ -222,9 +222,9 @@ Proof.
     induction 1.
     + constructor.
     + simpl. constructor; auto.
-      exists (subst_instance_univ u tu.π1). eapply p; auto.
+      exists (subst_instance_univ u tu.π1). split; [rewrite relevance_subst; apply tu.π2.1 | idtac ]. eapply p; auto.
     + simpl. constructor; auto.
-      ++ exists (subst_instance_univ u tu.π1). eapply p0; auto.
+      ++ exists (subst_instance_univ u tu.π1). split; [rewrite relevance_subst; apply tu.π2.1 | idtac ]. eapply p0; auto.
       ++ apply p; auto.
 
   - intros n decl eq X u univs wfΣ' H. rewrite subst_instance_lift.
@@ -324,7 +324,8 @@ Proof.
     + now eapply fix_guard_subst_instance.
     + rewrite nth_error_map H0. reflexivity.
     + apply All_map, (All_impl X); simpl; intuition auto.
-      destruct X1 as [s Hs]. exists (subst_instance_univ u s).
+      destruct X1 as [s [e Hs]]. exists (subst_instance_univ u s).
+      split; [ rewrite relevance_subst; apply e | idtac ].
       now apply Hs.
     + eapply All_map, All_impl; tea.
       intros x [X1 X3]. 
@@ -349,7 +350,8 @@ Proof.
       + now eapply cofix_guard_subst_instance.
       + rewrite nth_error_map H0. reflexivity.
       + apply All_map, (All_impl X); simpl; intuition auto.
-        destruct X1 as [s Hs]. exists (subst_instance_univ u s).
+        destruct X1 as [s [e Hs]]. exists (subst_instance_univ u s).
+        split; [ rewrite relevance_subst; apply e | idtac ].
         now apply Hs.
       + eapply All_map, All_impl; tea.
         intros x [X1 X3]. 
@@ -491,9 +493,11 @@ Lemma wf_local_subst_instance Σ Γ ext u :
 Proof.
   destruct Σ as [Σ φ]. intros X X0 X1. simpl in *.
   induction X1; cbn; constructor; auto.
-  - destruct t0 as [s Hs]. hnf.
+  - destruct t0 as [s [e Hs]]. hnf.
+    erewrite <- relevance_subst in e.
     eapply typing_subst_instance'' in Hs; eauto; apply X.
-  - destruct t0 as [s Hs]. hnf.
+  - destruct t0 as [s [e Hs]]. hnf.
+    erewrite <- relevance_subst in e.
     eapply typing_subst_instance'' in Hs; eauto; apply X.
   - hnf in t1 |- *.
     eapply typing_subst_instance'' in t1; eauto; apply X.
@@ -508,9 +512,11 @@ Lemma wf_local_subst_instance_decl Σ Γ c decl u :
 Proof.
   destruct Σ as [Σ φ]. intros X X0 X1 X2.
   induction X1; cbn; constructor; auto.
-  - destruct t0 as [s Hs]. hnf.
+  - destruct t0 as [s [e Hs]]. hnf.
+    erewrite <- relevance_subst in e.
     eapply typing_subst_instance_decl in Hs; eauto.
-  - destruct t0 as [s Hs]. hnf.
+  - destruct t0 as [s [e Hs]]. hnf.
+    erewrite <- relevance_subst in e.
     eapply typing_subst_instance_decl in Hs; eauto.
   - hnf in t1 |- *.
     eapply typing_subst_instance_decl in t1; eauto.
@@ -526,7 +532,7 @@ Qed.
     pose proof (on_declared_inductive decli) as [onmind oib].
     pose proof (onArity oib) as ona.
     rewrite (oib.(ind_arity_eq)) in ona.
-    red in ona. destruct ona.
+    red in ona. destruct ona as [s [e t]].
     eapply typed_subst_abstract_instance in t.
     2:split; simpl; auto.
     - rewrite !subst_instance_it_mkProd_or_LetIn in t.
@@ -548,7 +554,7 @@ Qed.
     pose proof (on_declared_inductive decli) as [_ oib].
     pose proof (onArity oib) as ona.
     rewrite (oib.(ind_arity_eq)) in ona |- *.
-    red in ona. destruct ona.
+    red in ona. destruct ona as [s [e t]].
     eapply typed_subst_abstract_instance in t; eauto.
     destruct decli as [declm _].
     eapply declared_inductive_wf_global_ext in declm; auto.

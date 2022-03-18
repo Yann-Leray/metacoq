@@ -168,8 +168,8 @@ Proof.
     try solve [econstructor; eauto].
 
   - induction X; constructor; auto.
-    destruct tu as [s Hs]. exists s; eauto.
-    destruct tu as [s Hs]. exists s; eauto.
+    destruct tu as [s [e Hs]]. exists s; eauto.
+    destruct tu as [s [e Hs]]. exists s; eauto.
 
   - pose proof heq_nth_error.
     eapply (All2_fold_nth_r X0) in H as [d' [Hnth [Hrel Hconv]]].
@@ -177,7 +177,7 @@ Proof.
     rewrite heq_nth_error /= in X.
     destruct decl as [na [b|] ty] => /=.
     + red in X. cbn in X. destruct X as [Hb Hty].
-      destruct Hty as [s Hty]. specialize (Hty _ Hrel).
+      destruct Hty as [s [e Hty]]. specialize (Hty _ Hrel).
       forward Hty by now eapply All_local_env_skipn.
       eapply type_Cumul with _ s.
       * econstructor. auto. eauto.
@@ -200,7 +200,7 @@ Proof.
         eapply (weakening_cumulSpec0 (Γ := Δ) (Γ'' := Δ') (M := exist t H) (N := exist ty Hty)); cbn. lia.
         unshelve eapply (@cumulAlgo_cumulSpec _ _ Cumul). apply into_ws_cumul_pb; eauto.
         intuition. 
-    + cbn in X. destruct X as [s ondecl].
+    + cbn in X. destruct X as [s [e ondecl]].
       specialize (ondecl _ Hrel).
       depelim Hconv.
       forward ondecl by now eapply All_local_env_skipn.
@@ -232,7 +232,7 @@ Proof.
         intuition. 
   - constructor; pcuic.
     eapply forall_Γ'0. repeat (constructor; pcuic).
-    constructor; auto. red. eexists; eapply forall_Γ'; auto.
+    constructor; auto. red. eexists; split; [ apply eq_refl | idtac ]; eapply forall_Γ'; auto.
   - econstructor; pcuic.
     eapply forall_Γ'0; repeat (constructor; pcuic).
   - econstructor; pcuic.
@@ -262,15 +262,18 @@ Proof.
       + apply wf_local_closed_context; eauto.  
       + apply wf_local_closed_context; eauto.
     * eapply (All_impl X0).
-      intros x [s [Hs IH]].
-      exists s; eauto.
+      intros x [s [[e Hs] IH]].
+      exists s;
+      split; [apply e | idtac];
+      eauto.
     * eapply (All_impl X1).
       intros x [Hs IH].
       eapply IH.
       now apply cumul_context_app_same.
       eapply (All_mfix_wf); auto.
       apply (All_impl X0); simpl.
-      intros x' [s [Hs' IH']]. exists s.
+      intros x' [s [[e Hs'] IH']]. exists s.
+      split; [apply e | idtac].
       eapply IH'; auto.
   - econstructor.
     all:pcuic.
@@ -279,15 +282,18 @@ Proof.
       + apply wf_local_closed_context; eauto.  
       + apply wf_local_closed_context; eauto.
     * eapply (All_impl X0).
-      intros x [s [Hs IH]].
-      exists s; eauto.
+      intros x [s [[e Hs] IH]].
+      exists s;
+      split; [apply e | idtac];
+      eauto.
     * eapply (All_impl X1).
       intros x [Hs IH].
       eapply IH.
       now apply cumul_context_app_same.
       eapply (All_mfix_wf); auto.
       apply (All_impl X0); simpl.
-      intros x' [s [Hs' IH']]. exists s.
+      intros x' [s [[e Hs'] IH']]. exists s.
+      split; [apply e | idtac].
       eapply IH'; auto.
     
   - econstructor; eauto. pose proof (wf_local_closed_context wfΓ).

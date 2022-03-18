@@ -3,7 +3,7 @@ From MetaCoq.Template Require Import config utils.
 From Coq Require Import CRelationClasses ProofIrrelevance.
 From MetaCoq.Template Require Import config Universes utils BasicAst.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICTactics PCUICInduction
-     PCUICReflect PCUICLiftSubst PCUICUnivSubst PCUICTyping
+     PCUICReflect PCUICLiftSubst PCUICUnivSubst PCUICRelevance PCUICTyping
      PCUICEquality PCUICCumulativity PCUICReduction
      PCUICContextSubst PCUICUnivSubstitutionConv
      PCUICClosed PCUICSigmaCalculus PCUICSubstitution PCUICUnivSubstitutionTyp
@@ -164,14 +164,16 @@ Proof.
   induction Δ; simpl in *; intuition auto.
   { destruct Σ as [Σ univs]. eapply (wf_universe_subst_instance (Σ, ind_universes mdecl)); eauto. }
   destruct a as [na [b|] ty]; simpl; intuition auto.
-  - destruct a0.
+  - destruct a0 as [x [e t]].
     exists (subst_instance_univ u x).
+    split; [ rewrite relevance_subst; apply e | idtac].
     eapply instantiate_minductive in t; eauto.
     now rewrite subst_instance_app in t.
   - eapply instantiate_minductive in b1; eauto.
     now rewrite subst_instance_app in b1.
-  - eapply instantiate_minductive in b; eauto.
-    now rewrite subst_instance_app in b.
+  - rewrite relevance_subst; apply a0.
+  - eapply instantiate_minductive in b0; eauto.
+    now rewrite subst_instance_app in b0.
 Qed.
 
 Lemma sorts_local_ctx_instantiate {cf:checker_flags} Σ ind mdecl Γ Δ u s : 
@@ -186,15 +188,17 @@ Proof.
   induction Δ in s |- *; simpl in *; intuition auto.
   destruct s; simpl; intuition eauto.
   destruct a as [na [b|] ty]; simpl; intuition eauto.
-  - destruct a0.
+  - destruct a0 as [x [e t]].
     exists (subst_instance_univ u x).
+    split; [ rewrite relevance_subst; apply e | idtac].
     eapply instantiate_minductive in t; eauto.
     now rewrite subst_instance_app in t.
   - eapply instantiate_minductive in b1; eauto.
     now rewrite subst_instance_app in b1.
   - destruct s; simpl; intuition eauto.
-    eapply instantiate_minductive in b; eauto.
-    now rewrite subst_instance_app in b.
+    rewrite relevance_subst; apply a0.
+    eapply instantiate_minductive in b0; eauto.
+    now rewrite subst_instance_app in b0.
 Qed.
 
 Lemma subst_type_local_ctx {cf:checker_flags} Σ Γ Δ Δ' s ctxs : 
@@ -209,11 +213,12 @@ Proof.
   + destruct a0; simpl; rewrite subst_context_snoc /= /subst_decl /map_decl /= Nat.add_0_r. 
     intuition auto.
     - exists x; auto.
-      eapply substitution in t; eauto.
+      split; [ apply a0 | idtac].
+      eapply substitution in b0; eauto.
     - eapply substitution in b1; eauto.
   + rewrite subst_context_snoc /= /subst_decl /map_decl /= Nat.add_0_r.
       intuition auto.
-      eapply substitution in b; eauto.
+      eapply substitution in b0; eauto.
 Qed.
 
 Lemma subst_sorts_local_ctx {cf:checker_flags} Σ Γ Δ Δ' s ctxs : 
@@ -228,12 +233,13 @@ Proof.
   + destruct a0; simpl; rewrite subst_context_snoc /= /subst_decl /map_decl /= Nat.add_0_r. 
     intuition auto.
     - exists x; auto.
-      eapply substitution in t; eauto.
+      split; [ apply a0 | idtac].
+      eapply substitution in b0; eauto.
     - eapply substitution in b1; eauto.
   + rewrite subst_context_snoc /= /subst_decl /map_decl /= Nat.add_0_r.
     destruct ctxs; auto.
     intuition auto.
-    eapply substitution in b; eauto.
+    eapply substitution in b0; eauto.
 Qed.
 
 Lemma weaken_type_local_ctx {cf:checker_flags} Σ Γ Γ' Δ ctxs : 
@@ -246,6 +252,8 @@ Proof.
   destruct a as [na [b|] ty]; simpl; intuition auto.
   - destruct a0; simpl.
     exists x; auto.
+    destruct p as [a0 p].
+    split; [ apply a0 | idtac].
     rewrite -app_context_assoc.
     eapply (weaken_ctx Γ); auto.
   - rewrite -app_context_assoc.
@@ -264,13 +272,17 @@ Proof.
   destruct a as [na [b|] ty]; simpl; intuition auto.
   - destruct a0; simpl.
     exists x; auto.
+    destruct p as [a0 p].
+    split; [ apply a0 | idtac].
     rewrite -app_context_assoc.
     eapply (weaken_ctx Γ); auto.
   - rewrite -app_context_assoc.
     eapply (weaken_ctx Γ); auto.
   - rewrite -app_context_assoc.
     destruct ctxs; auto. destruct X1.
-    split; auto; eapply (weaken_ctx Γ); auto.
+    split; auto.
+    destruct p as [a0 p]; split; [ apply a0 | idtac].
+    eapply (weaken_ctx Γ); auto.
 Qed.
 
 Lemma reln_app acc Γ Δ k : reln acc k (Γ ++ Δ) = 
@@ -375,6 +387,10 @@ Section WfEnv.
       destruct T; unfold lift_typing in X |- *; simpl in *; pcuicfo auto.
       rewrite Nat.add_0_r.
       eapply (substitution (Γ':=[vdef na b t]) (s := [b])) in X; eauto.
+      rewrite -{1}(subst_empty 0 b). repeat constructor. now rewrite !subst_empty.
+      destruct X as [s [e Hs]]; exists s.
+      rewrite Nat.add_0_r.
+      eapply (substitution (Γ':=[vdef na b t]) (s:=[b])) in Hs; eauto.
       rewrite -{1}(subst_empty 0 b). repeat constructor. now rewrite !subst_empty.
       destruct X as [s Hs]; exists s.
       rewrite Nat.add_0_r.
@@ -676,7 +692,7 @@ Proof.
   * rewrite smash_context_acc. simpl.
     rewrite /map_decl /= /map_decl /=. simpl.
     depelim wfΔ.
-    destruct l as [s Hs].
+    destruct l as [s [e Hs]].
     specialize (IHΔ wfΔ).
     rewrite lift_context_snoc /lift_decl /= /map_decl /=.
     constructor.
@@ -686,6 +702,7 @@ Proof.
       constructor.
       { eapply wf_local_smash_end; pcuic. }
       red. exists s.
+      split; [ apply e | idtac].
       eapply (weakening_typing (Γ'' := smash_context [] Δ)) in Hs.
       len in Hs. simpl in Hs. simpl.
       2:{ eapply wf_local_smash_end; pcuic. }
@@ -694,6 +711,7 @@ Proof.
       econstructor. constructor. apply wf_local_smash_end; auto.
       eapply wf_local_app; eauto.
       exists s.
+      split; [ apply e | idtac].
       eapply (weakening_typing (Γ'' := smash_context [] Δ)) in Hs.
       len in Hs. simpl in Hs. simpl.
       2:{ eapply wf_local_smash_end; pcuic. }

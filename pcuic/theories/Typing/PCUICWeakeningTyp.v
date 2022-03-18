@@ -32,10 +32,19 @@ Proof.
   rewrite /lift_context.
   apply All_local_env_fold.
   eapply (All_local_env_impl_ind XΓ').
-  intros Δ t [T|] IH; unfold lift_typing; simpl.
+  intros Δ t [T|rel|] IH; unfold lift_typing; simpl.
   - intros Hf. rewrite -/(lift_context #|Γ''| 0 Δ).
     rewrite Nat.add_0_r. rewrite !lift_rename. 
     eapply (Hf xpredT).
+    split.
+    + apply wf_local_app; auto.
+      apply All_local_env_fold in IH. apply IH.
+    + apply weakening_renaming.
+  - intros [s [e Hs]]; exists s.
+    split; [apply e | idtac ].
+    rewrite -/(lift_context #|Γ''| 0 Δ).
+    rewrite Nat.add_0_r !lift_rename. 
+    eapply (Hs xpredT).
     split.
     + apply wf_local_app; auto.
       apply All_local_env_fold in IH. apply IH.
@@ -177,7 +186,7 @@ Qed.
 
 Corollary All_mfix_wf {cf:checker_flags} Σ Γ mfix :
   wf Σ.1 -> wf_local Σ Γ ->
-  All (fun d : def term => isType Σ Γ (dtype d)) mfix ->
+  All (fun d : def term => isTypeRel Σ Γ (dtype d) (d.(dname).(binder_relevance))) mfix ->
   wf_local Σ (Γ ,,, fix_context mfix).
 Proof.
   move=> wfΣ wf a; move: wf.
@@ -193,14 +202,14 @@ Proof.
     eapply All_local_env_app. split; auto.
     * repeat constructor.
       simpl.
-      destruct p as [s Hs].
-      exists s. eapply (weakening Σ Γ Δ _ (tSort s)); auto.
+      destruct p as [s [e Hs]].
+      exists s. split; [apply e | idtac]. eapply (weakening Σ Γ Δ _ (tSort s)); auto.
     * specialize (IHa (Δ ,,, [vass (dname x) (lift0 #|Δ| (dtype x))])).
       rewrite app_length in IHa. simpl in IHa.
       forward IHa.
       ** simpl; constructor; auto.
-        destruct p as [s Hs].
-        exists s. eapply (weakening Σ Γ Δ _ (tSort s)); auto.
+        destruct p as [s [e Hs]].
+        exists s. split; [apply e | idtac]. eapply (weakening Σ Γ Δ _ (tSort s)); auto.
       ** eapply All_local_env_impl; eauto.
         simpl; intros.
         rewrite app_context_assoc. apply X.

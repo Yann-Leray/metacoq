@@ -245,7 +245,7 @@ Section OnInductives.
     eapply on_declared_inductive in decli as [onmind oib].
     pose proof (oib.(onArity)).
     rewrite oib.(ind_arity_eq) in X.
-    destruct X as [s Hs].
+    destruct X as [s [e Hs]].
     rewrite -it_mkProd_or_LetIn_app in Hs.
     eapply it_mkProd_or_LetIn_wf_local in Hs.
     now rewrite app_context_nil_l in Hs.
@@ -291,7 +291,7 @@ Section OnInductives.
     destruct (on_declared_inductive decli) as [onmind oib].
     pose proof (oib.(onArity)) as ar.
     rewrite oib.(ind_arity_eq) in ar.
-    destruct ar as [s ar].
+    destruct ar as [s [e ar]].
     eapply isType_weaken => //.
     rewrite -(subst_instance_it_mkProd_or_LetIn u _ (tSort _)).
     rewrite -it_mkProd_or_LetIn_app in ar.
@@ -307,7 +307,7 @@ Section OnInductives.
     move=> wfΓ cext.
     destruct (on_declared_inductive decli) as [onmind oib].
     pose proof (oib.(onArity)) as ar.
-    destruct ar as [s ar].
+    destruct ar as [s [e ar]].
     eapply isType_weaken => //.
     eapply (typing_subst_instance_decl Σ [] _ _ _ (InductiveDecl mdecl) u wfΣ) in ar.
     all:pcuic. eapply decli.
@@ -320,7 +320,7 @@ Section OnInductives.
   Proof.
     pose proof (oib.(onArity)) as ar.
     rewrite oib.(ind_arity_eq) in ar.
-    destruct ar as [s ar].
+    destruct ar as [s [e ar]].
     eapply typing_wf_universes in ar; auto.
     move/andP: ar => [].
     rewrite wf_universes_it_mkProd_or_LetIn => /andP [] _.
@@ -633,7 +633,7 @@ Proof.
     eapply (substitution (Δ := [])) in l0. eapply l0. all:auto.
   * rewrite smash_context_acc. simpl.
     rewrite /map_decl /= /map_decl /=. simpl.
-    destruct l as [s Hs].
+    destruct l as [s [e Hs]].
     rewrite lift_closed. fvs.
     rewrite (lift_extended_subst _ 1).
     rewrite -{4}(closed_ctx_lift 1 0 Δ); fvs.
@@ -641,13 +641,14 @@ Proof.
     { eapply (subslet_lift _ [_]); eauto.
       constructor. eapply wf_local_smash_context; auto.
       exists s.
+      split; [apply e | idtac].
       eapply weaken_ctx in Hs. 3:eapply wf_local_smash_context; eauto. 2:auto.
       eapply (substitution (Δ := [])) in Hs. eapply Hs. all:auto. }
     { eapply refine_type.
       econstructor.
       rewrite smash_context_acc /=. constructor.
       apply wf_local_smash_context; auto. cbn.
-      exists s. eapply weaken_ctx in Hs. 3:eapply wf_local_smash_context; eauto. 2:auto.
+      exists s. split; [apply e | idtac]. eapply weaken_ctx in Hs. 3:eapply wf_local_smash_context; eauto. 2:auto.
       eapply (substitution (Δ := [])) in Hs. eapply Hs. all:auto.
       reflexivity.
       simpl.
@@ -712,6 +713,7 @@ Proof.
   { now apply wf_local_smash_context. }
   constructor => //.
   red. exists (ind_sort idecl).
+  split; [apply eq_refl | idtac].
   eapply type_mkApps. econstructor; eauto.
   eapply consistent_instance_ext_abstract_instance; eauto with pcuic.
   eapply declared_inductive_wf_global_ext; eauto with pcuic.

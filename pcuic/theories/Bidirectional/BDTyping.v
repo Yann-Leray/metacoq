@@ -494,7 +494,7 @@ Section BidirectionalInduction.
     - eapply HΓ.
       dependent induction wfΓ.
       + constructor.
-      + destruct t0 as (u & d).
+      + destruct t0 as (u & e & d).
         constructor.
         * apply IHwfΓ.
         intros ; apply IH.
@@ -505,7 +505,7 @@ Section BidirectionalInduction.
           assert (0 < wfl_size wfΓ) by apply All_local_env_size_pos.
           simpl.
           lia.
-      + destruct t0 as [u h].
+      + destruct t0 as [u [e h]].
         constructor.
         * apply IHwfΓ.
           intros ; apply IH.
@@ -516,7 +516,7 @@ Section BidirectionalInduction.
     - eapply HΓRel.
       dependent induction wfΓ'.
       + constructor.
-      + destruct t0 as (u & d).
+      + destruct t0 as (u & e & d).
         constructor.
         * apply IHwfΓ'.
           intros ; apply IH.
@@ -529,7 +529,7 @@ Section BidirectionalInduction.
           fold (wfl_size_rel wfΓ').
           assert (0 < wfl_size_rel wfΓ') by apply All_local_env_size_pos.
           lia.
-      + destruct t0 as [u h].
+      + destruct t0 as [u [e h]].
         constructor.
         * apply IHwfΓ'.
           intros ; apply IH.

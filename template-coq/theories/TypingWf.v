@@ -250,7 +250,7 @@ Proof.
   apply onInductives in prf.
   eapply nth_error_alli in Hidecl; eauto.
   eapply onArity in Hidecl.
-  destruct Hidecl as [s [Hs _]].
+  destruct Hidecl as [s [e [Hs _]]].
   eapply wf_extends in Hs; tea.
 Qed.
 
@@ -275,7 +275,7 @@ Proof.
   eapply nth_error_alli in Hidecl; eauto.
   pose proof (onArity Hidecl).
   rewrite Hidecl.(ind_arity_eq) in X0.
-  destruct X0 as [s Hs]; wf.
+  destruct X0 as [s [e Hs]]; wf.
   eapply wf_it_mkProd_or_LetIn in a as [? H].
   eapply wf_it_mkProd_or_LetIn in H as [].
   solve_all. now eapply wf_decl_extends.
@@ -666,7 +666,7 @@ Section WfLookup.
         destruct y; intuition auto;
         constructor;
         try red; simpl; try red in a0, b0; eauto.
-        now destruct b. }
+        now destruct b0. }
     split => //.
     - now destruct onArity.
     - rewrite ind_arity_eq in onArity .

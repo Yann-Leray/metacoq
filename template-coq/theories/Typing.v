@@ -1289,7 +1289,7 @@ Proof.
         eapply Alli_impl; eauto. cbn in IH. clear onI onP onnp. intros n x Xg.
         refine {| ind_arity_eq := Xg.(ind_arity_eq);
                   ind_cunivs := Xg.(ind_cunivs) |}.
-        -- apply onArity in Xg. destruct Xg as [s Hs]. exists s; auto.
+        -- apply onArity in Xg. destruct Xg as [s [e Hs]]. exists s; split; auto.
            apply (IH (_; _; _; Hs)).
         -- pose proof Xg.(onConstructors) as Xg'.
            eapply All2_impl; eauto. intros.

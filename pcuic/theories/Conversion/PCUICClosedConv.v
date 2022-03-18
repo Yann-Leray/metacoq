@@ -46,9 +46,9 @@ Proof.
     rewrite app_context_length in b0. now rewrite Nat.add_comm.
   - apply Alli_app_inv; auto. constructor. simpl.
     rewrite List.rev_length. 2:constructor.
-    unfold closed_decl. unfold Pclosed in b. simpl.
-    rewrite app_context_length in b. rewrite Nat.add_comm.
-    now rewrite andb_true_r in b.
+    unfold closed_decl. unfold Pclosed in b0. simpl.
+    rewrite app_context_length in b0. rewrite Nat.add_comm.
+    now rewrite andb_true_r in b0.
 Qed.
 
 Lemma sorts_local_ctx_Pclosed Σ Γ Δ s :
@@ -152,8 +152,8 @@ Qed.
 
 Lemma closedn_All_local_env (ctx : list context_decl) :
   All_local_env 
-    (fun (Γ : context) (b : term) (t : option term) =>
-      closedn #|Γ| b && option_default (closedn #|Γ|) t true) ctx ->
+    (fun (Γ : context) (b : term) (t : typ_or_rel_or_none) =>
+      closedn #|Γ| b && option_default (closedn #|Γ|) (typ_or_rel_or_none_to_opt t) true) ctx ->
     closedn_ctx 0 ctx.
 Proof.
   induction 1; auto; rewrite closedn_ctx_cons IHX /=; now move/andP: t0 => [].

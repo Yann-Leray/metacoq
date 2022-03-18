@@ -344,25 +344,26 @@ Module DeclarationTyping (T : Term) (E : EnvironmentSig T)
     Fixpoint type_local_ctx Σ (Γ Δ : context) (u : Universe.t) : Type :=
       match Δ with
       | [] => wf_universe Σ u
-      | {| decl_body := None; decl_type := t |} :: Δ =>
-        (type_local_ctx Σ Γ Δ u * (P Σ (Γ ,,, Δ) t (Typ (tSort u))))
-      | {| decl_body := Some b; decl_type := t |} :: Δ =>
-        (type_local_ctx Σ Γ Δ u * (P Σ (Γ ,,, Δ) t Sort * P Σ (Γ ,,, Δ) b (Typ t)))
+      | {| decl_name := na; decl_body := None; decl_type := t |} :: Δ =>
+        (type_local_ctx Σ Γ Δ u * (relevance_of_sort u = na.(binder_relevance) × P Σ (Γ ,,, Δ) t (Typ (tSort u))))
+      | {| decl_name := na; decl_body := Some b; decl_type := t |} :: Δ =>
+        (type_local_ctx Σ Γ Δ u * (P Σ (Γ ,,, Δ) t (SortRel na.(binder_relevance)) * P Σ (Γ ,,, Δ) b (Typ t)))
       end.
 
     Fixpoint sorts_local_ctx Σ (Γ Δ : context) (us : list Universe.t) : Type :=
       match Δ, us with
       | [], [] => unit
-      | {| decl_body := None; decl_type := t |} :: Δ, u :: us => 
-        (sorts_local_ctx Σ Γ Δ us * (P Σ (Γ ,,, Δ) t (Typ (tSort u))))
-      | {| decl_body := Some b; decl_type := t |} :: Δ, us => 
-        (sorts_local_ctx Σ Γ Δ us * (P Σ (Γ ,,, Δ) t Sort * P Σ (Γ ,,, Δ) b (Typ t)))
+      | {| decl_name := na; decl_body := None; decl_type := t |} :: Δ, u :: us => 
+        (sorts_local_ctx Σ Γ Δ us * (relevance_of_sort u = na.(binder_relevance) × P Σ (Γ ,,, Δ) t (Typ (tSort u))))
+      | {| decl_name := na; decl_body := Some b; decl_type := t |} :: Δ, us => 
+        (sorts_local_ctx Σ Γ Δ us * (P Σ (Γ ,,, Δ) t (SortRel na.(binder_relevance)) * P Σ (Γ ,,, Δ) b (Typ t)))
       | _, _ => False
       end.
 
     Implicit Types (mdecl : mutual_inductive_body) (idecl : one_inductive_body) (cdecl : constructor_body).
 
     Definition on_type Σ Γ T := P Σ Γ T Sort.
+    Definition on_type_rel Σ Γ T rel := P Σ Γ T (SortRel rel).
 
     Open Scope type_scope.
 
@@ -719,7 +720,7 @@ Module DeclarationTyping (T : Term) (E : EnvironmentSig T)
                                 (it_mkProd_or_LetIn idecl.(ind_indices) (tSort idecl.(ind_sort)));
 
         (** It must be well-typed in the empty context. *)
-        onArity : on_type Σ [] idecl.(ind_type);
+        onArity : on_type_rel Σ [] idecl.(ind_type) idecl.(ind_relevance);
 
         (** The sorts of the arguments contexts of each constructor *)
         ind_cunivs : list constructor_univs;

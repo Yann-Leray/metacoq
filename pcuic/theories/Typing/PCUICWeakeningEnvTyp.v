@@ -168,9 +168,9 @@ Proof.
   apply typing_ind_env; intros;
     rename_all_hyps; try solve [econstructor; eauto 2 with extends].
 
-  - induction X; constructor; eauto 2 with extends.
-    + eexists; eapply p; eauto.
-    + eexists; eapply p0; eauto.
+  - induction X; constructor; eauto 2 with extends. 1,2: destruct tu as [s [e ?]].
+    + eexists; split; [eauto | idtac]; eapply p; eauto.
+    + eexists; split; [eauto | idtac]; eapply p0; eauto.
     + eapply p; eauto.
   - econstructor; eauto 2 with extends.
     now apply extends_wf_universe.
@@ -217,7 +217,7 @@ Proof.
   destruct Hdecl as [onI onP onnP]; constructor; eauto.
   - eapply Alli_impl; eauto. intros.
     destruct X. unshelve econstructor; eauto.
-    + unfold on_type in *; intuition eauto.
+    + unfold on_type_rel in *; intuition eauto.
     + unfold on_constructors in *. eapply All2_impl; eauto.
       intros.
       destruct X as [? ? ? ?]. unshelve econstructor; eauto.
@@ -294,7 +294,7 @@ Proof.
   destruct Hdecl as [onI onP onnP]; constructor; eauto.
   - eapply Alli_impl; eauto. intros.
     destruct X. unshelve econstructor; eauto.
-    + unfold on_type in *; intuition eauto.
+    + unfold on_type_rel in *; intuition eauto.
     + unfold on_constructors in *. eapply All2_impl; eauto.
       intros.
       destruct X as [? ? ? ?]. unshelve econstructor; eauto.
@@ -556,6 +556,9 @@ Proof.
   destruct T; simpl.
   - intros Ht.
     eapply (weakening_env (_, _)). 2:eauto. all:auto.
+  - intros [s [e Ht]]. exists s.
+    split; [apply e | idtac ].
+    eapply (weakening_env (_, _)). 4: eauto. all:auto.
   - intros [s Ht]. exists s.
     eapply (weakening_env (_, _)). 4: eauto. all:auto.
 Qed.
@@ -566,6 +569,11 @@ Proof.
   destruct T; simpl.
   - intros Ht.
     eapply (weakening_env (_, _)). 2:eauto. all:auto.
+    * cbn. now eapply extends_decls_wf.
+    * tc.
+  - intros [s [e Ht]]. exists s.
+    split; [apply e | idtac ].
+    eapply (weakening_env (_, _)). 2: eauto. all:auto.
     * cbn. now eapply extends_decls_wf.
     * tc.
   - intros [s Ht]. exists s.

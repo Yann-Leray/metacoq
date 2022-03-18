@@ -149,21 +149,21 @@ Proof.
   rewrite commut_lift_subst_rec. 1: lia. f_equal; lia.
 Qed.
 
-Lemma All_local_env_subst {cf:checker_flags} (P Q : context -> term -> option term -> Type) c n k :
+Lemma All_local_env_subst {cf:checker_flags} (P Q : context -> term -> typ_or_rel_or_none -> Type) c n k :
   All_local_env Q c ->
   (forall Γ t T,
       Q Γ t T ->
       P (subst_context n k Γ) (subst n (#|Γ| + k) t)
-        (option_map (subst n (#|Γ| + k)) T)
+        (typ_or_rel_or_none_map (subst n (#|Γ| + k)) T)
   ) ->
   All_local_env P (subst_context n k c).
 Proof.
   intros Hq Hf.
   induction Hq in |- *; try econstructor; eauto;
     simpl; unfold snoc; rewrite subst_context_snoc; econstructor; eauto.
-  - simpl. eapply (Hf _ _ None). eauto.
-  - simpl. eapply (Hf _ _ None). eauto.
-  - simpl. eapply (Hf _ _ (Some t)). eauto.
+  - simpl. eapply (Hf _ _ (SortRel _)). eauto.
+  - simpl. eapply (Hf _ _ (SortRel _)). eauto.
+  - simpl. eapply (Hf _ _ (Typ t)). eauto.
 Qed.
 
 Lemma subst_length {cf:checker_flags} Σ Γ s Γ' : subs Σ Γ s Γ' -> #|s| = #|Γ'|.
@@ -347,7 +347,7 @@ Proof.
   induction 1; auto; unfold subst_context, snoc; rewrite fold_context_k_snoc0;
     auto; unfold snoc;
     f_equal; auto; unfold map_decl; simpl.
-  - destruct t0 as [s Hs]. unfold vass. simpl. f_equal.
+  - destruct t0 as [s [e Hs]]. unfold vass. simpl. f_equal.
     eapply typed_subst; eauto. lia.
   - unfold vdef.
     f_equal.
@@ -584,7 +584,7 @@ Proof.
   rewrite rev_map_app.
   simpl. apply Alli_app in Ha as [Hl Hx].
   inv Hx. clear X0.
-  apply onArity in X as [s Hs].
+  apply onArity in X as [s [e Hs]].
   specialize (IHl Hl).
   econstructor; eauto.
   fold (arities_context l) in *.
@@ -595,6 +595,7 @@ Proof.
   rewrite -> andb_and in Hs. destruct Hs as [Hs Ht].
   simpl in Hs. apply (lift_closed #|arities_context l|) in Hs.
   rewrite -> Hs, app_context_nil_l in X. simpl. exists s.
+  split; [apply e | idtac].
   apply X.
 Qed.
 

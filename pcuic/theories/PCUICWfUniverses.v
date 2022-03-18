@@ -540,8 +540,12 @@ Qed.
         wf_universes Σ t && wf_universes Σ T)).
   Proof.
     red. intros.
-    unfold lift_typing in *. destruct T. now eapply (wf_universes_weaken_full (Σ, _)).
-    destruct X2 as [s Hs]; exists s. now eapply (wf_universes_weaken_full (Σ, _)).
+    unfold lift_typing in *. destruct T.
+    now eapply (wf_universes_weaken_full (Σ, _)).
+    destruct X2 as [s [e Hs]]; exists s. split; [ apply e | idtac].
+    now eapply (wf_universes_weaken_full (Σ, _)).
+    destruct X2 as [s Hs]; exists s.
+    now eapply (wf_universes_weaken_full (Σ, _)).
   Qed.
 
   Lemma wf_universes_inds Σ mind u bodies : 
@@ -577,7 +581,7 @@ Qed.
     destruct X as [? [? ?]]. now to_prop.
     apply IHΔ. apply X.
     simpl.
-    destruct X as [? ?]. now to_prop.
+    destruct X as [? [? ?]]. now to_prop.
     apply IHΔ. apply X.
   Qed.
 
@@ -641,7 +645,7 @@ Qed.
     - intros [h [h' h'']].
       destruct n. simpl. move=> [= <-] /=. do 2 eexists; eauto.
       now simpl; eapply IHΔ.
-    - destruct s => //. intros [h h'].
+    - destruct s => //. intros [h [e h']].
       destruct n. simpl. move=> [= <-] /=. eexists; eauto.
       now simpl; eapply IHΔ.
   Qed.
@@ -1016,9 +1020,9 @@ Qed.
 
     - split.
       * induction X; constructor; auto.
-        destruct tu as [s tu]; exists s; simpl.
+        destruct tu as [s [e tu]]; exists s; simpl.
         now simpl in p.
-        destruct tu as [s tu]; exists s; simpl.
+        destruct tu as [s [e tu]]; exists s; simpl.
         now simpl in p.
       * induction X; simpl; auto.
         rewrite IHX /= /test_decl /=. now move/andP: p.
@@ -1031,7 +1035,7 @@ Qed.
       rewrite heq_nth_error /= in X. red in X.
       destruct decl as [na [b|] ty]; cbn -[skipn] in *.
       + now to_prop.
-      + destruct X as [s Hs]. now to_prop.
+      + destruct X as [s [e Hs]]. now to_prop.
 
     - apply/andP; split; to_wfu; cbn ; eauto with pcuic.
        
@@ -1063,7 +1067,7 @@ Qed.
         eapply consistent_instance_ext_wf; eauto. }
       pose proof (declared_inductive_inv wf_universes_weaken wf X isdecl).
       cbn in X1. eapply onArity in X1. cbn in X1.
-      move: X1 => [s /andP[Hind ?]].
+      move: X1 => [s [e /andP[Hind ?]]].
       eapply wf_universes_inst; eauto.
       exact (weaken_lookup_on_global_env' Σ.1 _ _ wf (proj1 isdecl)).
       now eapply consistent_instance_ext_wf.
@@ -1090,7 +1094,7 @@ Qed.
       rewrite wfu /= wfpars wf_universes_mkApps /= 
         forallb_app wfinds /= H /= !andb_true_r.
       pose proof (declared_inductive_inv wf_universes_weaken wf X isdecl).
-      destruct X2. destruct onArity as [s Hs].
+      destruct X2. destruct onArity as [s [e Hs]].
       move/andP: Hs => [] /= hty hs.
       rewrite ind_arity_eq in hty.
       rewrite !wf_universes_it_mkProd_or_LetIn in hty.
@@ -1168,11 +1172,13 @@ Qed.
       apply wf_extended_subst.
       rewrite ind_arity_eq in onArity. destruct onArity as [s' Hs].
       rewrite wf_universes_it_mkProd_or_LetIn in Hs.
+      destruct Hs as [e Hs].
       now move/andP: Hs => /andP /andP [] /andP [].
       rewrite wf_universes_lift.
       eapply wf_sorts_local_ctx_smash in s.
       eapply wf_sorts_local_ctx_nth_error in s as [? [? H]]; eauto.
       red in H. destruct x0. now move/andP: H => [].
+      now destruct H as [s [e [Hs _]%andb_and]].
       now destruct H as [s [Hs _]%andb_and]. 
     
     - apply/andP; split; auto.

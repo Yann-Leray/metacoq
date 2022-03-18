@@ -233,16 +233,16 @@ Module Environment (T : Term).
     ind_ctors : list constructor_body;
     ind_projs : list (ident * term); (* names and types of projections, if any.
                                       Type under context of params and inductive object *)
-    ind_relevance : relevance (* relevance of the inductive definition *) }.
+    ind_relevance : relevance := relevance_of_sort ind_sort (* relevance of the inductive definition *) }.
 
   Definition map_one_inductive_body npars arities f m :=
     match m with
     | Build_one_inductive_body ind_name ind_indices ind_sort 
-        ind_type ind_kelim ind_ctors ind_projs ind_relevance =>
+        ind_type ind_kelim ind_ctors ind_projs =>
       Build_one_inductive_body
          ind_name (fold_context_k (fun x => f (npars + x)) ind_indices) ind_sort
                   (f 0 ind_type) ind_kelim (map (map_constructor_body npars arities f) ind_ctors)
-                  (map (on_snd (f (S npars))) ind_projs) ind_relevance
+                  (map (on_snd (f (S npars))) ind_projs)
     end.
 
   (** See [mutual_inductive_body] from [declarations.ml]. *)

@@ -2,7 +2,7 @@
 From Coq Require Import ssreflect CRelationClasses.
 From MetaCoq.Template Require Import utils config Universes uGraph.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICOnOne PCUICAstUtils PCUICInduction
-     PCUICLiftSubst PCUICEquality PCUICUnivSubst
+     PCUICLiftSubst PCUICEquality PCUICUnivSubst PCUICRelevance
      PCUICCases PCUICCumulativity PCUICTyping
      PCUICReduction PCUICWeakeningEnvConv
      PCUICClosed PCUICPosition PCUICGuardCondition.
@@ -1605,7 +1605,7 @@ Lemma All_local_env_over_subst_instance {cf : checker_flags} Σ Γ (wfΓ : wf_lo
     wf_local (Σ.1, univs) (subst_instance u Γ).
 Proof.
   induction 1; simpl; rewrite /subst_instance /=; constructor; cbn in *; auto.
-  all: destruct tu; eexists; cbn in *; eauto.
+  all: destruct tu as [s [e Hu]]; cbn in *; rewrite <- (relevance_subst u) in e; eexists; split; cbn in *; eauto.
 Qed.
 
 #[global] Hint Resolve All_local_env_over_subst_instance : univ_subst.

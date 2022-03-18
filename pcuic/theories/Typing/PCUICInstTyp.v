@@ -369,7 +369,7 @@ Proof.
   apply typing_ind_env. 4,5,6: cbn zeta.
 
   - intros Σ wfΣ Γ wfΓ. auto.
-    induction 1; constructor; firstorder auto.
+    induction 1; constructor; pose proof (tu.π2.1); firstorder auto.
   - intros Σ wfΣ Γ wfΓ n decl e X Δ σ hΔ hσ. simpl.
     eapply hσ. assumption.
   - intros Σ wfΣ Γ wfΓ l X H0 Δ σ hΔ hσ. simpl.
@@ -380,20 +380,20 @@ Proof.
     + eapply ihA ; auto.
     + eapply ihB.
       * econstructor ; auto.
-        eexists. eapply ihA ; auto.
+        eexists. split; [apply eq_refl | idtac]. eapply ihA ; auto.
       * eapply well_subst_Up. 2: assumption.
         econstructor ; auto.
-        eexists. eapply ihA. all: auto.
+        eexists. split; [apply eq_refl | idtac]. eapply ihA. all: auto.
   - intros Σ wfΣ Γ wfΓ a A t s1 bty X hA ihA ht iht Δ σ hΔ hσ.
     autorewrite with sigma.
     econstructor.
     + eapply ihA ; auto.
     + eapply iht.
       * econstructor ; auto.
-        eexists. eapply ihA ; auto.
+        eexists. split; [apply eq_refl | idtac]. eapply ihA ; auto.
       * eapply well_subst_Up. 2: assumption.
         constructor. 1: assumption.
-        eexists. eapply ihA. all: auto.
+        eexists. split; [apply eq_refl | idtac]. eapply ihA. all: auto.
   - intros Σ wfΣ Γ wfΓ a b B t s1 A X hB ihB hb ihb ht iht Δ σ hΔ hσ.
     autorewrite with sigma.
     econstructor.
@@ -401,11 +401,11 @@ Proof.
     + eapply ihb. all: auto.
     + eapply iht.
       * econstructor. all: auto.
-        -- eexists. eapply ihB. all: auto.
+        -- eexists. split; [apply eq_refl | idtac]. eapply ihB. all: auto.
         -- simpl. eapply ihb. all: auto.
       * eapply well_subst_Up'; try assumption.
         constructor; auto.
-        ** exists s1. apply ihB; auto.
+        ** exists s1. split; [apply eq_refl | idtac]. apply ihB; auto.
         ** apply ihb; auto.
   - intros Σ wfΣ Γ wfΓ t na A B s u X hty ihty ht iht hu ihu Δ σ hΔ hσ.
     autorewrite with sigma.
@@ -535,8 +535,10 @@ Proof.
     * now eapply fix_guard_inst.
     * now rewrite nth_error_map hnth.
     * solve_all.
-      destruct a as [s [Hs IH]].
-      exists s; eapply IH; eauto.
+      destruct a as [s [[e Hs] IH]].
+      exists s;
+      split; [apply e | idtac];
+      eapply IH; eauto.
     * solve_all.
       len. rewrite /types in b0. len in b0.
       pose proof (inst_fix_context mfix σ).
@@ -556,8 +558,10 @@ Proof.
     * now eapply cofix_guard_inst.
     * now rewrite nth_error_map hnth.
     * solve_all.
-      destruct a as [s [Hs IH]].
-      exists s; eapply IH; eauto.
+      destruct a as [s [[e Hs] IH]].
+      exists s;
+      split; [apply e | idtac];
+      eapply IH; eauto.
     * solve_all.
       len. rewrite /types in b0. len in b0.
       pose proof (inst_fix_context mfix σ).

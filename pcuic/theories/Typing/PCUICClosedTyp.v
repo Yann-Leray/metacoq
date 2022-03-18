@@ -75,13 +75,14 @@ Qed.
 Lemma declared_decl_closed_ind `{checker_flags} {Σ : global_env} {wfΣ : wf Σ} {cst decl} :
   lookup_env Σ cst = Some decl ->
   Forall_decls_typing (fun (_ : global_env_ext) (Γ : context) (t T : term) => closedn #|Γ| t && closedn #|Γ| T) Σ ->
-  on_global_decl (fun Σ Γ b t => closedn #|Γ| b && option_default (closedn #|Γ|) t true)
+  on_global_decl (fun Σ Γ b t => closedn #|Γ| b && option_default (closedn #|Γ|) (typ_or_rel_or_none_to_opt t) true)
                  (Σ, universes_decl_of_decl decl) cst decl.
 Proof.
   intros.
   eapply weaken_lookup_on_global_env; eauto. red; eauto.
   eapply (on_global_env_impl (empty_ext Σ)); cycle 1. tea.
   red; intros. unfold lift_typing in *. destruct T; intuition auto with wf.
+  destruct X2 as [s0 [e Hs0]]. simpl. rtoProp; intuition.
   destruct X2 as [s0 Hs0]. simpl. rtoProp; intuition.
 Qed.
 
@@ -202,7 +203,7 @@ Proof.
   - rewrite closedn_subst_instance.
     eapply declared_inductive_inv in X0; eauto.
     apply onArity in X0. repeat red in X0.
-    destruct X0 as [s Hs]. rewrite -> andb_and in Hs.
+    destruct X0 as [s [e Hs]]. rewrite -> andb_and in Hs.
     intuition eauto using closed_upwards with arith.
 
   - destruct isdecl as [Hidecl Hcdecl].
@@ -476,7 +477,7 @@ Qed.
 Lemma declared_decl_closed `{checker_flags} {Σ : global_env} {cst decl} :
   wf Σ ->
   lookup_env Σ cst = Some decl ->
-  on_global_decl (fun Σ Γ b t => closedn #|Γ| b && option_default (closedn #|Γ|) t true)
+  on_global_decl (fun Σ Γ b t => closedn #|Γ| b && option_default (closedn #|Γ|) (typ_or_rel_or_none_to_opt t) true)
                  (Σ, universes_decl_of_decl decl) cst decl.
 Proof.
   intros.
@@ -536,7 +537,7 @@ Proof.
   destruct h1 as [Σ' [ext wfΣ' decl']].
   red in decl'. destruct decl' as [h ? ? ?].
   eapply Alli_nth_error in h. 2: eassumption.
-  simpl in h. destruct h as [? [? h] ? ? ?].
+  simpl in h. destruct h as [? [? [e_ h]] ? ? ?].
   eapply typecheck_closed in h as [? e]. 2: auto.
   now move: e => [_ /andP []]. 
 Qed.

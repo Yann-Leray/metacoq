@@ -35,10 +35,10 @@ Proof.
   induction h.
   - constructor.
   - simpl. unfold map_decl_anon. cbn. constructor. 1: assumption.
-    eexists. exact p.
+    eexists. split; [apply tu.π2.1 | idtac ]. exact p.
   - simpl. unfold map_decl_anon. cbn. constructor.
     + assumption.
-    + eexists. exact p0.
+    + eexists. split; [apply tu.π2.1 | idtac ]. exact p0.
     + assumption.
 Qed.
 

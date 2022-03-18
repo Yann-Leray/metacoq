@@ -144,6 +144,7 @@ Section Inversion.
     forall {Γ na A B T},
       Σ ;;; Γ |- tProd na A B : T ->
       ∑ s1 s2,
+        relevance_of_sort s1 = na.(binder_relevance) ×
         Σ ;;; Γ |- A : tSort s1 ×
         Σ ;;; Γ ,, vass na A |- B : tSort s2 ×
         Σ ;;; Γ ⊢ tSort (Universe.sort_of_product s1 s2) ≤ T.
@@ -166,6 +167,7 @@ Section Inversion.
     forall {Γ na A t T},
       Σ ;;; Γ |- tLambda na A t : T ->
       ∑ s B,
+        relevance_of_sort s = na.(binder_relevance) ×
         Σ ;;; Γ |- A : tSort s ×
         Σ ;;; Γ ,, vass na A |- t : B ×
         Σ ;;; Γ ⊢ tProd na A B ≤ T.
@@ -177,6 +179,7 @@ Section Inversion.
     forall {Γ na b B t T},
       Σ ;;; Γ |- tLetIn na b B t : T ->
       ∑ s1 A,
+        relevance_of_sort s1 = na.(binder_relevance) ×
         Σ ;;; Γ |- B : tSort s1 ×
         Σ ;;; Γ |- b : B ×
         Σ ;;; Γ ,, vdef na b B |- t : A ×
@@ -310,7 +313,7 @@ Section Inversion.
         let types := fix_context mfix in
         fix_guard Σ Γ mfix ×
         nth_error mfix n = Some decl ×
-        All (fun d => isType Σ Γ (dtype d)) mfix ×
+        All (fun d => isTypeRel Σ Γ (dtype d) (binder_relevance (dname d))) mfix ×
         All (fun d =>
           Σ ;;; Γ ,,, types |- dbody d : (lift0 #|types|) (dtype d)) mfix ×
         wf_fixpoint Σ mfix ×
@@ -326,7 +329,7 @@ Section Inversion.
         cofix_guard Σ Γ mfix ×
         let types := fix_context mfix in
         nth_error mfix idx = Some decl ×
-        All (fun d => isType Σ Γ (dtype d)) mfix ×
+        All (fun d => isTypeRel Σ Γ (dtype d) (binder_relevance (dname d))) mfix ×
         All (fun d =>
           Σ ;;; Γ ,,, types |- d.(dbody) : lift0 #|types| d.(dtype)
         ) mfix ×
@@ -363,15 +366,15 @@ Section Inversion.
     - simpl. apply ih in h. cbn in h.
       destruct h as [B [h c]].
       apply inversion_LetIn in h as hh.
-      destruct hh as [s1 [A' [? [? [? ?]]]]].
-      exists A'. split ; eauto.
+      destruct hh as [s1 [A' [? [? [? [? ?]]]]]].
+      exists A'. split; eauto.
       cbn. etransitivity; tea.
       eapply ws_cumul_pb_it_mkProd_or_LetIn_codom.
       assumption.
     - simpl. apply ih in h. cbn in h.
       destruct h as [B [h c]].
       apply inversion_Lambda in h as hh.
-      pose proof hh as [s1 [B' [? [? ?]]]].
+      pose proof hh as [s1 [B' [? [? [? ?]]]]].
       exists B'. split ; eauto.
       cbn. etransitivity; tea.
       eapply ws_cumul_pb_it_mkProd_or_LetIn_codom.

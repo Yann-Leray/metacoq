@@ -1159,10 +1159,10 @@ Qed.
     | Some (b, b') => (P Γ b b' * P Γ Γ' t t')%type
     | None => P Γ Γ' t t'
     end. *)
-Definition on_local_decl (P : context -> term -> option term -> Type) (Γ : context) (d : context_decl) :=
+Definition on_local_decl (P : context -> term -> typ_or_rel_or_none -> Type) (Γ : context) (d : context_decl) :=
   match decl_body d with
-  | Some b => P Γ b (Some (decl_type d)) * P Γ (decl_type d) None
-  | None => P Γ (decl_type d) None
+  | Some b => P Γ b (Typ (decl_type d)) * P Γ (decl_type d) (SortRel d.(decl_name).(binder_relevance))
+  | None => P Γ (decl_type d) (SortRel d.(decl_name).(binder_relevance))
   end.
 
 Lemma nth_error_All_local_env {P Γ n} (isdecl : n < #|Γ|) :
@@ -1194,8 +1194,12 @@ Proof.
   eapply wf_local_app => //.
   eapply All_local_env_app_inv in X1 as [].
   eapply All_local_env_impl_ind; tea => /=.
-  rewrite /lift_typing => Γ'' t' [t wf IH|wf [s IH]]; try exists s; eauto.
+  rewrite /lift_typing => Γ'' t' [T wf IH | rel wf [s [e IH]] | wf [s IH]]; try exists s; try split; eauto.
   eapply IH. eapply All2_fold_app => //.
+  eapply All2_fold_refl. intros. eapply cumul_decls_refl.
+  eapply All_local_env_app; split; auto.
+  eapply IH. 
+  eapply All2_fold_app => //.
   eapply All2_fold_refl. intros. eapply cumul_decls_refl.
   eapply All_local_env_app; split; auto.
   eapply IH. 

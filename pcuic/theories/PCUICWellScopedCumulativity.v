@@ -438,13 +438,13 @@ Qed.
 
 Inductive wt_cumul_pb_decls {cf : checker_flags} (pb : conv_pb) (Σ : global_env_ext) (Γ Γ' : context) : context_decl -> context_decl -> Type :=
 | wt_cumul_pb_vass {na na' : binder_annot name} {T T' : term} :
-    isType Σ Γ T -> isType Σ Γ' T' ->
+    isTypeRel Σ Γ T na.(binder_relevance) -> isTypeRel Σ Γ' T' na'.(binder_relevance) ->
     conv_cum pb Σ Γ T T' ->
     eq_binder_annot na na' ->
     wt_cumul_pb_decls pb Σ Γ Γ' (vass na T) (vass na' T')
 | wt_cumul_pb_vdef {na na' : binder_annot name} {b b' T T'} :
     eq_binder_annot na na' ->
-    isType Σ Γ T -> isType Σ Γ' T' ->
+    isTypeRel Σ Γ T na.(binder_relevance) -> isTypeRel Σ Γ' T' na'.(binder_relevance) ->
     Σ ;;; Γ |- b : T -> Σ ;;; Γ' |- b' : T' ->
     Σ ;;; Γ |- b = b' ->
     conv_cum pb Σ Γ T T' ->
@@ -497,8 +497,10 @@ Section WtContextConversion.
 
   Definition wt_decl Γ d := 
     match d with
-    | {| decl_body := None; decl_type := ty |} => isType Σ Γ ty
-    | {| decl_body := Some b; decl_type := ty |} => isType Σ Γ ty × Σ ;;; Γ |- b : ty
+    | {| decl_name := na; decl_body := None; decl_type := ty |} =>
+      isTypeRel Σ Γ ty na.(binder_relevance)
+    | {| decl_name := na; decl_body := Some b; decl_type := ty |} =>
+      isTypeRel Σ Γ ty na.(binder_relevance) × Σ ;;; Γ |- b : ty
     end.
 
   Lemma wf_local_All_fold Γ : 
@@ -546,7 +548,7 @@ Section WtContextConversion.
     intros a; eapply All2_fold_impl_ind; tea.
     intros ???? wt ws eq; 
     pose proof (All2_fold_length wt).
-    destruct eq.
+    destruct eq; apply isType_of_isTypeRel in i, i0.
     - pose proof (isType_wf_local i).
       eapply wf_local_closed_context in X.
       eapply isType_open in i. apply isType_open in i0.

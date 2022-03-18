@@ -10,11 +10,12 @@ Require Import ssreflect.
 Definition lift_sorting
   (checking : global_env_ext -> context -> term -> term -> Type)
   (sorting : global_env_ext -> context -> term -> Universe.t -> Type) :
-  (global_env_ext -> context -> term -> option term -> Type) :=
+  (global_env_ext -> context -> term -> typ_or_rel_or_none -> Type) :=
     fun Σ Γ t T =>
     match T with
-    | Some T => checking Σ Γ t T
-    | None => { s : Universe.t & sorting Σ Γ t s }
+    | Typ T => checking Σ Γ t T
+    | Sort => { s : Universe.t & sorting Σ Γ t s }
+    | SortRel rel => { s : Universe.t & relevance_of_sort s = rel × sorting Σ Γ t s }
     end.
 
   Section All_local_env_rel.
@@ -26,14 +27,14 @@ Definition lift_sorting
     := localenv_nil.
 
   Definition All_local_rel_abs {P Γ Γ' A na} :
-    All_local_rel P Γ Γ' -> P (Γ ,,, Γ') A None
+    All_local_rel P Γ Γ' -> P (Γ ,,, Γ') A (SortRel na.(binder_relevance))
     -> All_local_rel P Γ (Γ',, vass na A)
     := localenv_cons_abs.
 
   Definition All_local_rel_def {P Γ Γ' t A na} :
     All_local_rel P Γ Γ' ->
-    P (Γ ,,, Γ') A None ->
-    P (Γ ,,, Γ') t (Some A) ->
+    P (Γ ,,, Γ') A (SortRel na.(binder_relevance)) ->
+    P (Γ ,,, Γ') t (Typ A) ->
     All_local_rel P Γ (Γ',, vdef na t A)
     := localenv_cons_def.
 
@@ -45,9 +46,7 @@ Definition lift_sorting
     intros P Γ h. eapply All_local_env_impl.
     - exact h.
     - intros Δ t [] h'.
-      all: cbn.
-      + rewrite app_context_nil_l. assumption.
-      + rewrite app_context_nil_l. assumption.
+      all: cbn; rewrite app_context_nil_l; assumption.
   Defined.
 
   Lemma All_local_local_rel P Γ :
@@ -87,7 +86,7 @@ End All_local_env_rel.
 
 Section All_local_env_size.
 
-  Context (P : context -> term -> option term -> Type) (Psize : forall Γ t T, P Γ t T -> size).
+  Context (P : context -> term -> typ_or_rel_or_none -> Type) (Psize : forall Γ t T, P Γ t T -> size).
 
   Fixpoint All_local_env_size Γ (w : All_local_env P Γ) : size :=
     match w with
@@ -146,8 +145,8 @@ Section SortingEnv.
     | localenv_over_cons_abs Γ na t
         (all : All_local_env (lift_sorting checking sorting Σ) Γ) :
         All_local_env_over_sorting Σ Γ all ->
-        forall (tu : lift_sorting checking sorting Σ Γ t None),
-          sproperty Σ Γ all _ _ (projT2 tu) ->
+        forall (tu : lift_sorting checking sorting Σ Γ t (SortRel na.(binder_relevance))),
+          sproperty Σ Γ all _ _ tu.π2.2 ->
           All_local_env_over_sorting Σ (Γ ,, vass na t)
                               (localenv_cons_abs all tu)
 
@@ -155,8 +154,8 @@ Section SortingEnv.
         (all : All_local_env (lift_sorting checking sorting Σ) Γ) (tb : checking Σ Γ b t) :
         All_local_env_over_sorting Σ Γ all ->
         cproperty Σ Γ all _ _ tb ->
-        forall (tu : lift_sorting checking sorting Σ Γ t None),
-          sproperty Σ Γ all _ _ (projT2 tu) ->
+        forall (tu : lift_sorting checking sorting Σ Γ t (SortRel na.(binder_relevance))),
+          sproperty Σ Γ all _ _ tu.π2.2 ->
           All_local_env_over_sorting Σ (Γ ,, vdef na b t)
                               (localenv_cons_def all tu tb).
 
@@ -173,6 +172,7 @@ Section SortingEnv.
     Proof.
       destruct T.
       - exact (csize _ _ _ _ w).
+      - exact (ssize _ _ _ _ w.π2.2).
       - exact (ssize _ _ _ _ w.π2).
     Defined.
 

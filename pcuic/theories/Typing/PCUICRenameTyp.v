@@ -618,17 +618,19 @@ Proof.
   intros. destruct X0.
   induction X.
   - apply a.
-  - simpl. destruct t0 as [s Hs].
+  - simpl. destruct t0 as [s [e Hs]].
     rewrite rename_context_snoc /=. constructor; auto.
     red. simpl. exists s.
+    split; [apply e | idtac].
     eapply (Hs P (Δ' ,,, rename_context f Γ0) (shiftn #|Γ0| f)).
     split => //.
     eapply urenaming_ext.
     { now rewrite app_length -shiftnP_add. }
     { reflexivity. } now eapply urenaming_context.
-  - destruct t0 as [s Hs]. red in t1.
+  - destruct t0 as [s [e Hs]]. red in t1.
     rewrite rename_context_snoc /=. constructor; auto.
     * red. exists s.
+      split; [apply e | idtac].
       apply (Hs P (Δ' ,,, rename_context f Γ0) (shiftn #|Γ0| f)).
       split => //.
       eapply urenaming_ext.
@@ -801,7 +803,9 @@ Proof.
   apply typing_ind_env. 4,5,6: cbn zeta.
 
   - intros Σ wfΣ Γ wfΓ HΓ. split; auto.
-    induction HΓ; constructor; firstorder eauto.
+    induction HΓ; constructor.
+    all: pose proof (tu.π2.1).
+    all: firstorder eauto.
 
   - intros Σ wfΣ Γ wfΓ n decl isdecl ihΓ P Δ f hf.
     simpl in *.
@@ -823,7 +827,7 @@ Proof.
       eapply renaming_vass. 2: eauto.
       constructor.
       * destruct hf as [hΔ hf]. auto.
-      * simpl. exists s1. eapply ihA; eauto.
+      * simpl. exists s1. split; [apply eq_refl | idtac ]; eapply ihA; eauto.
   - intros Σ wfΣ Γ wfΓ a A t s1 B X hA ihA ht iht P Δ f hf.
     simpl.
      (* /andP [_ havB]. *)
@@ -834,7 +838,7 @@ Proof.
       eapply renaming_vass. 2: eauto.
       constructor.
       * destruct hf as [hΔ hf]. auto.
-      * simpl. exists s1. eapply ihA; eauto.
+      * simpl. exists s1. split; [apply eq_refl | idtac ]; eapply ihA; eauto.
   - intros Σ wfΣ Γ wfΓ a b B t s1 A X hB ihB hb ihb ht iht P Δ f hf.
     simpl. econstructor.
     + eapply ihB; tea.
@@ -844,7 +848,7 @@ Proof.
       eapply renaming_vdef. 2: eauto.
       constructor.
       * destruct hf. assumption.
-      * simpl. eexists. eapply ihB; tea.
+      * simpl. exists s1. split; [apply eq_refl | idtac ]; eapply ihB; tea.
       * simpl. eapply ihb; tea.
   - intros Σ wfΣ Γ wfΓ t na A B s u X hty ihty ht iht hu ihu P Δ f hf.
     simpl. eapply meta_conv.
@@ -995,8 +999,10 @@ Proof.
       * destruct hf; eapply fix_guard_rename; eauto.
       * rewrite nth_error_map. rewrite hdecl. simpl. reflexivity.
       * apply All_map, (All_impl ihmfixt).
-        intros x [s [Hs IHs]].
-        exists s. now eapply IHs.
+        intros x [s [[e Hs] IHs]].
+        exists s.
+        split; [apply e | idtac].
+        now eapply IHs.
       * apply All_map, (All_impl ihmfixb).
         intros x [Hb IHb].
         destruct x as [na ty bo rarg]. simpl in *.
@@ -1021,8 +1027,10 @@ Proof.
       * destruct hf; eapply cofix_guard_rename; eauto.
       * rewrite nth_error_map. rewrite hdecl. simpl. reflexivity.
       * apply All_map, (All_impl ihmfixt).
-        intros x [s [Hs IHs]].
-        exists s. now eapply IHs.
+        intros x [s [[e Hs] IHs]].
+        exists s.
+        split; [apply e | idtac].
+        now eapply IHs.
       * apply All_map, (All_impl ihmfixb).
         intros x [Hb IHb].
         destruct x as [na ty bo rarg]. simpl in *.

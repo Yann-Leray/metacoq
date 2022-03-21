@@ -49,12 +49,12 @@ Section Generation.
     - simpl. cbn. eapply ih.
       simpl in h. pose proof (typing_wf_local h) as hc.
       dependent induction hc.
-      destruct t0 as [s [e Hu]]; destruct na; cbn in e. rewrite <- e in *.
+      destruct t0 as [s [e Hu]].
       econstructor; try eassumption.
     - simpl. cbn. eapply ih.
       pose proof (typing_wf_local h) as hc. cbn in hc.
       dependent induction hc.
-      destruct t0 as [s [e Hu]]; destruct na; cbn in e. rewrite <- e in *.
+      destruct t0 as [s [e Hu]].
       econstructor; try eassumption.
   Qed.
 

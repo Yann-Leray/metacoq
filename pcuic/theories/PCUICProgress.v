@@ -78,7 +78,7 @@ Section WfEnv.
     - specialize IHX with (T' := (B {0 := hd})).
       assert (isType Σ Γ (B {0 := hd})) as HH. {
         clear p.
-        eapply inversion_Prod in H' as (? & ? & ? & ? & ?); tea.
+        eapply inversion_Prod in H' as (? & ? & ? & ? & ? & ?); tea.
         eapply isType_subst. econstructor. econstructor. rewrite subst_empty; eauto.
         econstructor; cbn; eauto. 
       }
@@ -116,9 +116,9 @@ Proof.
   1, 2: rewrite <- H2; lia.
   eapply typing_spine_pred_strengthen; tea.
   eexists; eauto. clear Hs3.
-  eapply inversion_Prod in HA as (? & ? & ? & ? & ?); tea.
+  eapply inversion_Prod in HA as (? & ? & ? & ? & ? & ?); tea.
   eapply isType_subst. econstructor. econstructor. rewrite subst_empty; eauto.
-  econstructor;  cbn; eauto.
+  econstructor; cbn; eauto.
   Unshelve. eauto. 
 Qed.
 
@@ -243,7 +243,7 @@ forall (P : global_env_ext -> context -> term -> term -> Type)
       fix_guard Σ Γ mfix ->
       nth_error mfix n = Some decl ->
       PΓ Σ (Γ ,,, types) ->
-      All (fun d => {s & (Σ ;;; Γ |- d.(dtype) : tSort s)%type * P Σ Γ d.(dtype) (tSort s)})%type mfix ->
+      All (fun d => {s & (relevance_of_sort s = binder_relevance (dname d) × Σ ;;; Γ |- d.(dtype) : tSort s)%type * P Σ Γ d.(dtype) (tSort s)})%type mfix ->
       All (fun d => (Σ ;;; Γ ,,, types |- d.(dbody) : lift0 #|types| d.(dtype))%type *
           P Σ (Γ ,,, types) d.(dbody) (lift0 #|types| d.(dtype)))%type mfix ->
       wf_fixpoint Σ.1 mfix ->
@@ -254,7 +254,7 @@ forall (P : global_env_ext -> context -> term -> term -> Type)
       cofix_guard Σ Γ mfix ->
       nth_error mfix n = Some decl ->
       PΓ Σ (Γ ,,, types) ->       
-      All (fun d => {s & (Σ ;;; Γ |- d.(dtype) : tSort s)%type * P Σ Γ d.(dtype) (tSort s)})%type mfix ->
+      All (fun d => {s & (relevance_of_sort s = binder_relevance (dname d) × Σ ;;; Γ |- d.(dtype) : tSort s)%type * P Σ Γ d.(dtype) (tSort s)})%type mfix ->
       All (fun d => (Σ ;;; Γ ,,, types |- d.(dbody) : lift0 #|types| d.(dtype))%type *
           P Σ (Γ ,,, types) d.(dbody) (lift0 #|types| d.(dtype)))%type mfix ->
       wf_cofixpoint Σ.1 mfix ->
@@ -293,7 +293,7 @@ Proof.
      eapply typing_closed_context; eauto. eapply type_is_open_term.
      eapply type_App; eauto.
    + cbn. inversion HL. subst. clear HL.
-     eapply inversion_Prod in H' as Hx; eauto. destruct Hx as (? & ? & ? & ? & ?).
+     eapply inversion_Prod in H' as Hx; eauto. destruct Hx as (? & ? & ? & ? & ? & ?).
      econstructor.
      7: unshelve eapply IHL.
      now eauto. now eauto. split. now eauto. unshelve eapply IH. eauto. lia.
@@ -423,7 +423,7 @@ Lemma typing_ind_env `{cf : checker_flags} :
         fix_guard Σ Γ mfix ->
         nth_error mfix n = Some decl ->
         PΓ Σ (Γ ,,, types) ->
-        All (fun d => {s & (Σ ;;; Γ |- d.(dtype) : tSort s)%type * P Σ Γ d.(dtype) (tSort s)})%type mfix ->
+        All (fun d => {s & (relevance_of_sort s = binder_relevance (dname d) × Σ ;;; Γ |- d.(dtype) : tSort s)%type * P Σ Γ d.(dtype) (tSort s)})%type mfix ->
         All (fun d => (Σ ;;; Γ ,,, types |- d.(dbody) : lift0 #|types| d.(dtype))%type *
             P Σ (Γ ,,, types) d.(dbody) (lift0 #|types| d.(dtype)))%type mfix ->
         wf_fixpoint Σ.1 mfix ->
@@ -434,7 +434,7 @@ Lemma typing_ind_env `{cf : checker_flags} :
         cofix_guard Σ Γ mfix ->
         nth_error mfix n = Some decl ->
         PΓ Σ (Γ ,,, types) ->
-        All (fun d => {s & (Σ ;;; Γ |- d.(dtype) : tSort s)%type * P Σ Γ d.(dtype) (tSort s)})%type mfix ->
+        All (fun d => {s & (relevance_of_sort s = binder_relevance (dname d) × Σ ;;; Γ |- d.(dtype) : tSort s)%type * P Σ Γ d.(dtype) (tSort s)})%type mfix ->
         All (fun d => (Σ ;;; Γ ,,, types |- d.(dbody) : lift0 #|types| d.(dtype))%type *
             P Σ (Γ ,,, types) d.(dbody) (lift0 #|types| d.(dtype)))%type mfix ->
         wf_cofixpoint Σ.1 mfix ->
@@ -484,7 +484,7 @@ Proof with eauto with wcbv; try congruence.
       * destruct t; inv Hatom; eauto using red1.
         -- eapply inversion_Sort in Ht' as (? & ? & Ht'); tea.
            eapply ws_cumul_pb_Sort_Prod_inv in Ht'; eauto.
-        -- eapply inversion_Prod in Ht' as (? & ? & ? & ? & Ht'); tea.
+        -- eapply inversion_Prod in Ht' as (? & ? & ? & ? & ? & Ht'); tea.
            eapply ws_cumul_pb_Sort_Prod_inv in Ht'; eauto.
         -- right. eapply value_app with (l := [hd]); eauto.
         -- right. eapply value_app with (l := [hd]); eauto.

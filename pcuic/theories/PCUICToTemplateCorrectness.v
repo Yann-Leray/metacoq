@@ -691,11 +691,11 @@ Section wtsub.
   Proof.
     destruct t; simpl; intros [T h]; try exact tt.
     - now eapply inversion_Evar in h.
-    - eapply inversion_Prod in h as (?&?&?&?&?); tea.
+    - eapply inversion_Prod in h as (?&?&?&?&?&?); tea.
       split; eexists; eauto.
-    - eapply inversion_Lambda in h as (?&?&?&?&?); tea.
+    - eapply inversion_Lambda in h as (?&?&?&?&?&?); tea.
       split; eexists; eauto.
-    - eapply inversion_LetIn in h as (?&?&?&?&?&?); tea.
+    - eapply inversion_LetIn in h as (?&?&?&?&?&?&?); tea.
       repeat split; eexists; eauto.
     - eapply inversion_App in h as (?&?&?&?&?&?); tea.
       split; eexists; eauto.
@@ -735,11 +735,11 @@ Section wtsub.
       eexists; eauto.
     - eapply inversion_Fix in h as (?&?&?&?&?&?&?); tea.
       eapply All_prod.
-      eapply (All_impl a). intros ? h; exact h.
+      eapply (All_impl a). intros ? h; apply isType_of_isTypeRel in h; exact h.
       eapply (All_impl a0). intros ? h; eexists; tea.
     - eapply inversion_CoFix in h as (?&?&?&?&?&?&?); tea.
       eapply All_prod.
-      eapply (All_impl a). intros ? h; exact h.
+      eapply (All_impl a). intros ? h; apply isType_of_isTypeRel in h; exact h.
       eapply (All_impl a0). intros ? h; eexists; tea.
   Qed.
 End wtsub.
@@ -1511,8 +1511,8 @@ Proof.
   - simpl. constructor.
   - simpl. econstructor.
     + eapply IHX.
-    + simpl. destruct tu. exists x. eapply p.
-  - simpl. constructor; auto. red. destruct tu. exists x. auto.
+    + simpl. destruct tu as [s [e Hs]]. exists s. split; [apply e|]; eapply p.
+  - simpl. constructor; auto. red. destruct tu as [s [e Hs]]. exists s. split; auto.
 Qed.
 
 Lemma trans_wf_local_env {cf} Σ Γ :
@@ -1528,7 +1528,7 @@ Proof.
   - simpl. constructor.
   - simpl. econstructor.
     + eapply IHX.
-    + simpl. destruct t0. exists x. eapply p.
+    + simpl. destruct t0 as [s [e [Hs p]]]. exists s. split; [apply e|]; eapply p.
   - simpl. constructor; auto. red. destruct t0. exists x. intuition auto.
     red. red in t1. destruct t1. eapply t2.
 Qed.
@@ -1580,11 +1580,12 @@ Proof.
   }
 
   induction X;cbn;constructor;auto;cbn in *.
-  - destruct t0 as (?&?&?).
+  - destruct t0 as (?&?&?&?).
     exists x.
+    split;[apply e|].
     apply t1.
-  - destruct t0 as (?&?&?).
-    eexists;eassumption.
+  - destruct t0 as (?&?&?&?).
+    eexists;split;eassumption.
   - destruct t1.
     assumption.
 Qed.
@@ -1642,13 +1643,13 @@ Proof.
   - constructor.
     + apply IHAll_local_env_over.
     + cbn in *.
-      destruct tu.
-      eexists;split;eassumption.
+      destruct tu as [s [e Hs]].
+      eexists;split;[|split]; eassumption.
   - constructor.
     + apply IHAll_local_env_over.
     + cbn in *.
-      destruct tu.
-      eexists;split;eassumption.
+      destruct tu as [s [e Hs]].
+      eexists;split;[|split];eassumption.
     + cbn in *.
       split;eassumption.
 Qed.

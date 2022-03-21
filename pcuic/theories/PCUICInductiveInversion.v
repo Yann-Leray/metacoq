@@ -118,7 +118,7 @@ Qed.
 Lemma subslet_cofix {cf:checker_flags} (Σ : global_env_ext) Γ mfix :
   wf_local Σ Γ ->
   cofix_guard Σ Γ mfix ->
-  All (fun d : def term => ∑ s : Universe.t, Σ;;; Γ |- dtype d : tSort s) mfix ->
+  All (fun d : def term => ∑ s : Universe.t, relevance_of_sort s = binder_relevance (dname d) × Σ;;; Γ |- dtype d : tSort s) mfix ->
   All
   (fun d : def term =>
    Σ;;; Γ ,,, fix_context mfix |- dbody d
@@ -176,7 +176,7 @@ Proof.
       eapply refine_type; eauto.
       rewrite simpl_subst_k //. len.
       apply subslet_cofix; auto. 
-    * eapply nth_error_all in a0; tea. cbn in a0. now eapply isType_ws_cumul_pb_refl.
+    * eapply nth_error_all in a0; tea. apply isType_of_isTypeRel in a0. now eapply isType_ws_cumul_pb_refl.
   - destruct (IHtyping1 wfΣ) as [d [[[Hnth wfcofix] ?] ?]].
     exists d. intuition auto.
     etransitivity; eauto.
@@ -305,7 +305,7 @@ Section OnConstructor.
     rewrite Hdecl in cum'; clear Hdecl.
     assert(closed (ind_type idecl)).
     { pose proof (oib.(onArity)). rewrite (oib.(ind_arity_eq)) in X0 |- *.
-      destruct X0 as [s Hs]. now apply subject_closed in Hs. } 
+      destruct X0 as [s [e Hs]]. now apply subject_closed in Hs. } 
     rewrite lift_closed in cum' => //.
     eapply typing_spine_strengthen in sp; simpl.
     3:tea.
@@ -317,9 +317,9 @@ Section OnConstructor.
     clear Hlen'.
     rewrite [_ ,,, _]app_context_assoc in Hinst.
     now exists inst.
-    destruct oib.(onArity).
-    exists x0.
-    eapply weaken_ctx in t; tea.
+    destruct oib.(onArity) as [s [e Hs]].
+    exists s.
+    eapply weaken_ctx in Hs; tea.
   Qed.
 End OnConstructor.
 
@@ -548,6 +548,7 @@ Proof.
           (mkApps (tInd ind i) (map (subst [hd] #|Γ'|) args))). {
         move: wat; rewrite it_mkProd_or_LetIn_app /= /mkProd_or_LetIn /= => wat.
         eapply isType_tProd in wat as [isty wat].
+        apply isType_of_isTypeRel in isty.
         eapply (isType_subst (Δ := [_]) [hd]) in wat.
         now rewrite subst_it_mkProd_or_LetIn Nat.add_0_r subst_mkApps in wat.
         eapply subslet_ass_tip. eapply type_ws_cumul_pb; tea. now symmetry. }
@@ -578,6 +579,7 @@ Proof.
         constructor. constructor. rewrite subst_empty.
         rewrite it_mkProd_or_LetIn_app /= /mkProd_or_LetIn /= in wat.
         eapply isType_tProd in wat as [Hty _]; auto.
+        apply isType_of_isTypeRel in Hty.
         eapply type_ws_cumul_pb; eauto. now eapply ws_cumul_pb_eq_le.
       * pcuic.
 Qed.
@@ -1608,7 +1610,7 @@ Lemma positive_cstr_closed_args_subst_arities {cf} {Σ} {wfΣ : wf Σ} {u u' Γ}
   closed_ctx (subst_instance u (ind_params mdecl)) ->
   wf_local Σ (subst_instance u (ind_arities mdecl ,,, smash_context [] (ind_params mdecl) ,,, Γ)) ->
   All_local_env
-    (fun (Γ : PCUICEnvironment.context) (t : term) (_ : option term) =>
+    (fun (Γ : PCUICEnvironment.context) (t : term) (_ : typ_or_rel_or_none) =>
            positive_cstr_arg mdecl ([] ,,, (smash_context [] (ind_params mdecl) ,,, Γ)) t)
       Γ ->
   assumption_context Γ ->
@@ -2621,6 +2623,13 @@ Proof.
     eapply ws_cumul_ctx_pb_app_same; tea. 2:now symmetry.
     eapply wf_local_app in X; tea.
     eauto with fvs.
+  - destruct X0 as [s [e' Hs]]; exists s.
+    split. apply e'.
+    eapply closed_context_cumulativity; tea.
+    eapply All_local_env_app; split=> //.
+    eapply ws_cumul_ctx_pb_app_same; tea. 2:now symmetry.
+    eapply wf_local_app in X; tea.
+    eauto with fvs.
   - destruct X0 as [s Hs]; exists s.
     eapply closed_context_cumulativity; tea.
     eapply All_local_env_app; split=> //.
@@ -3334,10 +3343,10 @@ Proof.
 Qed.
 
 Lemma wf_local_vass {cf:checker_flags} Σ {Γ na A} s :
-  Σ ;;; Γ |- A : tSort s -> wf_local Σ (Γ ,, vass na A).
+  relevance_of_sort s = na.(binder_relevance) -> Σ ;;; Γ |- A : tSort s -> wf_local Σ (Γ ,, vass na A).
 Proof.
-  intro X; apply typing_wf_local in X as Y.
-  constructor; tea. eexists; eassumption.
+  intros e X; apply typing_wf_local in X as Y.
+  constructor; tea. eexists; split; eassumption.
 Qed.
 
 Lemma isType_it_mkProd_or_LetIn {cf:checker_flags} {Σ Γ Δ T} : 
@@ -3354,7 +3363,7 @@ Proof.
     have wf := typing_wf_local Hs.
     depelim wf.
     unfold PCUICTypingDef.typing.
-    destruct l as [s1 Hs1]. red in l0.
+    destruct l as [s1 [e Hs1]]. red in l0.
     eapply type_Cumul'.
     econstructor; eauto. eapply isType_Sort; eauto.
     now eapply PCUICWfUniverses.typing_wf_universe in Hs.
@@ -3366,7 +3375,7 @@ Proof.
     unfold PCUICTypingDef.typing in *.
     have wf := typing_wf_local Hs.
     depelim wf.
-    destruct l as [s1 Hs1].
+    destruct l as [s1 [e Hs1]].
     exists (Universe.sort_of_product s1 s).
     econstructor; eauto. 
 Qed.
@@ -3381,7 +3390,8 @@ Proof.
   eapply wf_local_app => //.
   induction w in nas, ha |- *; depelim ha; cbn. constructor.
   - constructor; eauto. apply IHw; auto.
-    destruct t0 as [s Hs]. exists s.
+    destruct t0 as [s [e' Hs]]. exists s.
+    split. rewrite e. apply e'.
     eapply context_conversion; tea.
     eapply wf_local_app, IHw; eauto.
     eapply eq_binder_annots_eq_ctx in ha.
@@ -3389,7 +3399,8 @@ Proof.
     eapply eq_context_upto_cat.
     reflexivity. symmetry. apply ha.
   - constructor; eauto. apply IHw; auto.
-    destruct t0 as [s Hs]. exists s.
+    destruct t0 as [s [e' Hs]]. exists s.
+    split. rewrite e. apply e'. 
     eapply context_conversion; tea.
     eapply wf_local_app, IHw; eauto.
     eapply eq_binder_annots_eq_ctx in ha.

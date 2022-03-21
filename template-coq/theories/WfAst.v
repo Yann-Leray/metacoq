@@ -180,11 +180,8 @@ Definition wf_decl Σ d :=
   | None => True
   end * wf Σ (decl_type d).
 
-Definition wf_decl_pred Σ : context -> term -> option term -> Type :=
-  (fun _ t T => wf Σ t * match T with
-                        | Some T => wf Σ T
-                        | None => True
-                        end).
+Definition wf_decl_pred Σ : context -> term -> typ_or_rel_or_none -> Type :=
+  (fun _ t T => wf Σ t * typ_or_rel_or_none_default (wf Σ) T True).
 
 Lemma wf_mkApp Σ u a : wf Σ u -> wf Σ a -> wf Σ (mkApp u a).
 Proof.

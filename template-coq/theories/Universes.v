@@ -2216,6 +2216,16 @@ Section no_prop_leq_type.
 
 End no_prop_leq_type.
 
+Lemma leq_relevance {cf φ} {s1 s2} :
+  check_univs -> consistent φ -> leq_universe φ s1 s2 -> relevance_of_sort s1 = relevance_of_sort s2.
+Proof.
+  intros Hcf c H.
+  enough (Universe.is_sprop s1 <-> Universe.is_sprop s2).
+  destruct s1, s2, H0 as [H1 H2]; cbn in H1, H2 |- *; try reflexivity;
+  assert true by auto; intuition auto; discriminate.
+  split; [eapply leq_universe_sprop_l | eapply leq_universe_sprop_r]; eauto.
+Qed.
+
 Definition compare_universe {cf:checker_flags} (pb : conv_pb) :=
   match pb with
   | Conv => eq_universe

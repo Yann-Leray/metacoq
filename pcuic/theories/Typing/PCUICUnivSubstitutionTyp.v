@@ -236,20 +236,23 @@ Proof.
     + econstructor.
       * aa.
       * now apply wf_universe_subst_instance.
-  - intros n t0 b s1 s2 X X0 X1 X2 X3 u univs wfΣ' H.
+  - intros n t0 b s1 s2 Xe X X0 X1 X2 X3 u univs wfΣ' H.
     rewrite product_subst_instance; aa.
-    erewrite <- PCUICRelevance.relevance_subst in X3 |- *.
     econstructor.
+    + rewrite PCUICRelevance.relevance_subst. apply Xe.
     + eapply X1; eauto.
     + eapply X3; eauto.
-  - intros n t0 b s1 bty X X0 X1 X2 X3 u univs wfΣ' H.
-    erewrite <- PCUICRelevance.relevance_subst in X3 |- *.
+  - intros n t0 b s1 bty Xe X X0 X1 X2 X3 u univs wfΣ' H.
     econstructor.
+    + erewrite PCUICRelevance.relevance_subst; apply Xe.
     + eapply X1; aa.
     + eapply X3; aa.
-  - intros n b b_ty b' s1 b'_ty X X0 X1 X2 X3 X4 X5 u univs wfΣ' H.
-    erewrite <- PCUICRelevance.relevance_subst in X5 |- *.
-    econstructor; eauto. eapply X5; aa.
+  - intros n b b_ty b' s1 b'_ty Xe X X0 X1 X2 X3 X4 X5 u univs wfΣ' H.
+    econstructor.
+    + erewrite PCUICRelevance.relevance_subst. apply Xe.
+    + eauto.
+    + eauto.
+    + eapply X5; aa.
   - intros t0 na A B s u X X0 X1 X2 X3 X4 X5 u0 univs wfΣ' H.
     rewrite subst_instance_subst. cbn. econstructor.
     + eapply X1; eauto.

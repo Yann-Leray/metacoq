@@ -37,7 +37,7 @@ Proof.
   change (d :: Γ') with (Γ' ,, d).
   destruct d as [na' [bd|] ty]; rewrite !app_context_cons; intro HH.
   - rewrite subst_context_snoc0. simpl.
-    inversion HH; subst; cbn in *. destruct X0 as [s X0].
+    inversion HH; subst; cbn in *. destruct X0 as [s [e X0]].
     change (Γ,, vdef na b t ,,, Γ') with (Γ ,,, [vdef na b t] ,,, Γ') in *.
     assert (subslet Σ (Δ ,,, Γ) [b] [vdef na b t]). {
       pose proof (cons_let_def Σ (Δ ,,, Γ) [] [] na b t) as XX.
@@ -46,14 +46,14 @@ Proof.
     }
     constructor; cbn; auto.
     1: apply IHΓ' ; exact X.
-    1: exists s.
+    1: exists s; split; [apply e|].
     1: change (tSort s) with (subst [b] #|Γ'| (tSort s)).
     all: rewrite app_context_assoc.
     all: eapply substitution; tea.
     1: rewrite !app_context_assoc in X0 ; assumption.
     rewrite !app_context_assoc in X1 ; assumption.
   - rewrite subst_context_snoc0. simpl.
-    inversion HH; subst; cbn in *. destruct X0 as [s X0].
+    inversion HH; subst; cbn in *. destruct X0 as [s [e X0]].
     change (Γ,, vdef na b t ,,, Γ') with (Γ ,,, [vdef na b t] ,,, Γ') in *.
     assert (subslet Σ (Δ ,,, Γ) [b] [vdef na b t]). {
       pose proof (cons_let_def Σ (Δ ,,, Γ) [] [] na b t) as XX.
@@ -61,7 +61,7 @@ Proof.
       apply All_local_env_app_l in X. inversion X; subst; cbn in *; assumption. }
     constructor; cbn; auto.
     1: apply IHΓ' ; exact X.
-    exists s.
+    exists s; split; [apply e|].
     change (tSort s) with (subst [b] #|Γ'| (tSort s)).
     rewrite app_context_assoc.
     all: eapply substitution; tea.
@@ -76,15 +76,15 @@ Proof.
   - intros wfl. inversion_clear wfl.
     constructor.
     + apply IHΓ'. assumption.
-    + destruct X0.
-      eexists.
+    + destruct X0 as [s [e Hs]].
+      eexists; split; [apply e|].
       apply weaken_ctx ; eauto.
     + apply weaken_ctx ; auto.
   - intros wfl. inversion_clear wfl.
     constructor.
     + apply IHΓ'. assumption.
-    + destruct X0.
-      eexists.
+    + destruct X0 as [s [e Hs]].
+      eexists; split; [apply e|].
       apply weaken_ctx ; eauto.
 Qed.      
 
@@ -143,11 +143,13 @@ Section BDToPCUICTyping.
     all: constructor.
     1,3: assumption.
     all: red.
-    - simpl in tu. eexists.
+    - destruct tu as [s' [e Hs']].
+      eexists; split; [apply e|].
       auto.
-    - destruct tu. eexists.
+    - destruct tu as [s' [e Hs']].
+      eexists; split; [apply e|].
       auto.
-    - destruct tu.
+    - destruct tu as [s' [e Hs']].
       apply c ; auto.
       eexists. auto.
   Qed.
@@ -165,13 +167,15 @@ Section BDToPCUICTyping.
     all: constructor.
     1,3: assumption.
     all: red.
-    - simpl in tu. eexists.
+    - destruct tu as [s' [e Hs']].
+      eexists; split; [apply e|].
       apply s.
       by apply wf_local_app.
-    - destruct tu. eexists.
+    - destruct tu as [s' [e Hs']].
+      eexists; split; [apply e|].
       apply s.
       by apply wf_local_app.
-    - destruct tu.
+    - destruct tu as [s' [e Hs']].
       apply c.
       1: by apply wf_local_app.
       eexists.
@@ -188,12 +192,13 @@ Section BDToPCUICTyping.
     intros wfΔ args ctxi ; inversion ctxi.
     - subst d.
       subst.
-      assert (isType Σ Γ t).
+      assert (isTypeRel Σ Γ t na.(binder_relevance)).
       {
         eapply wf_local_rel_app_inv in wfΔ as [wfd _].
         inversion_clear wfd.
         eassumption.
       }
+      pose proof (isType_of_isTypeRel X2).
       constructor ; auto.
       apply X ; auto.
       1: by rewrite subst_telescope_length ; reflexivity.
@@ -209,12 +214,13 @@ Section BDToPCUICTyping.
       eassumption.
     - subst d.
       subst.
-      assert (isType Σ Γ t).
+      assert (isTypeRel Σ Γ t na.(binder_relevance)).
       {
         eapply wf_local_rel_app_inv in wfΔ as [wfd _].
         inversion_clear wfd.
         eassumption.
       }
+      pose proof (isType_of_isTypeRel X1).
       constructor ; auto.
       apply X ; auto.
       1: by rewrite subst_telescope_length ; reflexivity.
@@ -262,7 +268,7 @@ Section BDToPCUICTyping.
       apply X2 ; auto.
       specialize (X0 X3).
       apply validity in X0 as [? X0].
-      apply inversion_Prod in X0 as (? & ? & ? & _).
+      apply inversion_Prod in X0 as (? & ? & ? & ? & _).
       2: done.
       eexists. eassumption.
 
@@ -367,17 +373,19 @@ Section BDToPCUICTyping.
       + clear H H0 H1 X0.
         induction X.
         all: constructor ; auto.
-        destruct p as (? & ? & ?).
+        destruct p as (? & (e & ?) & ?).
         eexists.
+        split; [apply e|].
         apply p.
         auto.
 
-      + have Htypes : All (fun d => isType Σ Γ (dtype d)) mfix.
+      + have Htypes : All (fun d => isTypeRel Σ Γ (dtype d) (binder_relevance (dname d))) mfix.
         { clear H H0 H1 X0.
           induction X.
           all: constructor ; auto.
-          destruct p as (? & ? & ?).
+          destruct p as (? & (e & ?) & ?).
           eexists.
+          split; [apply e|].
           apply p.
           auto.
         }
@@ -390,7 +398,7 @@ Section BDToPCUICTyping.
         2:{ inversion_clear X. apply IHX0 ; auto. inversion_clear Htypes. auto. }
         destruct p.
         apply p ; auto.
-        inversion_clear Htypes as [| ? ? [u]].
+        inversion_clear Htypes as [| ? ? [u [e ?]]].
         exists u.
         change (tSort u) with (lift0 #|Γ'| (tSort u)).
         apply weakening.
@@ -400,17 +408,19 @@ Section BDToPCUICTyping.
       + clear H H0 H1 X0.
         induction X.
         all: constructor ; auto.
-        destruct p as (? & ? & ?).
+        destruct p as (? & (e & ?) & ?).
         eexists.
+        split; [apply e|].
         apply p.
         auto.
 
-      + have Htypes : All (fun d => isType Σ Γ (dtype d)) mfix.
+      + have Htypes : All (fun d => isTypeRel Σ Γ (dtype d) (binder_relevance (dname d))) mfix.
         { clear H H0 H1 X0.
           induction X.
           all: constructor ; auto.
-          destruct p as (? & ? & ?).
+          destruct p as (? & (e & ?) & ?).
           eexists.
+          split; [apply e|].
           apply p.
           auto.
         }
@@ -422,7 +432,7 @@ Section BDToPCUICTyping.
         2:{ inversion_clear X. apply IHX0 ; auto. inversion_clear Htypes. auto. }
         destruct p.
         apply p ; auto.
-        inversion_clear Htypes as [| ? ? [u]].
+        inversion_clear Htypes as [| ? ? [u [e ?]]].
         exists u.
         change (tSort u) with (lift0 #|Γ'| (tSort u)).
         apply weakening.
@@ -535,6 +545,7 @@ Proof.
       rewrite /= app_context_assoc in wfΓ.
       eapply wf_local_app_inv in wfΓ as [wfΓ _].
       inversion wfΓ ; subst.
+      apply isType_of_isTypeRel in X0.
       now apply checking_typing.
     }
     constructor ; tea.

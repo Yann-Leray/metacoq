@@ -21,6 +21,7 @@ Set Equations With UIP.
 
 Section Principality.
   Context {cf : checker_flags}.
+  Context {c : check_univs}.
   Context (Σ : global_env_ext).
   Context (wfΣ : wf_ext Σ).
 
@@ -92,10 +93,10 @@ Section Principality.
       repeat outtimes.
       specialize (IHu1 _ _ t) as [dom Hdom].
       specialize (IHu2 _ _ t0) as [codom Hcodom].
-      destruct (Hdom _ t) as [e e'].
-      eapply ws_cumul_pb_Sort_r_inv in e as [domu [red leq]].
-      destruct (Hcodom _ t0) as [e e''].
-      eapply ws_cumul_pb_Sort_r_inv in e as [codomu [cored coleq]].
+      destruct (Hdom _ t) as [e0 e'].
+      eapply ws_cumul_pb_Sort_r_inv in e0 as [domu [red leq]].
+      destruct (Hcodom _ t0) as [e0 e''].
+      eapply ws_cumul_pb_Sort_r_inv in e0 as [codomu [cored coleq]].
       exists (tSort (Universe.sort_of_product domu codomu)).
       int inversion_Prod.
       repeat outsum; repeat outtimes.
@@ -112,6 +113,8 @@ Section Principality.
         pose proof (closed_red_confluence cored redu'') as [v' [redl redr]].
         eapply invert_red_sort in redl.
         eapply invert_red_sort in redr. subst. now noconf redr.
+      + rewrite -e.
+        eapply leq_relevance; eauto.
       + eapply type_reduction; eauto. eapply red.
       + eapply type_reduction; eauto. eapply cored.
 
@@ -130,7 +133,7 @@ Section Principality.
       eapply ws_cumul_pb_Prod => //; auto.
       transitivity A' => //. now symmetry.
 
-    - eapply inversion_LetIn in hA as (s1 & bty & Hu2 & Hu1 & Hu3 & Hcum); auto.
+    - eapply inversion_LetIn in hA as (s1 & bty & e & Hu2 & Hu1 & Hu3 & Hcum); auto.
       destruct (IHu1 _ _ Hu1) as [? p].
       destruct (p _ Hu1).
       destruct (IHu2 _ _ Hu2) as [? p'].
@@ -139,7 +142,7 @@ Section Principality.
       destruct (p'' _ Hu3).
       exists (tLetIn n u1 u2 x1).
       int inversion_LetIn.
-      destruct hB as (s1' & bty' & Hu2' & Hu1' & Hu3' & Hcum'); eauto.
+      destruct hB as (s1' & bty' & e' & Hu2' & Hu1' & Hu3' & Hcum'); eauto.
       etransitivity; eauto.
       eapply ws_cumul_pb_LetIn; eauto using wt_cumul_pb_refl.
       now specialize (p'' _ Hu3') as [? ?].
@@ -180,7 +183,8 @@ Section Principality.
       eapply type_App'. tea.
       eapply type_reduction; eauto. eapply redA.
       eapply (type_ws_cumul_pb (pb:=Cumul)); eauto.
-      { eapply validity in t0; auto.
+      { eapply isType_of_isTypeRel.
+        eapply validity in t0; auto.
         eapply isType_red in t0; [|exact redA].
         eapply isType_tProd in t0 as [? ?]; eauto. }
       transitivity dom' => //. transitivity A''.
@@ -347,7 +351,7 @@ Section Principality.
 
 End Principality.
 
-Lemma principal_type_ind {cf:checker_flags} {Σ Γ c ind u u' args args'} {wfΣ: wf_ext Σ} :
+Lemma principal_type_ind {cf:checker_flags} {c_: check_univs} {Σ Γ c ind u u' args args'} {wfΣ: wf_ext Σ} :
   Σ ;;; Γ |- c : mkApps (tInd ind u) args ->
   Σ ;;; Γ |- c : mkApps (tInd ind u') args' ->
   (∑ ui', 
@@ -358,7 +362,7 @@ Lemma principal_type_ind {cf:checker_flags} {Σ Γ c ind u u' args args'} {wfΣ:
   ws_cumul_pb_terms Σ Γ args args'.
 Proof.
   intros h h'.
-  destruct (common_typing _ wfΣ h h') as [C [l [r ty]]].
+  destruct (common_typing (c:=c_) _ wfΣ h h') as [C [l [r ty]]].
   eapply ws_cumul_pb_Ind_r_inv in l as [ui' [l' [red Ru eqargs]]]; auto.
   eapply ws_cumul_pb_Ind_r_inv in r as [ui'' [l'' [red' Ru' eqargs']]]; auto.
   destruct (closed_red_confluence red red') as [nf [redl redr]].
@@ -449,7 +453,7 @@ Proof.
   intros. now eapply eq_term_empty_eq_term.
 Qed.
 
-Lemma typing_leq_term {cf:checker_flags} (Σ : global_env_ext) Γ t t' T T' : 
+Lemma typing_leq_term {cf:checker_flags} {c_: check_univs} (Σ : global_env_ext) Γ t t' T T' : 
   wf Σ.1 ->
   on_udecl Σ.1 Σ.2 ->
   Σ ;;; Γ |- t : T ->
@@ -478,7 +482,7 @@ Proof.
     constructor; auto. eapply PCUICArities.isType_Sort; pcuic.
     apply cumul_Sort. now apply leq_universe_super.
 
-  - eapply inversion_Prod in X4 as [s1' [s2' [Ha [Hb Hs]]]]; auto.
+  - eapply inversion_Prod in X4 as [s1' [s2' [e' [Ha [Hb Hs]]]]]; auto.
     specialize (X1 onu _ _ Ha). 
     specialize (X1 (eq_term_empty_leq_term X5_1)).
     apply eq_term_empty_eq_term in X5_1.
@@ -488,6 +492,7 @@ Proof.
     2:{ constructor; eauto. now exists s1. }
     specialize (X3 onu _ _ Hb X5_2).
     econstructor; eauto.
+    rewrite e; auto.
     apply leq_term_empty_leq_term in X5_2.
     eapply context_conversion; eauto.
     constructor; pcuic. constructor; try now symmetry; now constructor.
@@ -495,18 +500,18 @@ Proof.
     constructor; pcuic.
     constructor. now symmetry.
 
-  - eapply inversion_Lambda in X4 as (s & B & dom & codom & cum); auto.
+  - eapply inversion_Lambda in X4 as (s & B & e' & dom & codom & cum); auto.
     specialize (X1 onu _ _ dom (eq_term_empty_leq_term X5_1)).
     apply eq_term_empty_eq_term in X5_1.
-    assert(conv_context Σ (Γ ,, vass na ty) (Γ ,, vass n t)).
+    assert(conv_context Σ (Γ ,, vass na ty) (Γ ,, vass na0 t)).
     { repeat constructor; pcuic. }
     specialize (X3 onu t0 B).
     forward X3 by eapply context_conversion; eauto; pcuic.
     eapply (type_ws_cumul_pb (pb:=Conv)).
-    * econstructor. eauto. instantiate (1 := bty).
+    * econstructor. 1,2: eauto. instantiate (1 := bty).
       eapply context_conversion; eauto; pcuic.
       constructor; pcuic. constructor; pcuic. symmetry; constructor; auto.
-    * have tyl := type_Lambda _ _ _ _ _ _ _ X0 X2.
+    * have tyl := type_Lambda _ _ _ _ _ _ _ H X0 X2.
       now eapply PCUICValidity.validity in tyl.
     * eapply ws_cumul_pb_Prod; eauto.
       constructor; auto; fvs.
@@ -514,23 +519,23 @@ Proof.
       eapply type_closed, closedn_on_free_vars in X2.
       now len in X2; len. 
 
-  - eapply inversion_LetIn in X6 as (s1' & A & dom & bod & codom & cum); auto.
+  - eapply inversion_LetIn in X6 as (s1' & A & e' & dom & bod & codom & cum); auto.
     specialize (X1 onu _ _ dom (eq_term_empty_leq_term X7_2)).
     specialize (X3 onu _ _ bod (eq_term_empty_leq_term X7_1)).
     apply eq_term_empty_eq_term in X7_1.
     apply eq_term_empty_eq_term in X7_2.
-    assert(Σ ⊢ Γ ,, vdef na t ty = Γ ,, vdef n b b_ty).
+    assert(Σ ⊢ Γ ,, vdef na0 t ty = Γ ,, vdef na b b_ty).
     { constructor. eapply ws_cumul_ctx_pb_refl. fvs. constructor => //.
       constructor; fvs. constructor; fvs. }   
     specialize (X5 onu u A).
     forward X5 by eapply closed_context_conversion; eauto; pcuic.
     specialize (X5 X7_3).
     eapply leq_term_empty_leq_term in X7_3.
-    have uty : Σ ;;; Γ ,, vdef na t ty |- u : b'_ty.
+    have uty : Σ ;;; Γ ,, vdef na0 t ty |- u : b'_ty.
     { eapply closed_context_conversion; eauto.
       pcuic. now symmetry. }
     eapply type_ws_cumul_pb.
-    * econstructor. eauto. eauto.
+    * econstructor. eauto. eauto. eauto.
       now instantiate (1 := b'_ty).
     * eapply PCUICValidity.validity; eauto.
       econstructor; eauto.
@@ -653,7 +658,7 @@ Proof.
     specialize (X3 _ _ a0 (eq_term_empty_leq_term X4)).
     eapply eq_term_empty_eq_term in X4.
     assert (wf_ext Σ) by (split; assumption).
-    pose proof (principal_type_ind X3 a0) as [Ruu' X3'].
+    pose proof (principal_type_ind (c_ := c_) X3 a0) as [Ruu' X3'].
     eapply (type_ws_cumul_pb (pb:=Conv)).
     * clear a0.
       econstructor; eauto.
@@ -718,7 +723,7 @@ Proof.
     now eapply leq_term_empty_leq_term.
 Qed.
 
-Lemma typing_eq_term {cf:checker_flags} (Σ : global_env_ext) Γ t t' T T' : 
+Lemma typing_eq_term {cf:checker_flags} {c: check_univs} (Σ : global_env_ext) Γ t t' T T' : 
   wf_ext Σ ->
   Σ ;;; Γ |- t : T ->
   Σ ;;; Γ |- t' : T' ->
@@ -728,6 +733,7 @@ Proof.
   intros wfΣ ht ht' eq.
   eapply typing_leq_term; eauto. apply wfΣ.
   now eapply eq_term_empty_leq_term.
+  Unshelve. apply c.
 Qed.
 
 (* Print Assumptions principal_type. *)

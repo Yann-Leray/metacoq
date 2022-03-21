@@ -818,8 +818,9 @@ Proof.
   - intros Σ wfΣ Γ wfΓ l X H0 P Δ f [hΔ hf].
     simpl. constructor. all: auto.
 
-  - intros Σ wfΣ Γ wfΓ a A B s1 s2 X hA ihA hB ihB P Δ f hf.
+  - intros Σ wfΣ Γ wfΓ na A B s1 s2 e X hA ihA hB ihB P Δ f hf.
     rewrite /=. econstructor.
+    + apply e.
     + eapply ihA; eauto.
     + eapply ihB; eauto.
       simpl.
@@ -827,20 +828,22 @@ Proof.
       eapply renaming_vass. 2: eauto.
       constructor.
       * destruct hf as [hΔ hf]. auto.
-      * simpl. exists s1. split; [apply eq_refl | idtac ]; eapply ihA; eauto.
-  - intros Σ wfΣ Γ wfΓ a A t s1 B X hA ihA ht iht P Δ f hf.
+      * simpl. exists s1. split; [apply e | idtac ]; eapply ihA; eauto.
+  - intros Σ wfΣ Γ wfΓ na A t s1 B e X hA ihA ht iht P Δ f hf.
     simpl.
      (* /andP [_ havB]. *)
     simpl. econstructor.
+    + apply e.
     + eapply ihA; eauto.
     + eapply iht; eauto; simpl.
       eapply renaming_extP. { now rewrite -(shiftnP_add 1). }
       eapply renaming_vass. 2: eauto.
       constructor.
       * destruct hf as [hΔ hf]. auto.
-      * simpl. exists s1. split; [apply eq_refl | idtac ]; eapply ihA; eauto.
-  - intros Σ wfΣ Γ wfΓ a b B t s1 A X hB ihB hb ihb ht iht P Δ f hf.
+      * simpl. exists s1. split; [apply e | idtac ]; eapply ihA; eauto.
+  - intros Σ wfΣ Γ wfΓ na b B t s1 A e X hB ihB hb ihb ht iht P Δ f hf.
     simpl. econstructor.
+    + apply e.
     + eapply ihB; tea.
     + eapply ihb; tea.
     + eapply iht; tea.
@@ -848,7 +851,7 @@ Proof.
       eapply renaming_vdef. 2: eauto.
       constructor.
       * destruct hf. assumption.
-      * simpl. exists s1. split; [apply eq_refl | idtac ]; eapply ihB; tea.
+      * simpl. exists s1. split; [apply e | idtac ]; eapply ihB; tea.
       * simpl. eapply ihb; tea.
   - intros Σ wfΣ Γ wfΓ t na A B s u X hty ihty ht iht hu ihu P Δ f hf.
     simpl. eapply meta_conv.

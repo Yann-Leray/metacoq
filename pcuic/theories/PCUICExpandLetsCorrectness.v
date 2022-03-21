@@ -938,11 +938,11 @@ Section wtsub.
     destruct t; simpl; intros [T h]; try exact tt.
     - now eapply typing_wf_local in h.
     - now eapply inversion_Evar in h.
-    - eapply inversion_Prod in h as (?&?&?&?&?); tea.
+    - eapply inversion_Prod in h as (?&?&?&?&?&?); tea.
       split; eexists; eauto.
-    - eapply inversion_Lambda in h as (?&?&?&?&?); tea.
+    - eapply inversion_Lambda in h as (?&?&?&?&?&?); tea.
       split; eexists; eauto.
-    - eapply inversion_LetIn in h as (?&?&?&?&?&?); tea.
+    - eapply inversion_LetIn in h as (?&?&?&?&?&?&?); tea.
       repeat split; eexists; eauto.
     - eapply inversion_App in h as (?&?&?&?&?&?); tea.
       split; eexists; eauto.
@@ -983,11 +983,11 @@ Section wtsub.
       eexists; eauto.
     - eapply inversion_Fix in h as (?&?&?&?&?&?&?); tea.
       eapply All_prod.
-      eapply (All_impl a). intros ? h; exact h.
+      eapply (All_impl a). intros ? h; apply isType_of_isTypeRel in h; exact h.
       eapply (All_impl a0). intros ? h; eexists; tea.
     - eapply inversion_CoFix in h as (?&?&?&?&?&?&?); tea.
       eapply All_prod.
-      eapply (All_impl a). intros ? h; exact h.
+      eapply (All_impl a). intros ? h; apply isType_of_isTypeRel in h; exact h.
       eapply (All_impl a0). intros ? h; eexists; tea.
   Qed.
 End wtsub.
@@ -2481,8 +2481,8 @@ Proof.
   - simpl. constructor.
   - simpl. econstructor.
     + eapply IHX.
-    + simpl. destruct tu. exists x. eapply p.
-  - simpl. constructor; auto. red. destruct tu. exists x. auto.
+    + simpl. destruct tu as [s [e Hs]]. exists s. split; [apply e|]. eapply p.
+  - simpl. constructor; auto. red. destruct tu as [s [e Hs]]. exists s. split; auto.
 Qed.
 
 Lemma trans_wf_local_env {cf} Σ Γ :
@@ -2501,8 +2501,9 @@ Proof.
   - simpl. constructor.
   - simpl. econstructor.
     + eapply IHX.
-    + simpl. destruct t0. exists x. now eapply p.
-  - simpl. constructor; auto. red. destruct t0. exists x. intuition auto.
+    + simpl. destruct t0 as [s [e Hs]]. exists s. split; [apply e|]. eapply Hs; auto.
+  - simpl. constructor; auto. red. destruct t0 as [s [e Hs]]. exists s. split; [apply e|].
+    intuition auto.
     red. red in t1. destruct t1 => //.
 Qed.
 
@@ -2554,11 +2555,12 @@ Proof.
   }
 
   induction X;cbn;constructor;auto;cbn in *.
-  - destruct t0 as (?&?&?).
+  - destruct t0 as (?& e &?&?).
     exists x.
+    split; [apply e|].
     apply t1.
-  - destruct t0 as (?&?&?).
-    eexists;eassumption.
+  - destruct t0 as (?& e &?&?).
+    eexists;split;eassumption.
   - destruct t1.
     assumption.  
 Qed.
@@ -3361,7 +3363,13 @@ Proof.
     pose proof (extends_decls_trans ext).
     assert (wfΣ := extends_decls_wf _ _ Hw X).
     eapply (weakening_env (trans_global (Σ, u))); eauto. tc.
-    
+
+  - intros [s [e Hs]]. exists s. split; [apply e|]. intros Hw.
+    pose proof (extends_decls_trans ext).
+    pose proof (extends_decls_wf _ _ Hw X). 
+    specialize (Hs X0).
+    eapply (weakening_env (trans_global (Σ, u))); eauto. tc.
+
   - intros [s Hs]. exists s. intros Hw.
     pose proof (extends_decls_trans ext).
     pose proof (extends_decls_wf _ _ Hw X). 
@@ -3522,13 +3530,15 @@ Proof.
   - constructor.
     + apply IHAll_local_env_over.
     + cbn in *.
-      destruct tu.
-      eexists;split;auto;try assumption.
+      destruct tu as [s [e Hs]].
+      exists s. split; [apply e|].
+      intros; split; eauto.
   - constructor.
     + apply IHAll_local_env_over.
     + cbn in *.
-      destruct tu.
-      eexists;split;auto;eassumption.
+      destruct tu as [s [e Hs]].
+      exists s. split; [apply e|].
+      intros; split; eauto.
     + cbn in *.
       split;auto;eassumption.
 Qed.
@@ -3811,7 +3821,7 @@ Proof.
       subst types.
       eapply All_map.
       eapply All_prod in X0; tea. clear X1.
-      eapply All_impl; tea. intros d [[Hdb IHdb] [hs [hdty ihdty]]].
+      eapply All_impl; tea. intros d [[Hdb IHdb] [hs [[e hdty] ihdty]]].
       len. rewrite -(trans_fix_context _ _ _ H2).
       rewrite -trans_local_app.
       rewrite (trans_lift _ (shiftnP #|Γ| xpred0)) in IHdb.
@@ -3839,7 +3849,7 @@ Proof.
     + fold trans;subst types.        
       eapply All_map.
       eapply All_prod in X0; tea. clear X1.
-      eapply All_impl; tea. intros d [[Hdb IHdb] [hs [hdty ihdty]]].
+      eapply All_impl; tea. intros d [[Hdb IHdb] [hs [[e hdty] ihdty]]].
       len. rewrite -(trans_fix_context _ _ _ H2). exact 0.
       rewrite -trans_local_app.
       rewrite (trans_lift _ (shiftnP #|Γ| xpred0)) in IHdb.
@@ -4193,6 +4203,8 @@ Proof.
   depelim wfΓ; depelim wfΓ'; depelim p; constructor; auto; auto.
   - now apply IHX.
   - constructor; auto.
+    pose proof (isType_of_isTypeRel l).
+    pose proof (isType_of_isTypeRel l0).
     eapply cumulSpec_cumulAlgo_curry in eqt; tea. 2-4:fvs.
     red in l. now eapply ws_cumul_pb_forget in eqt.
     rewrite (All2_fold_length X). fvs.
@@ -4272,7 +4284,7 @@ Proof.
   destruct p; constructor; cbn in *; auto.
   - rewrite -trans_local_app. 
     depelim wfl; depelim wfr. red in l, l0.
-    destruct l0 as [s Hs]. destruct l as [s' Hs'].
+    destruct l0 as [s [e Hs]]. destruct l as [s' [e' Hs']].
     eapply trans_cumulSpec in eqt; tea.
     { now exists s'. }
     { exists s. eapply context_cumulativity_spec; tea.
@@ -4285,7 +4297,8 @@ Proof.
   - rewrite -trans_local_app.
     depelim wfl; depelim wfr. red in l, l0.
     eapply (trans_cumulSpec (Σ := Σ)) => //.
-    { destruct l1 as [s Hs]. exists s. eapply context_cumulativity_spec; tea.
+    eapply isType_of_isTypeRel; eauto.
+    { destruct l1 as [s [e Hs]]. exists s. eapply context_cumulativity_spec; tea.
       eapply All2_fold_app. reflexivity. apply X. }
 Qed.
 
@@ -4493,7 +4506,7 @@ Proof.
   eapply IHX. now depelim wfl. now depelim wfr. now depelim ass. now depelim ass'.
   destruct p; constructor; cbn in *; auto.
   - rewrite -trans_local_app.
-    depelim wfl; depelim wfr. red in l, l0. destruct l, l0.
+    depelim wfl; depelim wfr. red in l, l0. destruct l as [s [e Hs]], l0 as [s' [e' Hs']].
     eapply (cumulAlgo_cumulSpec _ (pb:=Cumul)).
     apply into_ws_cumul_pb.
     eapply (trans_cumul' (Σ := Σ) (Γ' := Γ' ,,, Γ'0)) => //.
@@ -4501,7 +4514,7 @@ Proof.
     len. now rewrite (All2_fold_length X) eqlen.
     now depelim ass. now depelim ass'.
     eapply cumulSpec_cumulAlgo_curry in eqt; eauto.
-    now apply ws_cumul_pb_forget in eqt. fvs. eapply (subject_is_open_term t0).
+    now apply ws_cumul_pb_forget in eqt. fvs. eapply (subject_is_open_term Hs).
     len.
     rewrite (All2_fold_length X) eqlen.
     rewrite -app_length; fvs. len. eapply All2_fold_length in X. lia.
@@ -4546,7 +4559,7 @@ Proof.
   unfold PCUICTypingDef.wf_universe, wf_universe.
   destruct s => //.
   destruct a as [? [?|] ?] => /= //; intuition auto.
-  destruct a0 as [s' Hs]. exists s'. 
+  destruct a0 as [s' [e Hs]]. exists s'. split; [apply e|].
   all:rewrite -trans_local_app.
   now eapply (pcuic_expand_lets _ _ _ (tSort _)).
   now eapply (pcuic_expand_lets _ _ _ _).
@@ -4560,8 +4573,8 @@ Lemma trans_on_context {cf} {Σ Γ} :
 Proof.
   intros wf wf'.
   induction 1; cbn; constructor; auto.
-  destruct t0 as [s Hs]. exists s. now eapply (pcuic_expand_lets _ _ _ (tSort _)).
-  destruct t0 as [s Hs]. exists s. now eapply (pcuic_expand_lets _ _ _ (tSort _)).
+  destruct t0 as [s [e Hs]]. exists s. split; [apply e|]. now eapply (pcuic_expand_lets _ _ _ (tSort _)).
+  destruct t0 as [s [e Hs]]. exists s. split; [apply e|]. now eapply (pcuic_expand_lets _ _ _ (tSort _)).
   now eapply (pcuic_expand_lets _ _ _ _).
 Qed.
 
@@ -4628,7 +4641,7 @@ Lemma wf_ind_indices {cf:checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} {mi
 Proof.
   intros [].
   rewrite ind_arity_eq in onArity.
-  destruct onArity as [s Hs].
+  destruct onArity as [s [e Hs]].
   eapply type_it_mkProd_or_LetIn_inv in Hs as [Δs [ts [_ Hs]]].
   eapply type_it_mkProd_or_LetIn_inv in Hs as [Δs' [ts' []]].
   eapply typing_wf_local in t. now rewrite app_context_nil_l in t.
@@ -4706,7 +4719,7 @@ Proof.
       eapply (Alli_mapi _ _ _).1, Alli_impl; tea.
       intros n idecl onind; generalize onind; intros []; econstructor; tea.
       { cbn. rewrite ind_arity_eq !trans_it_mkProd_or_LetIn //. }
-      { cbn. destruct onArity as [s Hty]. exists s.
+      { cbn. destruct onArity as [s [e Hty]]. exists s. split; [apply e|].
         exact (pcuic_expand_lets (Σ0, ind_universes m) [] _ _ X Hty IHX). }
       { instantiate (1 := ind_cunivs).
         red in onConstructors. 
@@ -4761,7 +4774,9 @@ Proof.
             rewrite expand_lets_ctx_tip /=.  
             destruct univs => //.
             split. cbn in IHc. apply IHc, on_cargs.
-            destruct on_cargs as [hs ht]. red in ht.
+            destruct on_cargs as [hs [e ht]].
+            split; [apply e|].
+            red in ht.
             have fvsc : on_free_vars_ctx (shiftnP (#|ind_params m| + #|ind_bodies m|) xpred0) c.
             { eapply typing_wf_local, wf_local_closed_context in ht.
                 move/onfvs_app: ht. now len. }
@@ -4787,7 +4802,7 @@ Proof.
           rewrite shiftnP_add Nat.add_assoc //.
           rewrite -(trans_lift_context (shiftnP #|ind_params m| xpred0)).
           { rewrite ind_arity_eq in onArity.
-            destruct onArity as [s Hs].
+            destruct onArity as [s [e Hs]].
             eapply subject_is_open_term in Hs.
             move: Hs; rewrite !on_free_vars_it_mkProd_or_LetIn /=.
             move/and3P => [] _. now rewrite shiftnP0. }
@@ -4800,7 +4815,7 @@ Proof.
             eapply weaken_wf_local; tea.
             eapply wf_arities_context'; tea.
             rewrite ind_arity_eq in onArity.
-            destruct onArity as [s Hs].
+            destruct onArity as [s [e Hs]].
             rewrite -it_mkProd_or_LetIn_app in Hs.
             eapply type_it_mkProd_or_LetIn_inv in Hs as [? [? [Hs _]]].
             eapply PCUICClosedConv.sorts_local_ctx_All_local_env in Hs; eauto. 

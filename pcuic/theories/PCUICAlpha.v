@@ -42,14 +42,14 @@ Section Alpha.
       wf Σ.1 ->
       wf_local Σ Γ ->
       nth_error Γ i = Some (vass na ty) ->
-      lift_typing typing Σ Γ (lift0 (S i) ty) None.
+      lift_typing typing Σ Γ (lift0 (S i) ty) Sort.
   Proof.
     intros Σ Γ i na ty hΣ hΓ e. simpl.
     induction i in Γ, hΓ, e |- *.
     - destruct Γ. 1: discriminate.
       simpl in e. apply some_inj in e. subst.
       inversion hΓ. subst. simpl in X0.
-      destruct X0 as [s h].
+      destruct X0 as [s [e h]].
       exists s. unfold PCUICTerm.tSort.
       change (tSort s) with (lift0 1 (tSort s)).
       eapply weakening with (Γ' := [ vass na ty ]).
@@ -493,13 +493,15 @@ Section Alpha.
     eapply All2_fold_All2 in eq.
     induction eq; depelim a; cbn; try solve [constructor; auto];
     depelim r; subst; constructor; auto.
-    - destruct l as [s Hs]. exists s.
+    - destruct l as [s [e' Hs]]. exists s.
+      split. rewrite e. apply e'.
       eapply (closed_context_cumulativity _ (pb:=Conv)); tea. apply IHeq. pcuic.
       eapply ws_cumul_ctx_pb_rel_app.
       eapply eq_context_upto_conv_context_rel; fvs.
       eapply eq_context_gen_upto.
       now eapply All2_fold_All2 in eq.
-    - destruct l as [s Hs]. exists s.
+    - destruct l as [s [e' Hs]]. exists s.
+      split. rewrite e; apply e'.
       eapply (closed_context_cumulativity _ (pb:=Conv)); tea. apply IHeq. pcuic.
       eapply ws_cumul_ctx_pb_rel_app.
       eapply eq_context_upto_conv_context_rel. 1-2:fvs.
@@ -581,9 +583,9 @@ Section Alpha.
     - induction 1.
       * intros Δ eq; destruct Δ; depelim eq; constructor.
       * intros Δ eq; depelim eq. depelim c.
-        constructor; auto. exists tu.π1. eapply p; auto.
+        constructor; auto. exists tu.π1. split. erewrite <- e. apply tu.π2.1. eapply p; auto.
       * intros Δ eq; depelim eq. depelim c.
-        constructor; auto. exists tu.π1. eapply p0; auto.
+        constructor; auto. exists tu.π1. split. erewrite <- e. apply tu.π2.1. eapply p0; auto.
         red.
         specialize (p _ _ e0 eq).
         specialize (p0 _ _ e1 eq).
@@ -608,26 +610,29 @@ Section Alpha.
       specialize (ih _ eqctx).
       eapply eq_context_conversion; tea.
       eapply type_Sort; assumption.
-    - intros na A B s1 s2 ih hA ihA hB ihB Δ v e eqctx; invs e.
+    - intros na A B s1 s2 e' ih hA ihA hB ihB Δ v e eqctx; invs e.
       econstructor.
+      + rewrite <- H3. apply e'.
       + eapply ihA. assumption. eauto.
       + eapply context_conversion.
         * eapply ihB. assumption. reflexivity.
         * constructor; eauto.
-          simpl. eexists. eapply ihA; tea.
+          simpl. eexists. split. rewrite <- H3; apply e'. eapply ihA; tea.
         * constructor.
           -- now eapply eq_context_upto_empty_conv_context.
           -- constructor. assumption. constructor.
              eapply upto_names_impl_eq_term. assumption.
-    - intros na A t s1 B ih hA ihA hB ihB Δ v e e'; invs e.
+    - intros na A t s1 B e2 ih hA ihA hB ihB Δ v e e'; invs e.
       eapply type_Cumul'.
       + econstructor.
+        * rewrite <- H3; apply e2.
         * eapply ihA; tea.
         * eapply eq_context_conversion.
           -- eapply ihB. assumption. reflexivity.
           -- constructor. 1: assumption.
              simpl. constructor; auto.
           -- constructor; eauto. exists s1.
+              split. rewrite <- H3; apply e2.
               now eapply ihA.
       + eapply validity in hB;tea.
         eapply isType_tProd; eauto. split; eauto with pcuic.
@@ -637,13 +642,14 @@ Section Alpha.
         symmetry. constructor; auto.
         all: try (eapply upto_names_impl_eq_term ; assumption).
         all: reflexivity.
-    - intros na b B t s1 A ih hB ihB hb ihb hA ihA Δ v e e'; invs e.
+    - intros na b B t s1 A e2 ih hB ihB hb ihb hA ihA Δ v e e'; invs e.
       specialize (ihB _ _ X0 e').
       specialize (ihb _ _ X e').
       assert (isType Σ Γ (tLetIn na b B A)).
       { eapply validity. econstructor; eauto. }
       eapply type_Cumul'.
       + econstructor.
+        * rewrite <- H4; apply e2.
         * eapply ihB; trea.
         * econstructor.
           -- eapply ihb; trea.
@@ -656,7 +662,7 @@ Section Alpha.
             ++ assumption.
             ++ constructor; auto.
           -- constructor; auto.
-             ++ exists s1; eapply ihB; eauto.
+             ++ exists s1; split. rewrite <- H4; apply e2. eapply ihB; eauto.
              ++ eapply type_Cumul'; tea.
                 exists s1. eapply ihB; eauto.
                 eapply eq_term_upto_univ_cumulSpec, eq_term_leq_term.
@@ -850,8 +856,8 @@ Section Alpha.
         eapply (All2_All_mix_left ihmfix) in X.
         clear -X.
         induction X; constructor; simpl; auto.
-        destruct r as [[s [Hs IH]] [[[eqty eqann] eqbod] eqrarg]].
-        exists s; apply IH; eauto. reflexivity. }
+        destruct r as [[s [[e Hs] IH]] [[[eqty eqann] eqbod] eqrarg]].
+        exists s; split. rewrite <- eqrarg; apply e. apply IH; eauto. reflexivity. }
       assert (convctx : conv_context Σ (Γ ,,, fix_context mfix) (Γ ,,, fix_context mfix')).
       { eapply eq_context_upto_univ_conv_context.
         eapply (eq_context_impl _ eq). intros x y eqx. subst. reflexivity.
@@ -889,8 +895,8 @@ Section Alpha.
         * eapply (All2_All_mix_left ihmfix) in X.
           clear -X.
           induction X; constructor; simpl; auto.
-          destruct r as [[s [Hs IH]] [[[eqty eqann] eqbod] eqrarg]].
-          exists s; apply IH; eauto. reflexivity.
+          destruct r as [[s [[e Hs] IH]] [[[eqty eqann] eqbod] eqrarg]].
+          exists s; split. rewrite <- eqrarg; apply e. apply IH; eauto. reflexivity.
         * solve_all.
           destruct a1 as [s [Hs IH]].
           specialize (IH _ _ a0 e').
@@ -924,8 +930,8 @@ Section Alpha.
       eapply (All2_All_mix_left ihmfix) in X.
       clear -X.
       induction X; constructor; simpl; auto.
-      destruct r as [[s [Hs IH]] [[[eqty eqann] eqbod] eqrarg]].
-      exists s; apply IH; eauto. reflexivity. }
+      destruct r as [[s [[e Hs] IH]] [[[eqty eqann] eqbod] eqrarg]].
+      exists s; split. rewrite <- eqrarg; apply e. apply IH; eauto. reflexivity. }
     assert (convctx : conv_context Σ (Γ ,,, fix_context mfix) (Γ ,,, fix_context mfix')).
     { eapply eq_context_upto_univ_conv_context.
       eapply (eq_context_impl _ eq). intros x y eqx. subst. reflexivity.
@@ -939,7 +945,7 @@ Section Alpha.
         eapply (All2_All_mix_left ihmfix) in X.
         clear -X.
         induction X; try constructor; simpl; intros n; auto.
-        destruct r as [[s [Hs IH]] [[[eqty eqbod] eqrarg] eqann]].
+        destruct r as [[s [[e Hs] IH]] [[[eqty eqbod] eqrarg] eqann]].
         eapply eq_context_upto_cat.
         + constructor; constructor; auto.
           eapply eq_term_upto_univ_empty_impl; eauto.
@@ -963,10 +969,10 @@ Section Alpha.
       * eapply (All2_All_mix_left ihmfix) in X.
         clear -X.
         induction X; constructor; simpl; auto.
-        destruct r as [[s [Hs IH]] [[[eqty eqann] eqbod] eqrarg]].
-        exists s; apply IH; eauto. reflexivity.
+        destruct r as [[s [[e Hs] IH]] [[[eqty eqann] eqbod] eqrarg]].
+        exists s; split. rewrite <- eqrarg; apply e. apply IH; eauto. reflexivity.
       * solve_all.
-        destruct a1 as [s [Hs IH]].
+        destruct a1 as [s [[e Hs] IH]].
         specialize (IH _ _ a0 e').
         specialize (b (Γ ,,, types) _ b2).
         forward b. { apply eq_context_upto_cat; reflexivity. }

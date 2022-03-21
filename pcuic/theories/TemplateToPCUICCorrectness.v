@@ -323,7 +323,7 @@ Lemma weaken_wf_decl_pred {cf} (Σ Σ' : Ast.Env.global_env) Γ t T :
 Proof.
   intros wf ext wf' ong.
   red in ong |- *.
-  destruct T; intuition eauto using wf_extends.
+  destruct T; cbn in ong |- *; intuition eauto using wf_extends.
 Qed.
 
 Lemma trans_lookup {cf} Σ cst :
@@ -742,6 +742,9 @@ Proof.
   red. unfold ST.lift_typing.
   intros ong. destruct T.
   * intros ty. now eapply typing_wf.
+  * intros [s [e ty]]. exists s.
+    split; [apply e|].
+    now eapply typing_wf in ty.
   * intros [s ty]. exists s.
     now eapply typing_wf in ty.
 Qed.
@@ -1226,8 +1229,10 @@ Section Trans_Global.
     eapply on_global_env_impl.
     intros.
     destruct T; simpl in *; auto.
+    destruct X0 as [s [e [Ht Hs]]].
+    red. split; cbn; auto.
     destruct X0 as [s [Ht Hs]].
-    red. split; auto.
+    red. split; cbn; auto.
   Qed.
   Hint Resolve wf_wf_decl_pred : wf.
 
@@ -1771,8 +1776,8 @@ Proof.
   - simpl. constructor.
   - simpl. econstructor.
     + eapply IHX0.
-    + simpl. destruct tu. exists x. now eapply p.
-  - simpl. constructor; auto. red. destruct tu. exists x; auto.
+    + simpl. destruct tu as [s [e Hs]]. exists s. split; [apply e|]. now eapply p.
+  - simpl. constructor; auto. red. destruct tu as [s [e Hs]]. exists s; auto.
     simpl. eauto.
 Qed.
 
@@ -1790,9 +1795,10 @@ Proof.
   - simpl. constructor.
   - simpl. econstructor.
     + eapply IHX.
-    + simpl. destruct t0. exists x. eapply p.
-  - simpl. constructor; auto. red. destruct t0. exists x. intuition auto.
-    red in t1. destruct t1. cbn. eapply p.
+    + simpl. destruct t0 as [s [e Hs]]. exists s. split; [apply e|]. eapply Hs.
+  - simpl. constructor; auto. red. destruct t0 as [s [e Hs]]. exists s. intuition auto.
+    destruct Hs as [Hs Ht].
+    red in t1. destruct t1. cbn. eapply Ht.
     red; red in t1. destruct t1. eapply t2.
 Qed.
 
@@ -2833,14 +2839,14 @@ Qed.
 
 Lemma trans_type_local_ctx {cf} {Σ : Ast.Env.global_env_ext} Γ cs s (Σ' := trans_global Σ) :
   (forall (Σ : Ast.Env.global_env_ext) 
-  (Γ : Ast.Env.context) (t : Ast.term) (T : option Ast.term),
+  (Γ : Ast.Env.context) (t : Ast.term) (T : Ast.Env.typ_or_rel_or_none),
   Typing.wf Σ ->
   Typing.lift_typing Typing.typing Σ Γ t T ->
   wf (trans_global_env Σ) ->
   lift_typing typing (trans_global Σ)
   (trans_local (trans_global_env Σ) Γ)
   (trans (trans_global_env Σ) t)
-  (option_map (trans (trans_global_env Σ)) T)) ->
+  (typ_or_rel_or_none_map (trans (trans_global_env Σ)) T)) ->
   Typing.wf Σ ->
   wf Σ' ->
   ST.type_local_ctx (Typing.TemplateEnvTyping.lift_typing Typing.typing) Σ Γ cs s ->
@@ -2852,13 +2858,13 @@ Proof.
   intros IH wfΣ wfΣ'. induction cs; simpl; auto.
   { now intros; eapply trans_wf_universe. }
   destruct a as [na [b|] ty] => //;
-  intros [? ?]; cbn. destruct p.
+  intros [? ?]; cbn. all: destruct p.
   intuition auto.
-  - eapply (IH _ _ _ None) in s0; auto.
+  - eapply (IH _ _ _ (SortRel _)) in s0; auto.
     rewrite -trans_local_app //.
-  - eapply (IH _ _ _ (Some _)) in t0 => //.
+  - eapply (IH _ _ _ (Typ _)) in t0 => //.
     rewrite -trans_local_app //.
-  - eapply (IH _ _ _ (Some _)) in t0 => //.
+  - eapply (IH _ _ _ (Typ _)) in t0 => //.
     rewrite -trans_local_app; split => //.
     now eapply IHcs.
 Qed.
@@ -2870,14 +2876,14 @@ Lemma trans_check_ind_sorts {cf} Σ udecl kn mdecl n idecl
   Typing.wf Σ ->
   wf Σ' ->
   (forall (Σ : Ast.Env.global_env_ext) 
-    (Γ : Ast.Env.context) (t : Ast.term) (T : option Ast.term),
+    (Γ : Ast.Env.context) (t : Ast.term) (T : Ast.Env.typ_or_rel_or_none),
   Typing.wf Σ ->
   Typing.lift_typing Typing.typing Σ Γ t T ->
   wf (trans_global_env Σ) ->
   lift_typing typing (trans_global Σ)
     (trans_local (trans_global_env Σ) Γ)
     (trans (trans_global_env Σ) t)
-    (option_map (trans (trans_global_env Σ)) T)) ->
+    (typ_or_rel_or_none_map (trans (trans_global_env Σ)) T)) ->
   forall (oni: Typing.on_ind_body (Typing.TemplateEnvTyping.lift_typing Typing.typing)
         (Σ, udecl) kn mdecl n idecl),
   ST.check_ind_sorts
@@ -2912,7 +2918,7 @@ Proof.
   intros.
   destruct T. 
   * eapply typing_wf; tea.
-  * destruct X2 as [s Hs].
+  * destruct X2 as [s [e Hs]].
     red. split => //. now eapply typing_wf in Hs; tea.
 Qed.
 
@@ -2978,7 +2984,7 @@ Lemma trans_on_global_env `{checker_flags} Σ :
     Typing.lift_typing Typing.typing Σ Γ t T ->
     let Σ' := trans_global_env Σ in
     wf Σ' ->
-    lift_typing typing (trans_global Σ) (trans_local Σ' Γ) (trans Σ' t) (option_map (trans Σ') T)) ->
+    lift_typing typing (trans_global Σ) (trans_local Σ' Γ) (trans Σ' t) (typ_or_rel_or_none_map (trans Σ') T)) ->
   Typing.wf Σ -> wf (trans_global_env Σ).
 Proof.
   intros X X0.
@@ -3008,9 +3014,9 @@ Proof.
     destruct d eqn:eqd.
     * destruct c; simpl. destruct cst_body0; simpl in *.
       red in o |- *. simpl in *.
-      eapply (X (Σg, cst_universes0) [] t (Some cst_type0)); auto.
+      eapply (X (Σg, cst_universes0) [] t (Typ cst_type0)); auto.
       red in o0 |- *. simpl in *.
-      now apply (X (Σg, cst_universes0) [] cst_type0 None).
+      now apply (X (Σg, cst_universes0) [] cst_type0 Sort).
     * destruct o0 as [onI onP onNP].
       simpl.
       change (trans_env_env (trans_global_env Σg), Ast.Env.ind_universes m) with (global_env_ext_map_global_env_ext (trans_global (Σg, Ast.Env.ind_universes m))) in *.
@@ -3022,14 +3028,16 @@ Proof.
         { eapply closed_arities_context => //. clear -onu wfΣg X0 IHond X onI.
           eapply Alli_All; tea; cbv beta.
           move=> n x /Typing.onArity => o.
-          apply (X (Σg, Ast.Env.ind_universes m) [] (Ast.Env.ind_type x) None X0 o) => //. }
+          eapply isType_of_isTypeRel.
+          apply (X (Σg, Ast.Env.ind_universes m) [] (Ast.Env.ind_type x) (SortRel (Ast.Env.ind_relevance x)) X0 o) => //. }
         eapply Alli_All_mix in onI; tea.
         eapply Alli_map. eapply Alli_impl. exact onI. eauto. intros n idecl [oni wf].
         have onarity : on_type (PCUICEnvTyping.lift_typing typing)
           (trans_global (Σg, Ast.Env.ind_universes m)) []
           (ind_type (trans_one_ind_body (trans_global_env Σg) idecl)).
         { apply ST.onArity in oni. unfold on_type in *; simpl in *.
-          now apply (X (Σg, Ast.Env.ind_universes m) [] (Ast.Env.ind_type idecl) None). }
+          eapply isType_of_isTypeRel.
+          now apply (X (Σg, Ast.Env.ind_universes m) [] (Ast.Env.ind_type idecl) (SortRel _) _ oni). }
         unshelve refine {| ind_cunivs := oni.(ST.ind_cunivs) |}; tea.
         --- cbn -[trans_global_env]. rewrite oni.(ST.ind_arity_eq).
             now rewrite ![trans _ _]trans_it_mkProd_or_LetIn.
@@ -3231,13 +3239,18 @@ Proof.
   intros Hu.
   eapply trans_on_global_env; eauto. simpl; intros.
   epose proof (ST.env_prop_typing template_to_pcuic _ X Γ).
-  forward X2.
-  red in X0. destruct T.
-  now eapply ST.typing_wf_local.
-  destruct X0 as [s Hs]. eapply ST.typing_wf_local; eauto.
-  destruct T; simpl in *.
+  forward X2;
+  destruct T; [
+    red in X0 | destruct X0 as [s [e Hs]] | destruct X0 as [s Hs] |
+    red in X0 | destruct X0 as [s [e Hs]] | destruct X0 as [s Hs]
+  ].
+  1-3: now eapply ST.typing_wf_local.
+  all: simpl in *.
   - eapply X2; eauto.
-  - destruct X0 as [s Hs]. exists s.
+  - exists s.
+    split; [apply e|].
+    eapply (X2 _ (Ast.tSort s)); eauto.
+  - exists s.
     eapply (X2 _ (Ast.tSort s)); eauto.
 Qed.
 

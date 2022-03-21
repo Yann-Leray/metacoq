@@ -113,16 +113,7 @@ End LookupSig.
 Module EnvTyping (T : Term) (E : EnvironmentSig T).
 
   Import T E.
-
-  Variant typ_or_rel_or_none := Typ (T : term) | SortRel (rel : relevance) | Sort.
-
-  Definition typ_or_rel_or_none_map f t := match t with
-  | Typ T => Typ (f T)
-  | SortRel _ | Sort => t
-  end.
-
-  Definition typ_or_rel_or_none_to_opt t := match t with Typ T => Some T | _ => None end.
-
+  
   Section TypeLocal.
     Context (typing : forall (Γ : context), term -> typ_or_rel_or_none -> Type).
 
@@ -744,6 +735,8 @@ Module DeclarationTyping (T : Term) (E : EnvironmentSig T)
         ind_sorts :
           check_ind_sorts Σ mdecl.(ind_params) idecl.(ind_kelim)
                           idecl.(ind_indices) ind_cunivs idecl.(ind_sort);
+        
+        ind_relevance_compat : relevance_of_sort idecl.(ind_sort) = idecl.(ind_relevance);
 
         onIndices : 
           (* The inductive type respect the variance annotation on polymorphic universes, if any. *)
@@ -844,6 +837,7 @@ Module DeclarationTyping (T : Term) (E : EnvironmentSig T)
   Arguments onConstructors {_ P Σ mind mdecl i idecl}.
   Arguments onProjections {_ P Σ mind mdecl i idecl}.
   Arguments ind_sorts {_ P Σ mind mdecl i idecl}.
+  Arguments ind_relevance_compat {_ P Σ mind mdecl i idecl}.
   Arguments onIndices {_ P Σ mind mdecl i idecl}.
 
   Arguments onInductives {_ P Σ mind mdecl}.
@@ -1032,6 +1026,7 @@ Module DeclarationTyping (T : Term) (E : EnvironmentSig T)
             * destruct indices_matter; auto.
               eapply type_local_ctx_impl; eauto.
               eapply ind_sorts0.
+        --- apply X1.(ind_relevance_compat).
         --- eapply X1.(onIndices).
       -- red in onP. red.
         eapply All_local_env_impl; tea.

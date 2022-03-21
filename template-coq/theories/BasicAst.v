@@ -363,6 +363,21 @@ Proof.
   eapply map_def_spec; eauto.
 Qed.
 
+
+Variant typ_or_rel_or_none_ {term} := Typ (T : term) | SortRel (rel : relevance) | Sort.
+
+Definition typ_or_rel_or_none_map {T T'} (f: T -> T') t := match t with
+  | Typ T => Typ (f T)
+  | SortRel rel => SortRel rel
+  | Sort => Sort
+end.
+
+Definition typ_or_rel_or_none_default {T A} (f: T -> A) t d := match t with
+  | Typ T => f T
+  | SortRel _ | Sort => d
+end.
+
+
 Section Contexts.
   Context {term : Type}.
   (** *** The context of De Bruijn indices *)

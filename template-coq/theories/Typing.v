@@ -1326,6 +1326,7 @@ Proof.
            apply (IH (_; _; _; Hu)).
            destruct X13 as [u Hu]. exists u.
            apply (IH (_; _; _; Hu)).
+        -- apply (ind_relevance_compat Xg).
         -- apply (onIndices Xg).
       * red in onP |- *.
         eapply All_local_env_impl; eauto.

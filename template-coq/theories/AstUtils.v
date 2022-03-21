@@ -403,7 +403,8 @@ Definition make_inductive_body (id : ident) (params : context) (indices : contex
      ind_type := it_mkProd_or_LetIn (params ,,, indices) (tSort u);
      ind_kelim := default_sort_family u;
      ind_ctors := ind_ctors;
-     ind_projs := [] |}.
+     ind_projs := [];
+     ind_relevance := default_relevance u |}.
 
 Ltac change_Sk :=
   repeat match goal with

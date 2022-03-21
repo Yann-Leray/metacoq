@@ -713,13 +713,13 @@ Proof.
   { now apply wf_local_smash_context. }
   constructor => //.
   red. exists (ind_sort idecl).
-  split; [apply eq_refl | idtac].
+  split; [apply oib.(ind_relevance_compat) | idtac].
   eapply type_mkApps. econstructor; eauto.
   eapply consistent_instance_ext_abstract_instance; eauto with pcuic.
   eapply declared_inductive_wf_global_ext; eauto with pcuic.
   set (u := abstract_instance (ind_universes mdecl)).
   assert (isType (Σ.1, ind_universes mdecl) [] (ind_type idecl)).
-  { pose proof (onArity oib). exact X. }
+  { pose proof (onArity oib). eapply isType_of_isTypeRel. exact X. }
   rewrite (subst_instance_ind_type_id _ _ _ _ _ hdecl).
   rewrite (ind_arity_eq oib).
   rewrite -(app_nil_r (to_extended_list _)).
@@ -1136,7 +1136,9 @@ Proof.
   intros Hwf hnth.
   epose proof (nth_error_All_local_env (nth_error_Some_length hnth) Hwf).
   rewrite hnth /= in X. unfold on_local_decl in X.
+  eapply isType_of_isTypeRel.
   destruct decl_body => //. destruct X => //.
+  all: eauto.
 Qed.
 
 Lemma map_expand_lets_to_extended_list_k Γ :
@@ -1214,6 +1216,7 @@ Proof.
       red in onpars. eapply (All_local_env_impl _ _ _ onpars).
       intros. destruct T; simpl in *.
       - eapply weaken_ctx; auto.
+      - destruct X as [s [e Hs]]. exists s. split; [apply e |idtac]. apply weaken_ctx; auto.
       - destruct X as [s Hs]. exists s. apply weaken_ctx; auto. }
   pose proof wfargs as X.
   rewrite -(app_context_nil_l (arities_context _)) in X.
@@ -1243,12 +1246,13 @@ Proof.
       vass {| binder_name := nNamed (ind_name idecl); binder_relevance := idecl.(ind_relevance) |}
       (mkApps (tInd ind u) (to_extended_list (ind_params mdecl))))).
   { constructor. auto. red. exists (ind_sort idecl).
+    split; [apply (ind_relevance_compat oib) | idtac].
     eapply type_mkApps. econstructor; eauto.
     destruct isdecl as []; eauto. subst u.
     eapply consistent_instance_ext_abstract_instance; eauto with pcuic.
     eapply declared_inductive_wf_global_ext; eauto with pcuic.
     assert (isType (Σ.1, ind_universes mdecl) [] (ind_type idecl)@[u]).
-    { rewrite typeu. pose proof (onArity oib). exact X1. }
+    { rewrite typeu. pose proof (onArity oib). eapply isType_of_isTypeRel. exact X1. }
     rewrite (ind_arity_eq oib).
     rewrite subst_instance_it_mkProd_or_LetIn.
     rewrite -(app_nil_r (to_extended_list _)).
@@ -1326,7 +1330,7 @@ Proof.
     rewrite /subst_context /lift_context.
     apply assumption_context_fold, smash_context_assumption_context. constructor. }
   rewrite H in onnth. 2:{ simpl in onnth; contradiction. }
-  destruct onnth as [s Hs].
+  destruct onnth as [s [e Hs]].
   Ltac havefst H :=
     match goal with
     |- ?T × _ => have H : T; [|split => //]
@@ -1543,14 +1547,15 @@ Proof.
 Qed.
 
 Lemma type_local_ctx_cum {cf:checker_flags} {Σ Γ Δ s s'} :
-  wf Σ.1 -> wf_universe Σ s' ->
+  check_univs -> wf_ext Σ -> wf_universe Σ s' ->
   leq_universe (global_ext_constraints Σ) s s' ->
   type_local_ctx (lift_typing typing) Σ Γ Δ s ->
   type_local_ctx (lift_typing typing) Σ Γ Δ s'.
 Proof.
-  intros wfΣ wfs leqs.
+  intros c wfΣ wfs leqs.
   induction Δ as [|[na [b|] ty] Δ]; simpl; auto;
-  intros []; split; auto.
+  intros [? [e p]]; split; auto.
+  split; [rewrite -e; symmetry; eapply leq_relevance; eauto | idtac].
   eapply type_Cumul; eauto.
   econstructor; pcuic.
   now eapply cumul_Sort.
@@ -1591,7 +1596,7 @@ Proof.
   rewrite !it_mkProd_or_LetIn_app /= /mkProd_or_LetIn /=; rewrite smash_context_app; intros Γ u Hu.
   - simpl.
     assert (wfu := typing_wf_universe wfΣ Hu).
-    eapply inversion_LetIn in Hu as [? [? [? [? [? e]]]]]; auto.
+    eapply inversion_LetIn in Hu as [? [? [? [? [? [? e]]]]]]; auto.
     eapply substitution_let in t1; auto.
     rewrite /subst1 subst_it_mkProd_or_LetIn /= in t1.
     specialize (X (subst_context [b] 0 Δ) ltac:(autorewrite with len; lia)).
@@ -1602,7 +1607,7 @@ Proof.
     now rewrite -smash_context_subst /= subst_context_nil.
   - simpl. rewrite it_mkProd_or_LetIn_app. simpl.
     assert (wfu := typing_wf_universe wfΣ Hu).
-    eapply inversion_Prod in Hu as [? [? [? [? ?]]]]; auto.
+    eapply inversion_Prod in Hu as [? [? [? [? [? ?]]]]]; auto.
     specialize (X Δ ltac:(reflexivity)).
     specialize (X _ _ t0).
     eapply type_ws_cumul_pb; eauto.
@@ -1653,6 +1658,7 @@ Proof.
   { eapply wf_local_smash_context; auto. }
   constructor; auto. red.
   exists (subst_instance_univ u (ind_sort idecl)).
+  split; [erewrite PCUICRelevance.relevance_subst; apply oib0.(ind_relevance_compat) | idtac].
   eapply type_mkApps. econstructor; eauto. eapply decli.p1.
   rewrite (ind_arity_eq oib0).
   pose proof (on_projs_noidx _ _ _ _ _ _ onps).
@@ -2429,7 +2435,11 @@ Proof.
       rewrite subst_extended_lift //; len. now rewrite closedn_subst_instance_context.
       rewrite (lift_extended_subst _ #|ind_indices _|) subst_map_lift_lift_context; len. }
   constructor => //.
-  2:{ eexists; tea. rewrite /idxctx app_context_assoc in tyass; tea. }
+  2:{
+    eexists; tea.
+    split; [erewrite PCUICRelevance.relevance_subst; apply (on_declared_inductive isdecl).2.(ind_relevance_compat) | idtac].
+    rewrite /idxctx app_context_assoc in tyass; tea.
+  }
   apply typing_wf_local in tyass.
   rewrite /idxctx app_context_assoc in tyass => //.
 Qed.
@@ -2530,10 +2540,11 @@ Proof.
   rewrite -(it_mkProd_or_LetIn_app [sdecl]).
   eapply type_it_mkProd_or_LetIn_sorts; tea.
   constructor => //.
+  split; [ rewrite PCUICRelevance.relevance_subst; apply (on_declared_inductive isdecl).2.(ind_relevance_compat) | apply tyass].
   constructor => //. simpl.
   constructor => //.
   now eapply sorts_local_ctx_wf_local; tea. red.
-  eexists; tea.
+  eexists; split; [erewrite PCUICRelevance.relevance_subst; apply (on_declared_inductive isdecl).2.(ind_relevance_compat) | idtac ]; tea.
 Qed.
 
 Lemma arity_spine_case_predicate {cf: checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ} {ci : case_info}

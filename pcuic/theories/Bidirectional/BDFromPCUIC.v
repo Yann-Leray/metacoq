@@ -128,17 +128,19 @@ Proof.
   - intros bdwfΓ.
     induction bdwfΓ.
     all: constructor ; auto.
-    + apply conv_infer_sort in p ; auto.
-      2: by destruct tu.
-      destruct p as (?&?&?).
+    + destruct tu as [s [e Hs]].
+      apply conv_infer_sort in p ; auto.
+      destruct p as (s' & ? & ?).
       eexists.
-      eassumption.
-    + apply conv_check in p ; auto.
+      split; [erewrite leq_relevance; [apply e| | |]|]; eauto.
+      { eassumption. }{ eassumption. }
+    + destruct tu as [s [e Hs]].
+      apply conv_check in p ; auto.
       apply conv_infer_sort in p0 ; auto.
-      2: by destruct tu.
       destruct p0 as (?&?&?).
-      1: eexists.
-      all: eassumption.
+      eexists.
+      split; [erewrite leq_relevance; [apply e| | |]|]; eauto.
+      { eassumption. }{ eassumption. }
     + by apply conv_check in p.
       
   - intros.
@@ -155,38 +157,45 @@ Proof.
     constructor.
     assumption.
 
-  - intros n A B ? ? ? ? CumA ? CumB.
+  - intros n A B ? ? e ? ? CumA ? CumB.
     apply conv_infer_sort in CumA ; auto.
     destruct CumA as (?&?&?).
     apply conv_infer_sort in CumB ; auto.
     destruct CumB as (?&?&?).
     eexists.
     split.
-    + constructor ; eassumption.
+    + constructor.
+      2,3: eauto.
+      erewrite leq_relevance; [apply e| | |]; eauto.
+      { eassumption. }{ eassumption. }
     + constructor ; cbn ; auto.
       1: by apply wf_local_closed_context.
       constructor.
       apply leq_universe_product_mon.
       all: assumption.
       
-  - intros n A t ? ? ? ? CumA ? (?&?&?).
+  - intros n A t ? ? e ? ? CumA ? (?&?&?).
     apply conv_infer_sort in CumA ; auto.
     destruct CumA as (?&?&?).
     eexists.
     split.
-    + econstructor. all: eassumption.
+    + econstructor. 2,3: eassumption.
+      erewrite leq_relevance; [apply e| | |]; eauto.
+      { eassumption. }{ eassumption. }
     + apply ws_cumul_pb_Prod ; auto.
       eapply isType_ws_cumul_pb_refl.
       by eexists ; eauto.
 
-  - intros n t A u ? ? ? ? CumA ? Cumt ? (?&?&?).
+  - intros n t A u ? ? e ? ? CumA ? Cumt ? (?&?&?).
     apply conv_infer_sort in CumA ; auto.
     destruct CumA as (?&?&?).
     apply conv_check in Cumt ; auto.
     eexists.
     split.
     + econstructor.
-      all: eassumption.
+      2-4: eassumption.
+      erewrite leq_relevance; [apply e| | |]; eauto.
+      { eassumption. }{ eassumption. }
     + apply ws_cumul_pb_LetIn_bo.
       eassumption.
 
@@ -353,14 +362,17 @@ Proof.
     split.
     2:{
       apply isType_ws_cumul_pb_refl.
-      eapply nth_error_all in Alltypes as [? []] ; tea.
+      eapply nth_error_all in Alltypes as [s [[e Hs]]] ; tea.
       eexists ; tea.
     }
     constructor ; eauto.
     + apply (All_impl Alltypes).
-      intros ? [? [? s]].
-      apply conv_infer_sort in s as [? []] ; auto.
-      eexists ; eauto.
+      intros ? [s [[e Hs] r]].
+      apply conv_infer_sort in r as [s' []] ; auto.
+      eexists; split.
+      erewrite leq_relevance; [apply e| | |]; eauto.
+      { eassumption. }{ eassumption. }      
+      eauto.
     + apply (All_impl Allbodies).
       intros ? [? s].
       by apply conv_check in s ; auto.
@@ -370,14 +382,17 @@ Proof.
     split.
     2:{
       apply isType_ws_cumul_pb_refl.
-      eapply nth_error_all in Alltypes as [? []] ; tea.
+      eapply nth_error_all in Alltypes as [? [[]]] ; tea.
       eexists ; tea.
     }
     constructor ; eauto.
     + apply (All_impl Alltypes).
-      intros ? [? [? s]].
+      intros ? [? [[? ?] s]].
       apply conv_infer_sort in s as [? []] ; auto.
-      eexists ; eauto.
+      eexists; split.
+      erewrite leq_relevance; [apply e| | |]; eauto.
+      { eassumption. }{ eassumption. }
+      eauto.
     + apply (All_impl Allbodies).
       intros ? [? s].
       by apply conv_check in s ; auto.
@@ -425,6 +440,16 @@ Proof.
   now eexists.
 Qed.
 
+Lemma isTypeRel_infering_sort `{checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ t r} :
+  isTypeRel Σ Γ t r -> ∑ u', relevance_of_sort u' = r × Σ ;;; Γ |- t ▹□ u'.
+Proof.
+  intros [s [e ty]].
+  eapply typing_infering_sort in ty as [s' []]; tea.
+  exists s'; split; [|auto].
+  erewrite leq_relevance; [apply e| | |]; eauto.
+  { eassumption. }{ eassumption. }
+Qed.
+
 Lemma typing_infer_prod `{checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ t na A B} :
   Σ ;;; Γ |- t : tProd na A B ->
   ∑ na' A' B', [× Σ ;;; Γ |- t ▹Π (na',A',B'),
@@ -463,9 +488,9 @@ Proof.
   induction Γ' as [|[? [] ?]] in wfΓ' |- *.
   all: constructor ; inversion wfΓ' ; subst ; cbn in *.
   1,4: now apply IHΓ'.
-  - now apply isType_infering_sort.
+  - now apply isTypeRel_infering_sort.
   - now apply typing_checking.
-  - now apply isType_infering_sort.  
+  - now apply isTypeRel_infering_sort.  
 Qed.
 
 Theorem ctx_inst_typing_bd `{checker_flags} (Σ : global_env_ext) Γ l Δ (wfΣ : wf Σ) :

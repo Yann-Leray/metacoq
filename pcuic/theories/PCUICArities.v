@@ -216,7 +216,6 @@ Section WfEnv.
     - destruct HH as [HA HB].
       destruct HA as [sA [e HA]], HB as [sB HB].
       exists (Universe.sort_of_product sA sB).
-      destruct na; cbn in e |- *; rewrite <- e in HB |- *.
       econstructor; eassumption.
   Defined.
 
@@ -397,7 +396,6 @@ Section WfEnv.
     - have wf := typing_wf_local Ht.
       depelim wf. clear l.
       eapply type_Cumul.
-      destruct na; cbn in e; rewrite <- e in Ht |- *.
       econstructor; eauto.
       econstructor; eauto. now eapply typing_wf_universe in Ht; pcuic.
       eapply convSpec_cumulSpec, red1_cumulSpec. constructor.

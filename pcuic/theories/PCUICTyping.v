@@ -195,20 +195,20 @@ Inductive typing `{checker_flags} (Σ : global_env_ext) (Γ : context) : term ->
     wf_universe Σ s ->
     Σ ;;; Γ |- tSort s : tSort (Universe.super s)
 
-| type_Prod : forall a A B s1 s2,
-    let na := mkBindAnn a (relevance_of_sort s1) in
+| type_Prod : forall na A B s1 s2,
+    relevance_of_sort s1 = na.(binder_relevance) ->
     Σ ;;; Γ |- A : tSort s1 ->
     Σ ;;; Γ ,, vass na A |- B : tSort s2 ->
     Σ ;;; Γ |- tProd na A B : tSort (Universe.sort_of_product s1 s2)
 
-| type_Lambda : forall a A t s1 B,
-    let na := mkBindAnn a (relevance_of_sort s1) in
+| type_Lambda : forall na A t s1 B,
+    relevance_of_sort s1 = na.(binder_relevance) ->
     Σ ;;; Γ |- A : tSort s1 ->
     Σ ;;; Γ ,, vass na A |- t : B ->
     Σ ;;; Γ |- tLambda na A t : tProd na A B
 
-| type_LetIn : forall a b B t s1 A,
-    let na := mkBindAnn a (relevance_of_sort s1) in
+| type_LetIn : forall na b B t s1 A,
+    relevance_of_sort s1 = na.(binder_relevance) ->
     Σ ;;; Γ |- B : tSort s1 ->
     Σ ;;; Γ |- b : B ->
     Σ ;;; Γ ,, vdef na b B |- t : A ->
@@ -604,30 +604,30 @@ Lemma typing_ind_env_app_size `{cf : checker_flags} :
        wf_universe Σ u ->
        P Σ Γ (tSort u) (tSort (Universe.super u))) ->
 
-   (forall Σ (wfΣ : wf Σ.1) (Γ : context) (wfΓ : wf_local Σ Γ) (a : name) (t b : term) (s1 s2 : Universe.t),
+   (forall Σ (wfΣ : wf Σ.1) (Γ : context) (wfΓ : wf_local Σ Γ) (na : aname) (t b : term) (s1 s2 : Universe.t),
+       relevance_of_sort s1 = na.(binder_relevance) ->
        PΓ Σ Γ ->
        Σ ;;; Γ |- t : tSort s1 ->
        P Σ Γ t (tSort s1) ->
-       let na := mkBindAnn a (relevance_of_sort s1) in
        Σ ;;; Γ,, vass na t |- b : tSort s2 ->
        P Σ (Γ,, vass na t) b (tSort s2) -> P Σ Γ (tProd na t b) (tSort (Universe.sort_of_product s1 s2))) ->
 
-   (forall Σ (wfΣ : wf Σ.1) (Γ : context) (wfΓ : wf_local Σ Γ) (a : name) (t b : term)
+   (forall Σ (wfΣ : wf Σ.1) (Γ : context) (wfΓ : wf_local Σ Γ) (na : aname) (t b : term)
            (s1 : Universe.t) (bty : term),
+       relevance_of_sort s1 = na.(binder_relevance) ->
        PΓ Σ Γ ->
        Σ ;;; Γ |- t : tSort s1 ->
        P Σ Γ t (tSort s1) ->
-       let na := mkBindAnn a (relevance_of_sort s1) in
        Σ ;;; Γ,, vass na t |- b : bty -> P Σ (Γ,, vass na t) b bty -> P Σ Γ (tLambda na t b) (tProd na t bty)) ->
 
-   (forall Σ (wfΣ : wf Σ.1) (Γ : context) (wfΓ : wf_local Σ Γ) (a : name) (b b_ty b' : term)
+   (forall Σ (wfΣ : wf Σ.1) (Γ : context) (wfΓ : wf_local Σ Γ) (na : aname) (b b_ty b' : term)
            (s1 : Universe.t) (b'_ty : term),
+       relevance_of_sort s1 = na.(binder_relevance) ->
        PΓ Σ Γ ->
        Σ ;;; Γ |- b_ty : tSort s1 ->
        P Σ Γ b_ty (tSort s1) ->
        Σ ;;; Γ |- b : b_ty ->
        P Σ Γ b b_ty ->
-       let na := mkBindAnn a (relevance_of_sort s1) in
        Σ ;;; Γ,, vdef na b b_ty |- b' : b'_ty ->
        P Σ (Γ,, vdef na b b_ty) b' b'_ty -> P Σ Γ (tLetIn na b b_ty b') (tLetIn na b b_ty b'_ty)) ->
 
@@ -844,6 +844,7 @@ Proof.
             apply (IH (_; _; _; Hu)).
             destruct X as [u Hu]. exists u.
             apply (IH (_; _; _; Hu)).
+          - apply (ind_relevance_compat Xg).
           - apply (onIndices Xg). }
         { red in onP |- *.
           eapply All_local_env_impl; eauto.
@@ -1092,30 +1093,30 @@ Lemma typing_ind_env `{cf : checker_flags} :
         wf_universe Σ u ->
         P Σ Γ (tSort u) (tSort (Universe.super u))) ->
 
-    (forall Σ (wfΣ : wf Σ.1) (Γ : context) (wfΓ : wf_local Σ Γ) (a : name) (t b : term) (s1 s2 : Universe.t),
+    (forall Σ (wfΣ : wf Σ.1) (Γ : context) (wfΓ : wf_local Σ Γ) (na : aname) (t b : term) (s1 s2 : Universe.t),
+        relevance_of_sort s1 = na.(binder_relevance) ->
         PΓ Σ Γ ->
         Σ ;;; Γ |- t : tSort s1 ->
         P Σ Γ t (tSort s1) ->
-        let na := mkBindAnn a (relevance_of_sort s1) in
         Σ ;;; Γ,, vass na t |- b : tSort s2 ->
         P Σ (Γ,, vass na t) b (tSort s2) -> P Σ Γ (tProd na t b) (tSort (Universe.sort_of_product s1 s2))) ->
 
-    (forall Σ (wfΣ : wf Σ.1) (Γ : context) (wfΓ : wf_local Σ Γ) (a : name) (t b : term)
+    (forall Σ (wfΣ : wf Σ.1) (Γ : context) (wfΓ : wf_local Σ Γ) (na : aname) (t b : term)
             (s1 : Universe.t) (bty : term),
+        relevance_of_sort s1 = na.(binder_relevance) ->
         PΓ Σ Γ ->
         Σ ;;; Γ |- t : tSort s1 ->
         P Σ Γ t (tSort s1) ->
-        let na := mkBindAnn a (relevance_of_sort s1) in
         Σ ;;; Γ,, vass na t |- b : bty -> P Σ (Γ,, vass na t) b bty -> P Σ Γ (tLambda na t b) (tProd na t bty)) ->
 
-    (forall Σ (wfΣ : wf Σ.1) (Γ : context) (wfΓ : wf_local Σ Γ) (a : name) (b b_ty b' : term)
+    (forall Σ (wfΣ : wf Σ.1) (Γ : context) (wfΓ : wf_local Σ Γ) (na : aname) (b b_ty b' : term)
             (s1 : Universe.t) (b'_ty : term),
+        relevance_of_sort s1 = na.(binder_relevance) ->
         PΓ Σ Γ ->
         Σ ;;; Γ |- b_ty : tSort s1 ->
         P Σ Γ b_ty (tSort s1) ->
         Σ ;;; Γ |- b : b_ty ->
         P Σ Γ b b_ty ->
-        let na := mkBindAnn a (relevance_of_sort s1) in
         Σ ;;; Γ,, vdef na b b_ty |- b' : b'_ty ->
         P Σ (Γ,, vdef na b b_ty) b' b'_ty -> P Σ Γ (tLetIn na b b_ty b') (tLetIn na b b_ty b'_ty)) ->
 

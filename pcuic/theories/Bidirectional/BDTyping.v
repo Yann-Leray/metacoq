@@ -35,16 +35,19 @@ Inductive infering `{checker_flags} (Σ : global_env_ext) (Γ : context) : term 
   Σ ;;; Γ |- tSort s ▹ tSort (Universe.super s)
 
 | infer_Prod na A B s1 s2 :
+  relevance_of_sort s1 = na.(binder_relevance) ->
   Σ ;;; Γ |- A ▹□ s1 ->
   Σ ;;; Γ ,, vass na A |- B ▹□ s2 ->
   Σ ;;; Γ |- tProd na A B ▹ tSort (Universe.sort_of_product s1 s2)
 
 | infer_Lambda na A t s B :
+  relevance_of_sort s = na.(binder_relevance) ->
   Σ ;;; Γ |- A ▹□ s ->
   Σ ;;; Γ ,, vass na A |- t ▹ B ->
   Σ ;;; Γ |- tLambda na A t ▹ tProd na A B
 
 | infer_LetIn na b B t s A :
+  relevance_of_sort s = na.(binder_relevance) ->
   Σ ;;; Γ |- B ▹□ s ->
   Σ ;;; Γ |- b ◃ B ->
   Σ ;;; Γ ,, vdef na b B |- t ▹ A ->
@@ -110,7 +113,7 @@ Inductive infering `{checker_flags} (Σ : global_env_ext) (Γ : context) : term 
 | infer_Fix mfix n decl :
   fix_guard Σ Γ mfix ->
   nth_error mfix n = Some decl ->
-  All (fun d => {s & Σ ;;; Γ |- d.(dtype) ▹□ s}) mfix ->
+  All (fun d => {s & relevance_of_sort s = d.(dname).(binder_relevance) × Σ ;;; Γ |- d.(dtype) ▹□ s}) mfix ->
   All (fun d => Σ ;;; Γ ,,, fix_context mfix |- d.(dbody) ◃ lift0 #|fix_context mfix| d.(dtype)) mfix ->
   wf_fixpoint Σ mfix -> 
   Σ ;;; Γ |- tFix mfix n ▹ dtype decl
@@ -118,7 +121,7 @@ Inductive infering `{checker_flags} (Σ : global_env_ext) (Γ : context) : term 
 | infer_CoFix mfix n decl :
   cofix_guard Σ Γ mfix ->
   nth_error mfix n = Some decl ->
-  All (fun d => {s & Σ ;;; Γ |- d.(dtype) ▹□ s}) mfix ->
+  All (fun d => {s & relevance_of_sort s = d.(dname).(binder_relevance) × Σ ;;; Γ |- d.(dtype) ▹□ s}) mfix ->
   All (fun d => Σ ;;; Γ ,,, fix_context mfix |- d.(dbody) ◃ lift0 #|fix_context mfix| d.(dtype)) mfix ->
   wf_cofixpoint Σ mfix ->
   Σ ;;; Γ |- tCoFix mfix n ▹ dtype decl
@@ -202,9 +205,9 @@ Proof.
     | |- _ => exact 1
     end.
     - exact (S (Nat.max a0 (Nat.max i (Nat.max i0 (Nat.max (ctx_inst_size _ (checking_size _) c1) (branches_size (checking_size _) (infering_sort_size _) a2)))))).
-    - exact (S (Nat.max (all_size _ (fun d p => infering_sort_size _ _ _ _ _ p.π2) a)
+    - exact (S (Nat.max (all_size _ (fun d p => infering_sort_size _ _ _ _ _ p.π2.2) a)
                (all_size _ (fun x p => checking_size _ _ _ _ _ p) a0))).
-    - exact (S (Nat.max (all_size _ (fun d p => infering_sort_size _ _ _ _ _ p.π2) a)
+    - exact (S (Nat.max (all_size _ (fun d p => infering_sort_size _ _ _ _ _ p.π2.2) a)
                (all_size _ (fun x => checking_size _ _ _ _ _) a0))).
   Defined.
 
@@ -331,28 +334,31 @@ Section BidirectionalInduction.
       wf_universe Σ s->
       Pinfer Γ (tSort s) (tSort (Universe.super s))) ->
 
-    (forall (Γ : context) (n : aname) (t b : term) (s1 s2 : Universe.t),
+    (forall (Γ : context) (na : aname) (t b : term) (s1 s2 : Universe.t),
+      relevance_of_sort s1 = na.(binder_relevance) ->
       Σ ;;; Γ |- t ▹□ s1 ->
       Psort Γ t s1 ->
-      Σ ;;; Γ,, vass n t |- b ▹□ s2 ->
-      Psort (Γ,, vass n t) b s2 ->
-      Pinfer Γ (tProd n t b) (tSort (Universe.sort_of_product s1 s2))) ->
+      Σ ;;; Γ,, vass na t |- b ▹□ s2 ->
+      Psort (Γ,, vass na t) b s2 ->
+      Pinfer Γ (tProd na t b) (tSort (Universe.sort_of_product s1 s2))) ->
 
-    (forall (Γ : context) (n : aname) (t b : term) (s : Universe.t) (bty : term),
+    (forall (Γ : context) (na : aname) (t b : term) (s : Universe.t) (bty : term),
+      relevance_of_sort s = na.(binder_relevance) ->
       Σ ;;; Γ |- t ▹□ s ->
       Psort Γ t s ->
-      Σ ;;; Γ,, vass n t |- b ▹ bty ->
-      Pinfer (Γ,, vass n t) b bty ->
-      Pinfer Γ (tLambda n t b) (tProd n t bty)) ->
+      Σ ;;; Γ,, vass na t |- b ▹ bty ->
+      Pinfer (Γ,, vass na t) b bty ->
+      Pinfer Γ (tLambda na t b) (tProd na t bty)) ->
 
-    (forall (Γ : context) (n : aname) (b B t : term) (s : Universe.t) (A : term),
+    (forall (Γ : context) (na : aname) (b B t : term) (s : Universe.t) (A : term),
+      relevance_of_sort s = na.(binder_relevance) ->
       Σ ;;; Γ |- B ▹□ s ->
       Psort Γ B s ->
       Σ ;;; Γ |- b ◃ B ->
       Pcheck Γ b B ->
-      Σ ;;; Γ,, vdef n b B |- t ▹ A ->
-      Pinfer (Γ,, vdef n b B) t A ->
-      Pinfer Γ (tLetIn n b B t) (tLetIn n b B A)) ->
+      Σ ;;; Γ,, vdef na b B |- t ▹ A ->
+      Pinfer (Γ,, vdef na b B) t A ->
+      Pinfer Γ (tLetIn na b B t) (tLetIn na b B A)) ->
 
     (forall (Γ : context) (t : term) na A B u,
       Σ ;;; Γ |- t ▹Π (na, A, B) ->
@@ -427,7 +433,7 @@ Section BidirectionalInduction.
     (forall (Γ : context) (mfix : mfixpoint term) (n : nat) decl,
       fix_guard Σ Γ mfix ->
       nth_error mfix n = Some decl ->
-      All (fun d => {s & (Σ ;;; Γ |- d.(dtype) ▹□ s) × Psort Γ d.(dtype) s}) mfix ->
+      All (fun d => {s & (relevance_of_sort s = binder_relevance (dname d) × Σ ;;; Γ |- d.(dtype) ▹□ s) × Psort Γ d.(dtype) s}) mfix ->
       All (fun d => (Σ ;;; Γ ,,, fix_context mfix |- d.(dbody) ◃ lift0 #|fix_context mfix| d.(dtype)) ×
                 Pcheck (Γ ,,, fix_context mfix) d.(dbody) (lift0 #|fix_context mfix| d.(dtype))) mfix ->
       wf_fixpoint Σ mfix ->
@@ -436,7 +442,7 @@ Section BidirectionalInduction.
     (forall (Γ : context) (mfix : mfixpoint term) (n : nat) decl,
       cofix_guard Σ Γ mfix ->
       nth_error mfix n = Some decl ->
-      All (fun d => {s & (Σ ;;; Γ |- d.(dtype) ▹□ s) × Psort Γ d.(dtype) s}) mfix ->
+      All (fun d => {s & (relevance_of_sort s = binder_relevance (dname d) × Σ ;;; Γ |- d.(dtype) ▹□ s) × Psort Γ d.(dtype) s}) mfix ->
       All (fun d => (Σ ;;; Γ ,,, fix_context mfix |- d.(dbody) ◃ lift0 #|fix_context mfix| d.(dtype)) ×
                 Pcheck (Γ ,,, fix_context mfix) d.(dbody) (lift0 #|fix_context mfix| d.(dtype))) mfix ->
       wf_cofixpoint Σ mfix ->
@@ -622,7 +628,8 @@ Section BidirectionalInduction.
         dependent induction a.
         1: by constructor.
         constructor ; cbn.
-        * destruct p ; eexists ; split.
+        * destruct p as [s' [e Hs']]; exists s'; split.
+          split; [apply e|].
           1: eassumption.
           applyIH.
         * apply (IHa s).
@@ -652,7 +659,8 @@ Section BidirectionalInduction.
         dependent induction a.
         1: by constructor.
         constructor ; cbn.
-        * destruct p ; eexists ; split.
+        * destruct p as [s' [e Hs']]; exists s'; split.
+          split; [apply e|].
           1: eassumption.
           applyIH.
         * apply (IHa s).

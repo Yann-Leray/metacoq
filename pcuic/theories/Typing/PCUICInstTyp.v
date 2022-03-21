@@ -374,38 +374,41 @@ Proof.
     eapply hσ. assumption.
   - intros Σ wfΣ Γ wfΓ l X H0 Δ σ hΔ hσ. simpl.
     econstructor. all: assumption.
-  - intros Σ wfΣ Γ wfΓ a A B s1 s2 X hA ihA hB ihB Δ σ hΔ hσ.
+  - intros Σ wfΣ Γ wfΓ na A B s1 s2 e X hA ihA hB ihB Δ σ hΔ hσ.
     autorewrite with sigma. simpl.
     econstructor.
+    + apply e.
     + eapply ihA ; auto.
     + eapply ihB.
       * econstructor ; auto.
-        eexists. split; [apply eq_refl | idtac]. eapply ihA ; auto.
+        eexists. split; [apply e | idtac]. eapply ihA ; auto.
       * eapply well_subst_Up. 2: assumption.
         econstructor ; auto.
-        eexists. split; [apply eq_refl | idtac]. eapply ihA. all: auto.
-  - intros Σ wfΣ Γ wfΓ a A t s1 bty X hA ihA ht iht Δ σ hΔ hσ.
+        eexists. split; [apply e | idtac]. eapply ihA. all: auto.
+  - intros Σ wfΣ Γ wfΓ na A t s1 bty e X hA ihA ht iht Δ σ hΔ hσ.
     autorewrite with sigma.
     econstructor.
+    + apply e.
     + eapply ihA ; auto.
     + eapply iht.
       * econstructor ; auto.
-        eexists. split; [apply eq_refl | idtac]. eapply ihA ; auto.
+        eexists. split; [apply e | idtac]. eapply ihA ; auto.
       * eapply well_subst_Up. 2: assumption.
         constructor. 1: assumption.
-        eexists. split; [apply eq_refl | idtac]. eapply ihA. all: auto.
-  - intros Σ wfΣ Γ wfΓ a b B t s1 A X hB ihB hb ihb ht iht Δ σ hΔ hσ.
+        eexists. split; [apply e | idtac]. eapply ihA. all: auto.
+  - intros Σ wfΣ Γ wfΓ na b B t s1 A e X hB ihB hb ihb ht iht Δ σ hΔ hσ.
     autorewrite with sigma.
     econstructor.
+    + apply e.
     + eapply ihB. all: auto.
     + eapply ihb. all: auto.
     + eapply iht.
       * econstructor. all: auto.
-        -- eexists. split; [apply eq_refl | idtac]. eapply ihB. all: auto.
+        -- eexists. split; [apply e | idtac]. eapply ihB. all: auto.
         -- simpl. eapply ihb. all: auto.
       * eapply well_subst_Up'; try assumption.
         constructor; auto.
-        ** exists s1. split; [apply eq_refl | idtac]. apply ihB; auto.
+        ** exists s1. split; [apply e | idtac]. apply ihB; auto.
         ** apply ihb; auto.
   - intros Σ wfΣ Γ wfΓ t na A B s u X hty ihty ht iht hu ihu Δ σ hΔ hσ.
     autorewrite with sigma.

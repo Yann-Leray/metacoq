@@ -232,7 +232,7 @@ Proof.
         intuition. 
   - constructor; pcuic.
     eapply forall_Γ'0. repeat (constructor; pcuic).
-    constructor; auto. red. eexists; split; [ apply eq_refl | idtac ]; eapply forall_Γ'; auto.
+    constructor; auto. red. eexists; split; [ eauto | idtac ]; eapply forall_Γ'; auto.
   - econstructor; pcuic.
     eapply forall_Γ'0; repeat (constructor; pcuic).
   - econstructor; pcuic.

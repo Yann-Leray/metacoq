@@ -144,6 +144,7 @@ Proof.
            * destruct indices_matter; auto.
              eapply type_local_ctx_impl. eapply ind_sorts.
              intros. apply X; eauto; split; eauto.
+      --- eapply X0.(ind_relevance_compat).
       --- eapply X0.(onIndices).
     -- red in onP. red.
        eapply All_local_env_impl. eauto.
@@ -153,7 +154,7 @@ Qed.
 Lemma closedn_All_local_env (ctx : list context_decl) :
   All_local_env 
     (fun (Γ : context) (b : term) (t : typ_or_rel_or_none) =>
-      closedn #|Γ| b && option_default (closedn #|Γ|) (typ_or_rel_or_none_to_opt t) true) ctx ->
+      closedn #|Γ| b && typ_or_rel_or_none_default (closedn #|Γ|) t true) ctx ->
     closedn_ctx 0 ctx.
 Proof.
   induction 1; auto; rewrite closedn_ctx_cons IHX /=; now move/andP: t0 => [].

@@ -16,8 +16,6 @@ Existing Class wf.
   and the global context.
 *)
 
-Definition wf_decl_pred Σ Γ t T := (wf_decl_pred Σ Γ t (typ_or_rel_or_none_to_opt T)).
-
 Lemma All_local_env_wf_decl Σ :
   forall (Γ : context),
     All (wf_decl Σ) Γ -> All_local_env (wf_decl_pred Σ) Γ.
@@ -79,6 +77,7 @@ Proof.
            destruct Universe.is_sprop; auto.
            split. apply ind_sorts. destruct indices_matter; auto.
            eapply type_local_ctx_impl. eapply ind_sorts. auto.
+       --- apply (ind_relevance_compat X1).
        --- apply (onIndices X1).
     -- red in onP. red.
        eapply All_local_env_impl. eauto.
@@ -772,7 +771,8 @@ Section WfRed.
       eapply lookup_on_global_env in H as [Σ' [onΣ' [ext prf]]]; eauto.
       destruct decl; simpl in *.
       subst cst_body0; simpl in *; unfold on_constant_decl in prf; cbn in prf.
-      unfold wf_decl_pred, typ_or_rel_or_none_to_opt, WfAst.wf_decl_pred in prf. intuition eauto using wf_extends.
+      unfold wf_decl_pred in prf.
+      intuition eauto using wf_extends.
     - apply wf_mkApps_inv in X.
       eapply nth_error_all in X; eauto.
     - simpl in *. econstructor; eauto. cbn.
@@ -966,7 +966,7 @@ Section TypingWf.
 
     - eapply All_local_env_wf_decls.
       induction X; constructor; auto; red;
-      unfold wf_decl_pred, typ_or_rel_or_none_to_opt, WfAst.wf_decl_pred;
+      unfold wf_decl_pred, typ_or_rel_or_none_default;
       intuition auto.
     - split; wf. apply wf_lift.
       apply (nth_error_all H X).
@@ -1036,7 +1036,7 @@ Section TypingWf.
     pose proof (env_prop_sigma typing_wf_gen _ wfΣ). red in X.
     unfold lift_typing in X. do 2 red in wfΣ.
     eapply on_global_env_impl; eauto; simpl; intros.
-    unfold wf_decl_pred, typ_or_rel_or_none_to_opt, WfAst.wf_decl_pred.
+    unfold wf_decl_pred.
     destruct T. apply X1.
     now destruct X1 as [x [a [wf1 wf2]]].
     now destruct X1.

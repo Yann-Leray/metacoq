@@ -6,8 +6,10 @@ From Equations Require Import Equations.
 
 Require Import ssreflect.
 
+Implicit Type (cf: checker_flags).
+
 (** Variation on lift_typing to enable a different predicate for checking a body and infering a sort when there is no body *)
-Definition lift_sorting
+Definition lift_sorting {cf}
   (checking : global_env_ext -> context -> term -> term -> Type)
   (sorting : global_env_ext -> context -> term -> Universe.t -> Type) :
   (global_env_ext -> context -> term -> typ_or_rel_or_none -> Type) :=
@@ -123,7 +125,7 @@ Qed.
       
 
 Section SortingEnv.
-
+  Context {cf}.
   Context (checking : global_env_ext -> context -> term -> term -> Type).
   Context (sorting : global_env_ext -> context -> term -> Universe.t -> Type).
 

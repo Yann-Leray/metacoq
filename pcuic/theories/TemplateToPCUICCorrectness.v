@@ -229,7 +229,7 @@ Lemma trans_weakening {cf} Σ {Σ' : global_env_map} t :
   trans (trans_global_env Σ) t = trans Σ' t.
 Proof.
   intros wfΣ ext wfΣ' wft.
-  induction wft using WfAst.term_wf_forall_list_ind; cbn; auto; try solve [f_equal; solve_all].
+  induction wft using @WfAst.term_wf_forall_list_ind; cbn; auto; try solve [f_equal; solve_all].
   rewrite !trans_lookup_inductive.
   unshelve epose proof (trans_lookup_inductive (Σ := trans_global_env Σ) ci _); tc.
   eapply PCUICWeakeningEnvConv.extends_decls_wf; tea. rewrite {}H1.
@@ -245,6 +245,7 @@ Proof.
   red in X0.
   f_equal => //. rewrite /id. unfold trans_predicate. f_equal; solve_all.
   f_equal. solve_all.
+  all: f_equal; apply All_map_eq; eapply All_impl; [exact X|]; intros d []; unfold map_def; congruence.
 Qed. 
 
 Lemma trans_decl_weakening {cf} Σ {Σ' : global_env_map} t : 
@@ -489,9 +490,9 @@ Lemma trans_destArity {cf} {wfΣ : Typing.wf Σ} ctx t :
   end.
 Proof.
   intros wf wf'; revert ctx.
-  induction wf using WfAst.term_wf_forall_list_ind; intros ctx; simpl; trivial.
-  apply (IHwf0 (Ast.Env.vass n t :: ctx)).
-  apply (IHwf1 (Ast.Env.vdef n t t0 :: ctx)).
+  induction wf using @WfAst.term_wf_forall_list_ind; intros ctx; simpl; trivial.
+  apply (IHwf0 (Ast.Env.vass na t :: ctx)).
+  apply (IHwf1 (Ast.Env.vdef na t t0 :: ctx)).
   destruct l. congruence.
   now apply destArity_mkApps.
   destruct H as []. red in H.
@@ -651,7 +652,7 @@ Qed.
 
 Hint Resolve Template.TypingWf.typing_wf : wf.
 
-Lemma mkApps_trans_wf U l : Template.WfAst.wf Σ (Template.Ast.tApp U l) -> exists U' V', trans (Template.Ast.tApp U l) = tApp U' V'.
+Lemma mkApps_trans_wf {cf} U l : Template.WfAst.wf Σ (Template.Ast.tApp U l) -> exists U' V', trans (Template.Ast.tApp U l) = tApp U' V'.
 Proof.
   simpl. induction l using rev_ind. intros. inv X. congruence.
   intros. rewrite map_app. simpl. exists (mkApps (trans U) (map trans l)), (trans x).
@@ -907,18 +908,20 @@ Section Trans_Global.
       assert (
         w1 :
           All (fun def =>
+            WfAst.wf_na (dname def) ×
             WfAst.wf Σ (dtype def) ×
             WfAst.wf Σ (dbody def)
           ) m
       ).
-      { solve_all. }
+      { solve_all; now destruct a0. }
       assert (
         w2 :
           All (fun def =>
+            WfAst.wf_na (dname def) ×
             WfAst.wf Σ (dtype def) ×
             WfAst.wf Σ (dbody def)) mfix'
       ).
-      { solve_all. }
+      { solve_all; now destruct b. }
       pose proof (All2_All_mix_left X X0) as h1. simpl in h1.
       pose proof (All2_All_mix_left w1 h1) as h2.
       pose proof (All2_All_mix_right w2 h2) as h3.
@@ -932,14 +935,14 @@ Section Trans_Global.
     - constructor.
       assert (
         w1 :
-          All (fun def => WfAst.wf Σ (dtype def) × WfAst.wf Σ (dbody def)) m
+          All (fun def => WfAst.wf_na (dname def) × WfAst.wf Σ (dtype def) × WfAst.wf Σ (dbody def)) m
       ).
-      { solve_all. }
+      { solve_all; now destruct a0. }
       assert (
         w2 :
-          All (fun def => WfAst.wf Σ (dtype def) * WfAst.wf Σ (dbody def)) mfix'
+          All (fun def => WfAst.wf_na (dname def) × WfAst.wf Σ (dtype def) * WfAst.wf Σ (dbody def)) mfix'
       ).
-      { solve_all. }
+      { solve_all; now destruct b. }
       pose proof (All2_All_mix_left X X0) as h1. simpl in h1.
       pose proof (All2_All_mix_left w1 h1) as h2.
       pose proof (All2_All_mix_right w2 h2) as h3.
@@ -1161,7 +1164,7 @@ Section Trans_Global.
   Qed.
 
   Lemma trans_unfold_fix mfix idx narg fn :
-    All (fun def : def Ast.term => WfAst.wf Σ (dtype def) * WfAst.wf Σ (dbody def)) mfix ->
+    All (WfAst.wf_def Σ) mfix ->
     ST.unfold_fix mfix idx = Some (narg, fn) ->
     unfold_fix (map (map_def (trans Σ') (trans Σ')) mfix) idx = Some (narg, trans Σ' fn).
   Proof.
@@ -1180,7 +1183,7 @@ Section Trans_Global.
   Qed.
 
   Lemma trans_unfold_cofix mfix idx narg fn :
-    All (fun def : def Ast.term => WfAst.wf Σ (dtype def) * WfAst.wf Σ (dbody def)) mfix ->
+    All (WfAst.wf_def Σ) mfix ->
     ST.unfold_cofix mfix idx = Some (narg, fn) ->
     unfold_cofix (map (map_def (trans Σ') (trans Σ')) mfix) idx = Some (narg, trans Σ' fn).
   Proof.
@@ -1231,8 +1234,9 @@ Section Trans_Global.
     destruct T; simpl in *; auto.
     destruct X0 as [s [e [Ht Hs]]].
     red. split; cbn; auto.
-    destruct X0 as [s [Ht Hs]].
+    now eexists.
     red. split; cbn; auto.
+    now destruct X0.
   Qed.
   Hint Resolve wf_wf_decl_pred : wf.
 
@@ -1515,7 +1519,7 @@ Section Trans_Global.
       rewrite trans_lookup_inductive.
       rewrite (declared_inductive_lookup isdecl).
       eapply All2_nth_error in wfbrs as []; tea. 2:exact (proj2 H0).
-      have lenbr := (All2_length a); len in lenbr.
+      have lenbr := (All2_length w); len in lenbr.
       rewrite (trans_iota_red _ mdecl idecl cdecl) //.
       constructor. cbn.
       rewrite map2_map_map.
@@ -1577,10 +1581,17 @@ Section Trans_Global.
       constructor. cbn. 
       rewrite trans_local_app in IHX.
       rewrite inst_case_predicate_context_eq in IHX => //.
-      eapply All2_length in hpctx; len in hpctx.
+      pose proof (hpctx2 := hpctx).
+      eapply All2_length in hpctx2; len in hpctx2.
       eapply IHX => //.
       eapply All_app_inv => //.
       eapply declared_inductive_wf_case_predicate_context => //.
+      eapply wf_decl_nactx_na; [|apply hpctx].
+      eapply wf_ind_predicate_context; tea.
+      eapply declared_minductive_wf; apply isdecl'.
+      eapply declared_inductive_wf_indices; tea.
+      eapply on_global_wf_Forall_decls; wf.
+      all: eapply declared_inductive_wf_ind_rel; tea.
     
     - destruct a as [isdecl hpctx wfpar wfret wfc wfbrs].
       eapply forall_decls_declared_inductive in isdecl; tea.
@@ -1609,8 +1620,13 @@ Section Trans_Global.
       fold (Ast.case_branch_context ind mdecl i p y).
       assert (Ast.declared_constructor Σ (ind.(ci_ind), cstr) mdecl idecl i).
       { split; auto. }
-      now eapply (declared_constructor_wf_case_branch_context H).
-
+      eapply (declared_constructor_wf_case_branch_context H); tea.
+      rewrite <- b0.
+      eapply wf_decl_nactx_na; [|apply b].
+      eapply wf_cstr_branch_context; wf.
+      eapply (All_nth_error _ (fun ctor => All _ (Ast.Env.cstr_args ctor))); tea.
+      eapply declared_inductive_wf_ctors; tea.
+      eapply on_global_wf_Forall_decls; wf.
     - rewrite !trans_mkApps; auto with wf.
       eapply wf_red1 in X; auto with wf.
       eapply red1_mkApps_f; auto.
@@ -1634,28 +1650,31 @@ Section Trans_Global.
       solve_all.
       red. rewrite <- !map_dtype. rewrite <- !map_dbody.
       inversion b0. clear b0.
-      intuition eauto.
+      split. destruct b. intuition eauto.
       unfold map_def. simpl. congruence.
 
     - apply fix_red_body. apply OnOne2_map. repeat toAll.
       apply (OnOne2_All_mix_left Hwf) in X.
       solve_all.
-      red. rewrite <- !map_dtype. rewrite <- !map_dbody. intuition eauto.
-      + unfold Ast.Env.app_context, trans_local in b.
-        simpl in a. rewrite -> map_app in b.
-        unfold app_context. unfold ST.fix_context in b.
-        rewrite map_rev map_mapi in b. simpl in b.
+      red. rewrite <- !map_dtype. rewrite <- !map_dbody.
+      split. destruct b.
+      + unfold Ast.Env.app_context, trans_local in b1.
+        simpl in a. rewrite -> map_app in b1.
+        unfold app_context. unfold ST.fix_context in b1.
+        rewrite map_rev map_mapi in b1. simpl in b1.
         unfold fix_context. rewrite mapi_map. simpl.
-        forward b.
-        { clear b. solve_all. eapply All_app_inv; auto.
+        forward b1.
+        { clear b1. solve_all. eapply All_app_inv; auto.
           apply All_rev. apply All_mapi.
           clear -Hwf; generalize 0 at 2; induction mfix0; constructor; hnf; simpl; auto.
           intuition auto. depelim a. simpl. depelim Hwf. simpl in *. intuition auto.
+          destruct w.
+          split; eauto.
           now eapply WfAst.wf_lift.
           depelim a. simpl. depelim Hwf. simpl in *. intuition auto.
         }
-        forward b by auto.
-        eapply (refine_red1_Γ); [|apply b].
+        forward b1 by auto.
+        eapply (refine_red1_Γ); [|apply b1].
         f_equal. f_equal. apply mapi_ext; intros [] [].
         rewrite lift0_p. simpl. rewrite LiftSubst.lift0_p. reflexivity. cbn.
         rewrite /trans_decl /= /vass. f_equal.
@@ -1667,28 +1686,29 @@ Section Trans_Global.
       solve_all.
       red. rewrite <- !map_dtype. rewrite <- !map_dbody.
       inversion b0. clear b0.
-      intuition eauto.
+      destruct b; intuition eauto.
       unfold map_def. simpl. congruence.
 
     - apply cofix_red_body. apply OnOne2_map. repeat toAll.
       apply (OnOne2_All_mix_left Hwf) in X.
-      solve_all.
+      solve_all. destruct b.
       red. rewrite <- !map_dtype. rewrite <- !map_dbody. intuition eauto.
-      + unfold Ast.Env.app_context, trans_local in b.
-        simpl in a. rewrite -> map_app in b.
-        unfold app_context. unfold ST.fix_context in b.
-        rewrite map_rev map_mapi in b. simpl in b.
+      + unfold Ast.Env.app_context, trans_local in b1.
+        simpl in a. rewrite -> map_app in b1.
+        unfold app_context. unfold ST.fix_context in b1.
+        rewrite map_rev map_mapi in b1. simpl in b1.
         unfold fix_context. rewrite mapi_map. simpl.
-        forward b.
-        { clear b. solve_all. eapply All_app_inv; auto.
+        forward b1.
+        { clear b1. solve_all. eapply All_app_inv; auto.
           apply All_rev. apply All_mapi.
           clear -Hwf; generalize 0 at 2; induction mfix0; constructor; hnf; simpl; auto.
           intuition auto. depelim a. simpl. depelim Hwf. simpl in *. intuition auto.
+          destruct w; split; eauto.
           now eapply WfAst.wf_lift.
           depelim a. simpl. depelim Hwf. simpl in *. intuition auto.
         }
-        forward b by auto.
-        eapply (refine_red1_Γ); [|apply b].
+        forward b1 by auto.
+        eapply (refine_red1_Γ); [|apply b1].
         f_equal. f_equal. apply mapi_ext; intros [] [].
         rewrite lift0_p. simpl. rewrite LiftSubst.lift0_p. reflexivity.
         cbn. rewrite /trans_decl /vass /=.
@@ -1819,7 +1839,7 @@ Axiom cofix_guard_trans :
 
 Notation Swf_fix Σ def := (WfAst.wf Σ (dtype def) * WfAst.wf Σ (dbody def)).
 
-Lemma trans_decompose_app {Σ t ind u l} : 
+Lemma trans_decompose_app {cf Σ t ind u l} : 
   WfAst.wf Σ t ->
   let Σ' := trans_global_env Σ in
   AstUtils.decompose_app t = (Ast.tInd ind u, l) ->
@@ -1841,14 +1861,14 @@ Proof.
   - intros H. now apply IHt3 in H.
 Qed.
 
-Lemma trans_decompose_prod_assum {Σ Σ'} ctx t :
+Lemma trans_decompose_prod_assum {cf} {Σ Σ'} ctx t :
   WfAst.wf Σ t ->
   let (ctx', t') := AstUtils.decompose_prod_assum ctx t in
   decompose_prod_assum (trans_local Σ' ctx) (trans Σ' t) = 
     (trans_local Σ' ctx', trans Σ' t').
 Proof.
   intros wft; 
-  induction wft in ctx |- * using WfAst.term_wf_forall_list_ind ; cbn; try intros [= <- <-]; auto.
+  induction wft in ctx |- * using @WfAst.term_wf_forall_list_ind ; cbn; try intros [= <- <-]; auto.
   - apply IHwft0.
   - apply IHwft1.
   - rewrite mkApps_nonempty //.
@@ -1856,7 +1876,7 @@ Proof.
   - cbn. destruct TransLookup.lookup_inductive as [[mdecl' idecl']| ]; cbn => //.
 Qed.
 
-Lemma wf_it_mkProd_or_LetIn Σ Γ t
+Lemma wf_it_mkProd_or_LetIn {cf} Σ Γ t
   : WfAst.wf Σ (Ast.Env.it_mkProd_or_LetIn Γ t) <~> All (WfAst.wf_decl Σ) Γ * WfAst.wf Σ t.
 Proof.
   revert t. induction Γ.
@@ -1866,6 +1886,7 @@ Proof.
     * etransitivity. eapply IHΓ. split; intros [].
       depelim w. intuition constructor; auto. split; auto. 
       depelim a. red in w. simpl in w. split; auto with wf. constructor; intuition auto.
+      all: now destruct w.
     * etransitivity. eapply IHΓ => /=. split; intros [].
       depelim w. simpl in w1. split; [constructor|];auto.
       split; simpl; auto.
@@ -1873,7 +1894,7 @@ Proof.
       split; auto. constructor; simpl; auto.
 Qed.
 
-Lemma trans_check_one_fix Σ mfix ind :
+Lemma trans_check_one_fix {cf} Σ mfix ind :
   let Σ' := trans_global_env Σ in
   Swf_fix Σ mfix ->
   ST.check_one_fix mfix = Some ind ->
@@ -1917,7 +1938,7 @@ Proof.
   move=> t [= <-]. now rewrite (IHHl _ E').
 Qed.
 
-Lemma map_option_out_check_one_fix {Σ mfix} :
+Lemma map_option_out_check_one_fix {cf Σ mfix} :
   let Σ' := trans_global_env Σ in
   All (fun def => (WfAst.wf Σ (dtype def) * WfAst.wf Σ (dbody def))) mfix ->
   forall l, 
@@ -1928,7 +1949,7 @@ Proof.
   apply trans_check_one_fix.
 Qed.
 
-Lemma trans_check_one_cofix Σ mfix ind :
+Lemma trans_check_one_cofix {cf} Σ mfix ind :
   let Σ' := trans_global_env Σ in
   Swf_fix Σ mfix ->
   ST.check_one_cofix mfix = Some ind ->
@@ -1946,7 +1967,7 @@ Proof.
     now eapply wf_it_mkProd_or_LetIn in wfty as [_ wfp]. }
 Qed.
 
-Lemma map_option_out_check_one_cofix {Σ mfix} :
+Lemma map_option_out_check_one_cofix {cf Σ mfix} :
   let Σ' := trans_global_env Σ in
   All (fun def => (WfAst.wf Σ (dtype def) * WfAst.wf Σ (dbody def))) mfix ->
   forall l, 
@@ -2246,12 +2267,12 @@ Proof.
   - (* Casts *)
     eapply refine_type; cbn.
     * eapply type_App.
-      2:{ eapply type_Lambda; eauto. eapply type_Rel. econstructor; eauto.
-        eapply typing_wf_local; eauto. reflexivity. }
-      eapply type_Prod. eauto.
+      2:{ eapply type_Lambda; eauto. admit. eapply type_Rel. econstructor; eauto.
+        eapply typing_wf_local; eauto. admit. reflexivity. }
+      eapply type_Prod. admit. eauto.
       instantiate (1 := s). simpl.
       eapply (weakening _ _ [_] _ (tSort _)); eauto.
-      constructor; eauto. eapply typing_wf_local; eauto.
+      constructor; eauto. eapply typing_wf_local; eauto. admit.
       now eapply X2.
     * unfold subst1. rewrite simpl_subst; auto. now rewrite lift0_p.
 
@@ -2421,7 +2442,7 @@ Proof.
        rewrite /trans_local map_app in X3.
        rewrite <- trans_lift. apply X3; auto.
     -- eapply trans_wf_fixpoint => //.
-        solve_all. destruct a as [s [Hs IH]].
+        solve_all. destruct a as [s [[e Hs] IH]]. 
         now eapply TypingWf.typing_wf in Hs.
         now eapply TypingWf.typing_wf in a0.
     -- destruct decl; reflexivity.
@@ -2444,7 +2465,7 @@ Proof.
        rewrite trans_local_app in X3.
        cbn. rewrite <- trans_lift. now apply X3.
     -- eapply trans_wf_cofixpoint => //.
-       solve_all. destruct a as [s [Hs IH]].
+       solve_all. destruct a as [s [[e Hs] IH]].
        now eapply TypingWf.typing_wf in Hs.
        now eapply TypingWf.typing_wf in a0.
     -- destruct decl; reflexivity.
@@ -2535,7 +2556,7 @@ Lemma trans_closedn {cf} {Σ k t} :
   Ast.closedn k t -> 
   closedn k (trans (trans_global_env Σ) t).
 Proof.
-  intros wfΣ wfΣ' wf. induction wf using WfAst.term_wf_forall_list_ind in k |- *; cbn; auto.
+  intros wfΣ wfΣ' wf. induction wf using @WfAst.term_wf_forall_list_ind in k |- *; cbn; auto.
   1-6:solve_all.
   - rewrite PCUICClosed.closedn_mkApps. solve_all.
   - eapply forall_decls_declared_inductive in H; tea.
@@ -2579,8 +2600,8 @@ Proof.
         split; cbn; tea. now rewrite nth_error_map hnth.
         cbn. now rewrite context_assumptions_map. }
       rewrite map2_length; len. eauto.
-  - unfold test_def; red in X. solve_all.
-  - unfold test_def; solve_all.    
+  - unfold test_def; solve_all; destruct a; intuition eauto.
+  - unfold test_def; solve_all; destruct a; intuition eauto.
 Qed. 
 
 From MetaCoq.PCUIC Require Import PCUICOnFreeVars.
@@ -2631,7 +2652,7 @@ Proof.
   now rewrite (All2_fold_length X).
 Qed.
 
-Lemma wf_expand_lets Σ Γ t : 
+Lemma wf_expand_lets {cf} Σ Γ t : 
   All (WfAst.wf_decl Σ) Γ ->
   WfAst.wf Σ t ->
   WfAst.wf Σ (Ast.Env.expand_lets Γ t).
@@ -2642,7 +2663,7 @@ Proof.
   now eapply wf_extended_subst.
 Qed.
 
-Lemma wf_expand_lets_ctx Σ Γ Δ : 
+Lemma wf_expand_lets_ctx {cf} Σ Γ Δ : 
   All (WfAst.wf_decl Σ) Γ ->
   All (WfAst.wf_decl Σ) Δ ->
   All (WfAst.wf_decl Σ) (Ast.Env.expand_lets_ctx Γ Δ).
@@ -2654,7 +2675,7 @@ Proof.
   eapply wf_extended_subst => //.
 Qed.
 
-Lemma wf_ind_arities Σ mdecl : 
+Lemma wf_ind_arities {cf} Σ mdecl : 
   All (wf_inductive_body Σ) (Ast.Env.ind_bodies mdecl) ->
   All (WfAst.wf_decl Σ) (Typing.ind_arities mdecl).
 Proof.
@@ -2665,6 +2686,7 @@ Proof.
   induction X; constructor; auto.
   unfold WfAst.wf_decl; cbn. split => //.
   eapply p.
+  eexists; eapply p.
 Qed.
 
 Lemma All2_refl_inv {A} {P : A -> A -> Type} l :
@@ -2920,6 +2942,9 @@ Proof.
   * eapply typing_wf; tea.
   * destruct X2 as [s [e Hs]].
     red. split => //. now eapply typing_wf in Hs; tea.
+    now eexists.
+  * destruct X2 as [s Hs].
+    red. split => //. now eapply typing_wf in Hs; tea.
 Qed.
 
 Lemma Alli_All_mix {A} {P : nat -> A -> Type} {Q} {n l} : 
@@ -3032,11 +3057,11 @@ Proof.
           apply (X (Σg, Ast.Env.ind_universes m) [] (Ast.Env.ind_type x) (SortRel (Ast.Env.ind_relevance x)) X0 o) => //. }
         eapply Alli_All_mix in onI; tea.
         eapply Alli_map. eapply Alli_impl. exact onI. eauto. intros n idecl [oni wf].
-        have onarity : on_type (PCUICEnvTyping.lift_typing typing)
+        have onarity : on_type_rel (PCUICEnvTyping.lift_typing typing)
           (trans_global (Σg, Ast.Env.ind_universes m)) []
-          (ind_type (trans_one_ind_body (trans_global_env Σg) idecl)).
+          (ind_type (trans_one_ind_body (trans_global_env Σg) idecl))
+          (ind_relevance (trans_one_ind_body (trans_global_env Σg) idecl)).
         { apply ST.onArity in oni. unfold on_type in *; simpl in *.
-          eapply isType_of_isTypeRel.
           now apply (X (Σg, Ast.Env.ind_universes m) [] (Ast.Env.ind_type idecl) (SortRel _) _ oni). }
         unshelve refine {| ind_cunivs := oni.(ST.ind_cunivs) |}; tea.
         --- cbn -[trans_global_env]. rewrite oni.(ST.ind_arity_eq).
@@ -3055,7 +3080,7 @@ Proof.
               (cstr_type (trans_constructor_body (trans_global_env Σg) x)).
             { unfold cstr_type, Ast.Env.cstr_type in on_ctype |- *; simpl in *. red. 
               move: (X (Σg, Ast.Env.ind_universes m) (Ast.Env.arities_context (Ast.Env.ind_bodies m)) 
-                (Ast.Env.cstr_type x) None).
+                (Ast.Env.cstr_type x) Sort).
               rewrite trans_arities_context.
               intros H'. apply H' => //. }
             have ceq : cstr_type (trans_constructor_body (trans_global_env Σg) x) =
@@ -3090,11 +3115,11 @@ Proof.
                 (Ast.Env.arities_context (Ast.Env.ind_bodies m)) (Ast.Env.ind_params m))
                 c));
               rewrite /trans_local !map_app in foo.
-              now eapply (foo ty None). 
-              now apply (foo b (Some ty)).
-              now apply (foo ty None).
-              now apply (foo b (Some ty)).
-              now apply (foo ty (Some (Ast.tSort _))).
+              now eapply (foo ty (SortRel (binder_relevance na))). 
+              now apply (foo b (Typ ty)).
+              now apply (foo ty (SortRel (binder_relevance na))).
+              now apply (foo b (Typ ty)).
+              now apply (foo ty (Typ (Ast.tSort _))).
             + clear -X0 onu wfΣg IHond X on_cindices.
               revert on_cindices.
               rewrite -trans_lift_context /trans_local -map_rev.
@@ -3107,7 +3132,7 @@ Proof.
                 (Ast.Env.arities_context (Ast.Env.ind_bodies m)) 
                 (Ast.Env.ind_params m)) (Ast.Env.cstr_args x)));
               rewrite /trans_local !map_app in foo.
-              now apply (foo i (Some t)).
+              now apply (foo i (Typ t)).
               now rewrite (trans_subst_telescope _ [i] 0) in IHon_cindices.
               now rewrite (trans_subst_telescope _ [b] 0) in IHon_cindices.
             + cbn -[trans_global_env] in *.
@@ -3128,12 +3153,12 @@ Proof.
               move/WfAst.wf_inv => /= [[wfb wfty] wft].
               simpl; intros.
               constructor. rewrite -(trans_subst _ [b]).
-              apply IHon_ctype_positive. eapply WfAst.wf_subst; auto.
+              apply IHon_ctype_positive. eapply WfAst.wf_subst; destruct wfb; auto.
               move/WfAst.wf_inv => /= [wfty wft].
               constructor. clear -onI X0 wfΣg onu IHond p wfty.
               induction p.
-              { constructor; rewrite map_length; eapply trans_closedn => //. }
-              { rewrite trans_mkApps /=.
+              { constructor; rewrite map_length; eapply trans_closedn => //. now destruct wfty. }
+              { rewrite trans_mkApps /=. destruct wfty as [wna wfty].
                 move/WfAst.wf_mkApps_inv: wfty => wfl.
                 econstructor 2; tea; rewrite ?map_length //.
                 solve_all. eapply trans_closedn => //.
@@ -3142,7 +3167,7 @@ Proof.
                 have wfty : WfAst.wf Σg (Ast.Env.ind_type i).
                 { rewrite nth_error_rev in e. len. rewrite List.rev_involutive in e.
                   eapply nth_error_alli in onI; tea. cbn in onI.
-                  destruct onI as [onI _]. eapply Typing.onArity in onI as [s Hs].
+                  destruct onI as [onI _]. eapply Typing.onArity in onI as [s [e' Hs]].
                   now eapply typing_wf in Hs. }
                 rewrite /trans_one_ind_body /= /ind_realargs /= /ST.ind_realargs.
                 generalize (trans_destArity Σg [] _ wfty wfΣg).
@@ -3150,11 +3175,12 @@ Proof.
                 destruct AstUtils.destArity as [[args s]|] => /= -> //.
                 len. now rewrite context_assumptions_map. }
               { cbn. constructor 3. 
-                rewrite trans_subst in IHp. apply IHp.
-                move/WfAst.wf_inv: wfty => /= [[wfb wfty] wft].
+                rewrite trans_subst in IHp. apply IHp. destruct wfty as [wfna wfty].
+                move/WfAst.wf_inv: wfty => /= [[[wfna0 wfb] wfty] wft].
+                split; tea.
                 eapply WfAst.wf_subst; auto. }
-              { cbn -[Σ'].
-                move/WfAst.wf_inv: wfty => /= [wfty wft].
+              { cbn -[Σ']. destruct wfty as [wfna wfty].
+                move/WfAst.wf_inv: wfty => /= [[wfna0 wfty] wft].
                 constructor 4. len. eapply trans_closedn => //.
                 now apply IHp. } 
               { cbn. now apply IHon_ctype_positive. }
@@ -3212,12 +3238,13 @@ Proof.
             rewrite trans_subst trans_lift. f_equal. now rewrite trans_projs.
         --- have inds := oni.(ST.ind_sorts).
             eapply trans_check_ind_sorts in inds; tea.
+        --- cbn; apply oni.
         --- have inds := oni.(ST.onIndices).
             intros v hv. specialize (inds v hv).
             eapply trans_ind_respects_variance; tea.
             move: onarity; cbn -[Σg]. rewrite oni.(ST.ind_arity_eq).
             rewrite !trans_it_mkProd_or_LetIn.
-            move=> [] s /subject_closed. rewrite -it_mkProd_or_LetIn_app closedn_it_mkProd_or_LetIn /=.
+            move=> [] s [] e /subject_closed. rewrite -it_mkProd_or_LetIn_app closedn_it_mkProd_or_LetIn /=.
             rewrite andb_true_r trans_local_app //.
       -- red in onP. red.
           epose proof (Typing.env_prop_wf_local template_to_pcuic (Σg, Ast.Env.ind_universes m) X0 _ onP).

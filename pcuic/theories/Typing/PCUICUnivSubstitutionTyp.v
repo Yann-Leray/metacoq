@@ -239,17 +239,17 @@ Proof.
   - intros n t0 b s1 s2 Xe X X0 X1 X2 X3 u univs wfΣ' H.
     rewrite product_subst_instance; aa.
     econstructor.
-    + rewrite PCUICRelevance.relevance_subst. apply Xe.
+    + rewrite relevance_subst. apply Xe.
     + eapply X1; eauto.
     + eapply X3; eauto.
   - intros n t0 b s1 bty Xe X X0 X1 X2 X3 u univs wfΣ' H.
     econstructor.
-    + erewrite PCUICRelevance.relevance_subst; apply Xe.
+    + erewrite relevance_subst; apply Xe.
     + eapply X1; aa.
     + eapply X3; aa.
   - intros n b b_ty b' s1 b'_ty Xe X X0 X1 X2 X3 X4 X5 u univs wfΣ' H.
     econstructor.
-    + erewrite PCUICRelevance.relevance_subst. apply Xe.
+    + erewrite relevance_subst. apply Xe.
     + eauto.
     + eauto.
     + eapply X5; aa.

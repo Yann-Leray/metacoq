@@ -51,6 +51,7 @@ Ltac change_Sk :=
 
 Ltac solve_all_one :=
   try lazymatch goal with
+  | H: [× _, _ & _] |- _ => destruct H
   | H: tCasePredProp _ _ _ |- _ => destruct H as [? [? ?]]
   end;
   unfold tCaseBrsProp, tFixProp in *;

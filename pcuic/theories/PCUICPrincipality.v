@@ -21,7 +21,6 @@ Set Equations With UIP.
 
 Section Principality.
   Context {cf : checker_flags}.
-  Context {c : check_univs}.
   Context (Σ : global_env_ext).
   Context (wfΣ : wf_ext Σ).
 
@@ -351,7 +350,7 @@ Section Principality.
 
 End Principality.
 
-Lemma principal_type_ind {cf:checker_flags} {c_: check_univs} {Σ Γ c ind u u' args args'} {wfΣ: wf_ext Σ} :
+Lemma principal_type_ind {cf:checker_flags} {Σ Γ c ind u u' args args'} {wfΣ: wf_ext Σ} :
   Σ ;;; Γ |- c : mkApps (tInd ind u) args ->
   Σ ;;; Γ |- c : mkApps (tInd ind u') args' ->
   (∑ ui', 
@@ -362,7 +361,7 @@ Lemma principal_type_ind {cf:checker_flags} {c_: check_univs} {Σ Γ c ind u u' 
   ws_cumul_pb_terms Σ Γ args args'.
 Proof.
   intros h h'.
-  destruct (common_typing (c:=c_) _ wfΣ h h') as [C [l [r ty]]].
+  destruct (common_typing _ wfΣ h h') as [C [l [r ty]]].
   eapply ws_cumul_pb_Ind_r_inv in l as [ui' [l' [red Ru eqargs]]]; auto.
   eapply ws_cumul_pb_Ind_r_inv in r as [ui'' [l'' [red' Ru' eqargs']]]; auto.
   destruct (closed_red_confluence red red') as [nf [redl redr]].
@@ -453,7 +452,7 @@ Proof.
   intros. now eapply eq_term_empty_eq_term.
 Qed.
 
-Lemma typing_leq_term {cf:checker_flags} {c_: check_univs} (Σ : global_env_ext) Γ t t' T T' : 
+Lemma typing_leq_term {cf:checker_flags} (Σ : global_env_ext) Γ t t' T T' : 
   wf Σ.1 ->
   on_udecl Σ.1 Σ.2 ->
   Σ ;;; Γ |- t : T ->
@@ -658,7 +657,7 @@ Proof.
     specialize (X3 _ _ a0 (eq_term_empty_leq_term X4)).
     eapply eq_term_empty_eq_term in X4.
     assert (wf_ext Σ) by (split; assumption).
-    pose proof (principal_type_ind (c_ := c_) X3 a0) as [Ruu' X3'].
+    pose proof (principal_type_ind X3 a0) as [Ruu' X3'].
     eapply (type_ws_cumul_pb (pb:=Conv)).
     * clear a0.
       econstructor; eauto.
@@ -723,7 +722,7 @@ Proof.
     now eapply leq_term_empty_leq_term.
 Qed.
 
-Lemma typing_eq_term {cf:checker_flags} {c: check_univs} (Σ : global_env_ext) Γ t t' T T' : 
+Lemma typing_eq_term {cf:checker_flags} (Σ : global_env_ext) Γ t t' T T' : 
   wf_ext Σ ->
   Σ ;;; Γ |- t : T ->
   Σ ;;; Γ |- t' : T' ->
@@ -733,7 +732,6 @@ Proof.
   intros wfΣ ht ht' eq.
   eapply typing_leq_term; eauto. apply wfΣ.
   now eapply eq_term_empty_leq_term.
-  Unshelve. apply c.
 Qed.
 
 (* Print Assumptions principal_type. *)

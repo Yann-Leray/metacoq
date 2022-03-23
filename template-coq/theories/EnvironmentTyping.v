@@ -159,7 +159,7 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T).
   
   (** Well-formedness of local environments embeds a sorting for each variable *)
 
-  Definition lift_typing (P : global_env_ext -> context -> term -> term -> Type) :
+  Definition lift_typing `{checker_flags} (P : global_env_ext -> context -> term -> term -> Type) :
   (global_env_ext -> context -> term -> typ_or_rel_or_none -> Type) :=
     fun Σ Γ t T =>
       match T with
@@ -175,6 +175,7 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T).
     end.
 
   Section TypeLocalOver.
+    Context `{checker_flags}.
     Context (typing : forall (Σ : global_env_ext) (Γ : context), term -> term -> Type).
     Context (property : forall (Σ : global_env_ext) (Γ : context),
                 All_local_env (lift_typing typing Σ) Γ ->
@@ -866,7 +867,7 @@ Module DeclarationTyping (T : Term) (E : EnvironmentSig T)
     intros. induction X; simpl; constructor; auto.
   Defined.
 
-  Lemma type_local_ctx_impl (P Q : global_env_ext -> context -> term -> typ_or_rel_or_none -> Type) Σ Γ Δ u :
+  Lemma type_local_ctx_impl `{checker_flags} (P Q : global_env_ext -> context -> term -> typ_or_rel_or_none -> Type) Σ Γ Δ u :
     type_local_ctx P Σ Γ Δ u ->
     (forall Γ t T, P Σ Γ t T -> Q Σ Γ t T) ->
     type_local_ctx Q Σ Γ Δ u.
@@ -876,7 +877,7 @@ Module DeclarationTyping (T : Term) (E : EnvironmentSig T)
     intros. intuition auto. intuition auto.
   Qed.
 
-  Lemma sorts_local_ctx_impl (P Q : global_env_ext -> context -> term -> typ_or_rel_or_none -> Type) Σ Γ Δ u :
+  Lemma sorts_local_ctx_impl `{checker_flags} (P Q : global_env_ext -> context -> term -> typ_or_rel_or_none -> Type) Σ Γ Δ u :
     sorts_local_ctx P Σ Γ Δ u ->
     (forall Γ t T, P Σ Γ t T -> Q Σ Γ t T) ->
     sorts_local_ctx Q Σ Γ Δ u.
@@ -963,7 +964,7 @@ Module DeclarationTyping (T : Term) (E : EnvironmentSig T)
       end.
   End wf_local_size.
 
-  Lemma lift_typing_impl P Q Σ Γ t T :
+  Lemma lift_typing_impl `{checker_flags} P Q Σ Γ t T :
     (forall Γ t T, P Σ Γ t T -> Q Σ Γ t T) ->
     lift_typing P Σ Γ t T -> lift_typing Q Σ Γ t T.
   Proof.

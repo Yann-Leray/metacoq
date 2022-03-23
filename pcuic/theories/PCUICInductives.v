@@ -1658,7 +1658,7 @@ Proof.
   { eapply wf_local_smash_context; auto. }
   constructor; auto. red.
   exists (subst_instance_univ u (ind_sort idecl)).
-  split; [erewrite PCUICRelevance.relevance_subst; apply oib0.(ind_relevance_compat) | idtac].
+  split; [erewrite relevance_subst; apply oib0.(ind_relevance_compat) | idtac].
   eapply type_mkApps. econstructor; eauto. eapply decli.p1.
   rewrite (ind_arity_eq oib0).
   pose proof (on_projs_noidx _ _ _ _ _ _ onps).
@@ -2437,7 +2437,7 @@ Proof.
   constructor => //.
   2:{
     eexists; tea.
-    split; [erewrite PCUICRelevance.relevance_subst; apply (on_declared_inductive isdecl).2.(ind_relevance_compat) | idtac].
+    split; [erewrite relevance_subst; apply (on_declared_inductive isdecl).2.(ind_relevance_compat) | idtac].
     rewrite /idxctx app_context_assoc in tyass; tea.
   }
   apply typing_wf_local in tyass.
@@ -2540,11 +2540,11 @@ Proof.
   rewrite -(it_mkProd_or_LetIn_app [sdecl]).
   eapply type_it_mkProd_or_LetIn_sorts; tea.
   constructor => //.
-  split; [ rewrite PCUICRelevance.relevance_subst; apply (on_declared_inductive isdecl).2.(ind_relevance_compat) | apply tyass].
+  split; [ rewrite relevance_subst; apply (on_declared_inductive isdecl).2.(ind_relevance_compat) | apply tyass].
   constructor => //. simpl.
   constructor => //.
   now eapply sorts_local_ctx_wf_local; tea. red.
-  eexists; split; [erewrite PCUICRelevance.relevance_subst; apply (on_declared_inductive isdecl).2.(ind_relevance_compat) | idtac ]; tea.
+  eexists; split; [erewrite relevance_subst; apply (on_declared_inductive isdecl).2.(ind_relevance_compat) | idtac ]; tea.
 Qed.
 
 Lemma arity_spine_case_predicate {cf: checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ} {ci : case_info}

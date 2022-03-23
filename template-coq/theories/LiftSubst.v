@@ -1,5 +1,5 @@
 (* Distributed under the terms of the MIT license. *)
-From MetaCoq.Template Require Import utils Ast AstUtils Environment Induction WfAst.
+From MetaCoq.Template Require Import config utils Ast AstUtils Environment Induction WfAst.
 From Coq Require Import ssreflect.
 From Equations Require Import Equations.
 
@@ -185,12 +185,12 @@ Proof.
   simpl in H. discriminate.
 Qed.
 
-Lemma simpl_subst_rec :
+Lemma simpl_subst_rec `{cf: checker_flags} :
   forall Σ M (H : wf Σ M) N n p k,
     p <= n + k ->
     k <= p -> subst N p (lift (List.length N + n) k M) = lift n k M.
 Proof.
-  intros Σ M wfM. induction wfM using term_wf_forall_list_ind;
+  intros Σ M wfM. induction wfM using @term_wf_forall_list_ind;
     intros; simpl;
       rewrite -> ?map_map_compose, ?compose_on_snd, ?compose_map_def, ?map_length,
                  ?map_predicate_map_predicate;
@@ -202,7 +202,7 @@ Proof.
     f_equal; solve_all.
 Qed.
 
-Lemma simpl_subst Σ :
+Lemma simpl_subst `{cf: checker_flags} Σ :
   forall N M (H : wf Σ M) n p, p <= n -> subst N p (lift0 (length N + n) M) = lift0 n M.
 Proof.  intros. erewrite simpl_subst_rec; eauto. now rewrite Nat.add_0_r. lia. Qed.
 
@@ -296,7 +296,7 @@ Proof.
   apply subst_mkApps.
 Qed.
 
-Lemma distr_subst_rec Σ :
+Lemma distr_subst_rec `{cf: checker_flags} Σ :
   forall M N (P : list term) (wfP : All (wf Σ) P) n p,
     subst P (p + n) (subst N p M) =
     subst (map (subst P n) N) p (subst P (p + length N + n) M).
@@ -336,7 +336,7 @@ Proof.
     rewrite !map_map_compose. solve_all.
 Qed.
 
-Lemma distr_subst Σ :
+Lemma distr_subst `{cf: checker_flags} Σ :
   forall P (wfP : All (wf Σ) P) N M k,
     subst P k (subst0 N M) = subst0 (map (subst P k) N) (subst P (length N + k) M).
 Proof.
@@ -374,9 +374,9 @@ Proof.
     apply ltb_lt in H. lia.
 Qed.
 
-Lemma subst_empty Σ k a : wf Σ a -> subst [] k a = a.
+Lemma subst_empty `{cf: checker_flags} Σ k a : wf Σ a -> subst [] k a = a.
 Proof.
-  induction 1 in k |- * using term_wf_forall_list_ind; simpl; try congruence;
+  induction 1 in k |- * using @term_wf_forall_list_ind; simpl; try congruence;
     try solve [f_equal; eauto; solve_all].
 
   - elim (Nat.compare_spec k n); destruct (Nat.leb_spec k n); intros; try easy.
@@ -399,19 +399,19 @@ Proof.
   simpl. now rewrite <- Nat.add_assoc, (IHΓ (k + 1) k'), map_app.
 Qed.
 
-Lemma simpl_subst_k Σ (N : list term) (M : term) :
+Lemma simpl_subst_k `{cf: checker_flags} Σ (N : list term) (M : term) :
   wf Σ M -> forall k p, p = #|N| -> subst N k (lift p k M) = M.
 Proof.
   intros. subst p. rewrite <- (Nat.add_0_r #|N|).
   erewrite simpl_subst_rec, lift0_id; eauto. 
 Qed.
 
-Lemma subst_app_decomp Σ l l' k t :
+Lemma subst_app_decomp `{cf: checker_flags} Σ l l' k t :
   wf Σ t -> All (wf Σ) l ->
   subst (l ++ l') k t = subst l' k (subst (List.map (lift0 (length l')) l) k t).
 Proof.
   intros wft wfl.
-  induction wft in k |- * using term_wf_forall_list_ind; simpl; auto;
+  induction wft in k |- * using @term_wf_forall_list_ind; simpl; auto;
     rewrite ?subst_mkApps; try change_Sk;
     try (f_equal; rewrite -> ?map_map_compose, ?compose_on_snd, ?compose_map_def, ?map_length,
                              ?map_predicate_map_predicate;
@@ -426,12 +426,12 @@ Proof.
     eapply nth_error_all in e; eauto. 
 Qed.
 
-Lemma subst_app_simpl Σ l l' k t :
+Lemma subst_app_simpl `{cf: checker_flags} Σ l l' k t :
   wf Σ t -> All (wf Σ) l -> All (wf Σ) l' ->
   subst (l ++ l') k t = subst l k (subst l' (k + length l) t).
 Proof.
   intros wft wfl wfl'.
-  induction wft in k |- * using term_wf_forall_list_ind; simpl; eauto;
+  induction wft in k |- * using @term_wf_forall_list_ind; simpl; eauto;
     rewrite ?subst_mkApps; try change_Sk;
     try (f_equal; rewrite -> ?map_map_compose, ?compose_on_snd, ?compose_map_def, ?map_length,
                              ?Nat.add_assoc, ?map_predicate_map_predicate;

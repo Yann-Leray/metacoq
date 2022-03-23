@@ -34,7 +34,7 @@ Proof.
   destruct s => //. destruct wfctx. exists t; auto.
 Qed.
 
-Lemma type_local_ctx_Pclosed Σ Γ Δ s :
+Lemma type_local_ctx_Pclosed {cf} Σ Γ Δ s :
   type_local_ctx (lift_typing Pclosed) Σ Γ Δ s ->
   Alli (fun i d => closed_decl (#|Γ| + i) d) 0 (List.rev Δ).
 Proof.
@@ -51,7 +51,7 @@ Proof.
     now rewrite andb_true_r in b0.
 Qed.
 
-Lemma sorts_local_ctx_Pclosed Σ Γ Δ s :
+Lemma sorts_local_ctx_Pclosed {cf} Σ Γ Δ s :
   sorts_local_ctx (lift_typing Pclosed) Σ Γ Δ s ->
   Alli (fun i d => closed_decl (#|Γ| + i) d) 0 (List.rev Δ).
 Proof.
@@ -69,8 +69,8 @@ Proof.
     now rewrite andb_true_r in b.
 Qed.
 
-Lemma All_local_env_Pclosed Σ Γ :
-  All_local_env ( lift_typing Pclosed Σ) Γ ->
+Lemma All_local_env_Pclosed {cf} Σ Γ :
+  All_local_env (lift_typing Pclosed Σ) Γ ->
   Alli (fun i d => closed_decl i d) 0 (List.rev Γ).
 Proof.
   induction Γ; simpl; auto; try constructor.  

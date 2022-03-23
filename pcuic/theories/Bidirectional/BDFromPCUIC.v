@@ -126,21 +126,20 @@ Proof.
   all: intros Σ wfΣ Γ wfΓ.
 
   - intros bdwfΓ.
-    induction bdwfΓ.
-    all: constructor ; auto.
+    induction bdwfΓ; constructor ; auto.
     + destruct tu as [s [e Hs]].
       apply conv_infer_sort in p ; auto.
       destruct p as (s' & ? & ?).
       eexists.
-      split; [erewrite leq_relevance; [apply e| | |]|]; eauto.
-      { eassumption. }{ eassumption. }
+      split; [erewrite leq_relevance; [apply e| |]|]; eauto.
+      { admit. }
     + destruct tu as [s [e Hs]].
       apply conv_check in p ; auto.
       apply conv_infer_sort in p0 ; auto.
       destruct p0 as (?&?&?).
       eexists.
-      split; [erewrite leq_relevance; [apply e| | |]|]; eauto.
-      { eassumption. }{ eassumption. }
+      split; [erewrite leq_relevance; [apply e | |]|]; eauto.
+      { admit. }
     + by apply conv_check in p.
       
   - intros.
@@ -166,8 +165,8 @@ Proof.
     split.
     + constructor.
       2,3: eauto.
-      erewrite leq_relevance; [apply e| | |]; eauto.
-      { eassumption. }{ eassumption. }
+      erewrite leq_relevance; [apply e | |]; eauto.
+      { admit. }
     + constructor ; cbn ; auto.
       1: by apply wf_local_closed_context.
       constructor.
@@ -180,8 +179,8 @@ Proof.
     eexists.
     split.
     + econstructor. 2,3: eassumption.
-      erewrite leq_relevance; [apply e| | |]; eauto.
-      { eassumption. }{ eassumption. }
+      erewrite leq_relevance; [apply e| |]; eauto.
+      { admit. }
     + apply ws_cumul_pb_Prod ; auto.
       eapply isType_ws_cumul_pb_refl.
       by eexists ; eauto.
@@ -194,8 +193,8 @@ Proof.
     split.
     + econstructor.
       2-4: eassumption.
-      erewrite leq_relevance; [apply e| | |]; eauto.
-      { eassumption. }{ eassumption. }
+      erewrite leq_relevance; [apply e| |]; eauto.
+      { admit. }
     + apply ws_cumul_pb_LetIn_bo.
       eassumption.
 
@@ -370,8 +369,8 @@ Proof.
       intros ? [s [[e Hs] r]].
       apply conv_infer_sort in r as [s' []] ; auto.
       eexists; split.
-      erewrite leq_relevance; [apply e| | |]; eauto.
-      { eassumption. }{ eassumption. }      
+      erewrite leq_relevance; [apply e| |]; eauto.
+      { admit. }      
       eauto.
     + apply (All_impl Allbodies).
       intros ? [? s].
@@ -390,8 +389,8 @@ Proof.
       intros ? [? [[? ?] s]].
       apply conv_infer_sort in s as [? []] ; auto.
       eexists; split.
-      erewrite leq_relevance; [apply e| | |]; eauto.
-      { eassumption. }{ eassumption. }
+      erewrite leq_relevance; [apply e| |]; eauto.
+      { admit. }
       eauto.
     + apply (All_impl Allbodies).
       intros ? [? s].
@@ -440,14 +439,13 @@ Proof.
   now eexists.
 Qed.
 
-Lemma isTypeRel_infering_sort `{checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ t r} :
+Lemma isTypeRel_infering_sort `{checker_flags} {Σ : global_env_ext} {wfΣ : wf_ext Σ} {Γ t r} :
   isTypeRel Σ Γ t r -> ∑ u', relevance_of_sort u' = r × Σ ;;; Γ |- t ▹□ u'.
 Proof.
   intros [s [e ty]].
   eapply typing_infering_sort in ty as [s' []]; tea.
   exists s'; split; [|auto].
-  erewrite leq_relevance; [apply e| | |]; eauto.
-  { eassumption. }{ eassumption. }
+  erewrite leq_relevance; [apply e| |]; eauto.
 Qed.
 
 Lemma typing_infer_prod `{checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ t na A B} :
@@ -480,7 +478,7 @@ Proof.
   now eapply type_Prop_wf.
 Qed.
 
-Lemma wf_local_rel_wf_local_bd `{checker_flags} {Σ} (wfΣ : wf Σ) {Γ Γ'} :
+Lemma wf_local_rel_wf_local_bd `{checker_flags} {Σ} (wfΣ : wf_ext Σ) {Γ Γ'} :
   wf_local_rel Σ Γ Γ' ->
   wf_local_bd_rel Σ Γ Γ'.
 Proof.

@@ -1547,12 +1547,12 @@ Proof.
 Qed.
 
 Lemma type_local_ctx_cum {cf:checker_flags} {Σ Γ Δ s s'} :
-  check_univs -> wf_ext Σ -> wf_universe Σ s' ->
+  wf_ext Σ -> wf_universe Σ s' ->
   leq_universe (global_ext_constraints Σ) s s' ->
   type_local_ctx (lift_typing typing) Σ Γ Δ s ->
   type_local_ctx (lift_typing typing) Σ Γ Δ s'.
 Proof.
-  intros c wfΣ wfs leqs.
+  intros wfΣ wfs leqs.
   induction Δ as [|[na [b|] ty] Δ]; simpl; auto;
   intros [? [e p]]; split; auto.
   split; [rewrite -e; symmetry; eapply leq_relevance; eauto | idtac].

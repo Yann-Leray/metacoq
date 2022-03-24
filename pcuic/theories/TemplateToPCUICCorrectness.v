@@ -2267,12 +2267,12 @@ Proof.
   - (* Casts *)
     eapply refine_type; cbn.
     * eapply type_App.
-      2:{ eapply type_Lambda; eauto. admit. eapply type_Rel. econstructor; eauto.
-        eapply typing_wf_local; eauto. admit. reflexivity. }
-      eapply type_Prod. admit. eauto.
+      2:{ eapply type_Lambda; eauto. eapply type_Rel. econstructor; eauto.
+        eapply typing_wf_local; eauto. reflexivity. }
+      eapply type_Prod. eauto. eauto.
       instantiate (1 := s). simpl.
       eapply (weakening _ _ [_] _ (tSort _)); eauto.
-      constructor; eauto. eapply typing_wf_local; eauto. admit.
+      constructor; eauto. eapply typing_wf_local; eauto.
       now eapply X2.
     * unfold subst1. rewrite simpl_subst; auto. now rewrite lift0_p.
 

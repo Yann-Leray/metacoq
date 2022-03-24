@@ -2465,7 +2465,7 @@ Proof.
     eapply red_cumul_cumul_inv; tea.
 Qed.
 
-Definition TTwf_local {cf} Σ Γ := TT.All_local_env (TT.lift_typing (TT.typing (H:=cf' cf)) Σ) Γ.
+Definition TTwf_local {cf} Σ Γ := TT.All_local_env (TT.lift_typing (H:=cf' cf) (TT.typing (H:=cf' cf)) Σ) Γ.
 
 Lemma trans_wf_local' {cf} :
   forall (Σ : SE.global_env_ext) Γ (wfΓ : wf_local Σ Γ),
@@ -3557,7 +3557,7 @@ Proof.
   )%type
     (fun Σ Γ => 
     wf_trans Σ ->
-    TT.All_local_env (TT.lift_typing (TT.typing (H:=cf' cf)) (trans_global Σ)) (trans_local Γ))
+    TT.All_local_env (TT.lift_typing (H:=cf' cf) (TT.typing (H:=cf' cf)) (trans_global Σ)) (trans_local Γ))
   );intros.
   - eapply trans_wf_local_env => //. now eapply All_over_All.
   - rewrite (trans_lift _ (shiftnP #|skipn (S n) Γ| xpred0)).

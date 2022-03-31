@@ -31,9 +31,9 @@ Local Ltac term_dec_tac term_dec :=
            fcase (eq_dec x y)
          | x : list aname, y : list aname |- _ => fcase (eq_dec x y)
          | n : nat, m : nat |- _ => fcase (Nat.eq_dec n m)
-         | i : ident, i' : ident |- _ => fcase (string_dec i i')
-         | i : kername, i' : kername |- _ => fcase (kername_eq_dec i i')
-         | i : string, i' : kername |- _ => fcase (string_dec i i')
+         | i : ident, i' : ident |- _ => fcase (eq_dec i i')
+         | i : kername, i' : kername |- _ => fcase (eq_dec i i')
+         | i : string, i' : kername |- _ => fcase (eq_dec i i')
          | n : name, n' : name |- _ => fcase (eq_dec n n')
          | n : aname, n' : aname |- _ => fcase (eq_dec n n')
          | i : prim_val, j : prim_val |- _ => fcase (eq_dec i j)
@@ -207,9 +207,9 @@ Qed.
 Instance reflect_eq_context : ReflectEq context := _.
 
 Definition eqb_constant_body (x y : constant_body) :=
-  let (tyx, bodyx, univx) := x in
-  let (tyy, bodyy, univy) := y in
-  eqb tyx tyy && eqb bodyx bodyy && eqb univx univy.
+  let (tyx, bodyx, univx, relx) := x in
+  let (tyy, bodyy, univy, rely) := y in
+  eqb tyx tyy && eqb bodyx bodyy && eqb univx univy && eqb relx rely.
 
 #[global]
 Instance reflect_constant_body : ReflectEq constant_body.

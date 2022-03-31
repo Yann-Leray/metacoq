@@ -3,7 +3,7 @@ From MetaCoq.Template Require Import config utils.
 From Coq Require Import CRelationClasses ProofIrrelevance.
 From MetaCoq.Template Require Import config Universes utils BasicAst.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICTactics PCUICInduction
-     PCUICReflect PCUICLiftSubst PCUICUnivSubst PCUICRelevance PCUICTyping
+     PCUICReflect PCUICLiftSubst PCUICUnivSubst PCUICTyping
      PCUICEquality PCUICCumulativity PCUICReduction
      PCUICContextSubst PCUICUnivSubstitutionConv
      PCUICClosed PCUICSigmaCalculus PCUICSubstitution PCUICUnivSubstitutionTyp

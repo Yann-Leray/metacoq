@@ -229,7 +229,7 @@ Lemma trans_weakening {cf} Σ {Σ' : global_env_map} t :
   trans (trans_global_env Σ) t = trans Σ' t.
 Proof.
   intros wfΣ ext wfΣ' wft.
-  induction wft using @WfAst.term_wf_forall_list_ind; cbn; auto; try solve [f_equal; solve_all].
+  induction wft using WfAst.term_wf_forall_list_ind; cbn; auto; try solve [f_equal; solve_all].
   rewrite !trans_lookup_inductive.
   unshelve epose proof (trans_lookup_inductive (Σ := trans_global_env Σ) ci _); tc.
   eapply PCUICWeakeningEnvConv.extends_decls_wf; tea. rewrite {}H1.
@@ -490,7 +490,7 @@ Lemma trans_destArity {cf} {wfΣ : Typing.wf Σ} ctx t :
   end.
 Proof.
   intros wf wf'; revert ctx.
-  induction wf using @WfAst.term_wf_forall_list_ind; intros ctx; simpl; trivial.
+  induction wf using WfAst.term_wf_forall_list_ind; intros ctx; simpl; trivial.
   apply (IHwf0 (Ast.Env.vass na t :: ctx)).
   apply (IHwf1 (Ast.Env.vdef na t t0 :: ctx)).
   destruct l. congruence.
@@ -652,7 +652,7 @@ Qed.
 
 Hint Resolve Template.TypingWf.typing_wf : wf.
 
-Lemma mkApps_trans_wf {cf} U l : Template.WfAst.wf Σ (Template.Ast.tApp U l) -> exists U' V', trans (Template.Ast.tApp U l) = tApp U' V'.
+Lemma mkApps_trans_wf U l : Template.WfAst.wf Σ (Template.Ast.tApp U l) -> exists U' V', trans (Template.Ast.tApp U l) = tApp U' V'.
 Proof.
   simpl. induction l using rev_ind. intros. inv X. congruence.
   intros. rewrite map_app. simpl. exists (mkApps (trans U) (map trans l)), (trans x).
@@ -1837,9 +1837,9 @@ Axiom cofix_guard_trans :
     let Σ' := trans_global Σ in
     cofix_guard Σ' (trans_local Σ' Γ) (map (map_def (trans Σ') (trans Σ')) mfix).
 
-Notation Swf_fix Σ def := (WfAst.wf Σ (dtype def) * WfAst.wf Σ (dbody def)).
+Notation Swf_fix Σ def := (WfAst.wf_def Σ def).
 
-Lemma trans_decompose_app {cf Σ t ind u l} : 
+Lemma trans_decompose_app {Σ t ind u l} : 
   WfAst.wf Σ t ->
   let Σ' := trans_global_env Σ in
   AstUtils.decompose_app t = (Ast.tInd ind u, l) ->
@@ -1861,14 +1861,14 @@ Proof.
   - intros H. now apply IHt3 in H.
 Qed.
 
-Lemma trans_decompose_prod_assum {cf} {Σ Σ'} ctx t :
+Lemma trans_decompose_prod_assum {Σ Σ'} ctx t :
   WfAst.wf Σ t ->
   let (ctx', t') := AstUtils.decompose_prod_assum ctx t in
   decompose_prod_assum (trans_local Σ' ctx) (trans Σ' t) = 
     (trans_local Σ' ctx', trans Σ' t').
 Proof.
   intros wft; 
-  induction wft in ctx |- * using @WfAst.term_wf_forall_list_ind ; cbn; try intros [= <- <-]; auto.
+  induction wft in ctx |- * using WfAst.term_wf_forall_list_ind ; cbn; try intros [= <- <-]; auto.
   - apply IHwft0.
   - apply IHwft1.
   - rewrite mkApps_nonempty //.
@@ -1876,7 +1876,7 @@ Proof.
   - cbn. destruct TransLookup.lookup_inductive as [[mdecl' idecl']| ]; cbn => //.
 Qed.
 
-Lemma wf_it_mkProd_or_LetIn {cf} Σ Γ t
+Lemma wf_it_mkProd_or_LetIn Σ Γ t
   : WfAst.wf Σ (Ast.Env.it_mkProd_or_LetIn Γ t) <~> All (WfAst.wf_decl Σ) Γ * WfAst.wf Σ t.
 Proof.
   revert t. induction Γ.
@@ -1894,7 +1894,7 @@ Proof.
       split; auto. constructor; simpl; auto.
 Qed.
 
-Lemma trans_check_one_fix {cf} Σ mfix ind :
+Lemma trans_check_one_fix Σ mfix ind :
   let Σ' := trans_global_env Σ in
   Swf_fix Σ mfix ->
   ST.check_one_fix mfix = Some ind ->
@@ -1902,7 +1902,7 @@ Lemma trans_check_one_fix {cf} Σ mfix ind :
 Proof.
   intros Σ'.
   unfold ST.check_one_fix, check_one_fix.
-  case: mfix => [na ty arg rarg] /= [wfty wfarg].
+  case: mfix => [na ty arg rarg] /= [wfna wfty wfarg].
   generalize (trans_decompose_prod_assum (Σ' := Σ') [] ty wfty) => /=.
   destruct AstUtils.decompose_prod_assum as [ctx p] eqn:dp => /= // ->.
   rewrite -(trans_smash_context Σ []) /trans_local.
@@ -1938,9 +1938,9 @@ Proof.
   move=> t [= <-]. now rewrite (IHHl _ E').
 Qed.
 
-Lemma map_option_out_check_one_fix {cf Σ mfix} :
+Lemma map_option_out_check_one_fix {Σ mfix} :
   let Σ' := trans_global_env Σ in
-  All (fun def => (WfAst.wf Σ (dtype def) * WfAst.wf Σ (dbody def))) mfix ->
+  All (WfAst.wf_def Σ) mfix ->
   forall l, 
   map_option_out (map (fun x => ST.check_one_fix x) mfix) = Some l ->
   map_option_out (map (fun x => check_one_fix (map_def (trans Σ') (trans Σ') x)) mfix) = Some l.
@@ -1949,14 +1949,14 @@ Proof.
   apply trans_check_one_fix.
 Qed.
 
-Lemma trans_check_one_cofix {cf} Σ mfix ind :
+Lemma trans_check_one_cofix Σ mfix ind :
   let Σ' := trans_global_env Σ in
   Swf_fix Σ mfix ->
   ST.check_one_cofix mfix = Some ind ->
   check_one_cofix (map_def (trans Σ') (trans Σ') mfix) = Some ind.
 Proof.
   intros Σ'. unfold ST.check_one_cofix, check_one_cofix.
-  case: mfix => [na ty arg rarg] /= [wfty wfarg].
+  case: mfix => [na ty arg rarg] /= [wfna wfty wfarg].
   move: (trans_decompose_prod_assum (Σ := Σ) (Σ' := Σ') [] ty wfty) => /=.
   destruct AstUtils.decompose_prod_assum as [ctx p] eqn:dp => /= // ->.
   destruct AstUtils.decompose_app eqn:da.
@@ -1969,7 +1969,7 @@ Qed.
 
 Lemma map_option_out_check_one_cofix {cf Σ mfix} :
   let Σ' := trans_global_env Σ in
-  All (fun def => (WfAst.wf Σ (dtype def) * WfAst.wf Σ (dbody def))) mfix ->
+  All (WfAst.wf_def Σ) mfix ->
   forall l, 
   map_option_out (map (fun x => ST.check_one_cofix x) mfix) = Some l ->
   map_option_out (map (fun x => check_one_cofix (map_def (trans Σ') (trans Σ') x)) mfix) = Some l.
@@ -1989,7 +1989,7 @@ Qed.
 Lemma trans_wf_fixpoint {cf} {Σ} {wfΣ : Typing.wf Σ} {mfix} :
   let Σ' := trans_global_env Σ in
   wf Σ' ->
-  All (fun def => (WfAst.wf Σ (dtype def) * WfAst.wf Σ (dbody def))) mfix ->
+  All (WfAst.wf_def Σ) mfix ->
   ST.wf_fixpoint Σ mfix ->
   wf_fixpoint (trans_global_env Σ) (map (map_def (trans Σ') (trans Σ')) mfix).
 Proof.
@@ -2005,7 +2005,7 @@ Qed.
 Lemma trans_wf_cofixpoint {cf} {Σ} {wfΣ : Typing.wf Σ} {mfix} :
   let Σ' := trans_global_env Σ in
   wf Σ' ->
-  All (fun def => (WfAst.wf Σ (dtype def) * WfAst.wf Σ (dbody def))) mfix ->
+  All (WfAst.wf_def Σ) mfix ->
   ST.wf_cofixpoint Σ mfix ->
   wf_cofixpoint (trans_global_env Σ) (map (map_def (trans Σ') (trans Σ')) mfix).
 Proof.
@@ -2109,7 +2109,7 @@ Lemma simpl_type_Case {H : checker_flags} {Σ : global_env_ext} {Γ} {ci : case_
   wf_predicate mdecl idecl p ->
   wf_local Σ (Γ,,, predctx) ->
   Σ;;; Γ,,, predctx |- preturn p : tSort ps ->
-  is_allowed_elimination Σ ps (ind_kelim idecl) ->
+  is_allowed_elimination Σ (ind_kelim idecl) ps ->
   Σ;;; Γ |- c : mkApps (tInd ci (puinst p)) (pparams p ++ indices) ->
   isCoFinite (ind_finite mdecl) = false ->
   let ptm := it_mkLambda_or_LetIn predctx (preturn p) in
@@ -2442,7 +2442,8 @@ Proof.
        rewrite /trans_local map_app in X3.
        rewrite <- trans_lift. apply X3; auto.
     -- eapply trans_wf_fixpoint => //.
-        solve_all. destruct a as [s [[e Hs] IH]]. 
+        solve_all. destruct a as [s [[e Hs] IH]].
+        split. now eexists.
         now eapply TypingWf.typing_wf in Hs.
         now eapply TypingWf.typing_wf in a0.
     -- destruct decl; reflexivity.
@@ -2466,6 +2467,7 @@ Proof.
        cbn. rewrite <- trans_lift. now apply X3.
     -- eapply trans_wf_cofixpoint => //.
        solve_all. destruct a as [s [[e Hs] IH]].
+       split. now eexists.
        now eapply TypingWf.typing_wf in Hs.
        now eapply TypingWf.typing_wf in a0.
     -- destruct decl; reflexivity.
@@ -2556,7 +2558,7 @@ Lemma trans_closedn {cf} {Σ k t} :
   Ast.closedn k t -> 
   closedn k (trans (trans_global_env Σ) t).
 Proof.
-  intros wfΣ wfΣ' wf. induction wf using @WfAst.term_wf_forall_list_ind in k |- *; cbn; auto.
+  intros wfΣ wfΣ' wf. induction wf using WfAst.term_wf_forall_list_ind in k |- *; cbn; auto.
   1-6:solve_all.
   - rewrite PCUICClosed.closedn_mkApps. solve_all.
   - eapply forall_decls_declared_inductive in H; tea.

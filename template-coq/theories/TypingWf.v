@@ -16,7 +16,7 @@ Existing Class wf.
   and the global context.
 *)
 
-Lemma All_local_env_wf_decl {cf} Σ :
+Lemma All_local_env_wf_decl Σ :
   forall (Γ : context),
     All (wf_decl Σ) Γ -> All_local_env (wf_decl_pred Σ) Γ.
 Proof.
@@ -95,14 +95,14 @@ Proof.
   eapply on_global_decl_impl; tea. split => //.
 Qed.
 
-Lemma All_local_env_wf_decl_inv {cf} Σ (a : context_decl) (Γ : list context_decl)
+Lemma All_local_env_wf_decl_inv Σ (a : context_decl) (Γ : list context_decl)
          (X : All_local_env (wf_decl_pred Σ) (a :: Γ)) :
     on_local_decl (wf_decl_pred Σ) Γ a * All_local_env (wf_decl_pred Σ) Γ.
 Proof.
   inv X; intuition; red; simpl; eauto.
 Qed.
 
-Lemma unfold_fix_wf {cf} :
+Lemma unfold_fix_wf:
   forall Σ (mfix : mfixpoint term) (idx : nat) (narg : nat) (fn : term),
     unfold_fix mfix idx = Some (narg, fn) ->
     WfAst.wf Σ (tFix mfix idx) ->
@@ -118,7 +118,7 @@ Proof.
   unfold fix_subst. generalize #|mfix|; intros. induction n; auto.
 Qed.
 
-Lemma unfold_cofix_wf {cf} Σ:
+Lemma unfold_cofix_wf Σ:
   forall (mfix : mfixpoint term) (idx : nat) (narg : nat) (fn : term),
     unfold_cofix mfix idx = Some (narg, fn) ->
     WfAst.wf Σ (tCoFix mfix idx) -> WfAst.wf Σ fn.
@@ -197,21 +197,17 @@ Proof.
   destruct Σ as [univs Σ]; cbn in *.
   rewrite /lookup_env /on_global_env /=.
   induction Σ in univs, Σ', k, d |- *; cbn => //.
-  destruct eq_kername eqn:eqk.
+  destruct (eqb_spec k a.1) as [e|e].
   * move=> wfΣ' [=]. intros <- ext.
     destruct ext as [univeq [Σ'' eq]] => /=. cbn in *.
     subst univs. rewrite eq in wfΣ'.
     destruct Σ' as [univs' Σ']; cbn in *.
     subst Σ'. destruct wfΣ' as [cu wfΣ'].
     induction Σ''. 
-    + cbn. now rewrite eqk.
-    + cbn. destruct (eq_kername k a0.1) eqn:eqk' => //.
-      change (eq_kername k a.1) with (Reflect.eqb k a.1) in eqk.
-      change (eq_kername k a0.1) with (Reflect.eqb k a0.1) in eqk'.
-      eapply eqb_eq in eqk. apply eqb_eq in eqk'. subst.
-      apply on_global_decls_extends_not_fresh in wfΣ'; eauto.
-      apply IHΣ''.
-      now depelim wfΣ'.
+    + cbn. now rewrite e eq_kername_refl.
+    + cbn. destruct (eqb_spec k a0.1) => //. subst.
+      { apply on_global_decls_extends_not_fresh in wfΣ'; eauto. }
+      subst. apply IHΣ''. now depelim wfΣ'.
   * intros HΣ' Hl [univeq [Σ'' eq]]; cbn in *. subst univs.
     rewrite eq in HΣ'. destruct HΣ'.
     eapply IHΣ; tea. split; eauto. now rewrite eq.
@@ -224,7 +220,7 @@ Lemma wf_extends {cf} {Σ : global_env} T {Σ' : global_env} P :
   on_global_env P Σ' -> WfAst.wf Σ T -> extends Σ Σ' -> WfAst.wf Σ' T.
 Proof.
   intros wfΣ'.
-  induction 1 using @term_wf_forall_list_ind; try solve [econstructor; eauto; solve_all].
+  induction 1 using term_wf_forall_list_ind; try solve [econstructor; eauto; solve_all].
   - intros. destruct H. destruct X0.
     eapply lookup_env_extends in H; tea.
     econstructor; repeat split; eauto; solve_all.
@@ -255,7 +251,7 @@ Proof.
   eapply wf_extends in Hs; tea.
 Qed.
 
-Lemma wf_it_mkProd_or_LetIn {cf} Σ Γ t
+Lemma wf_it_mkProd_or_LetIn Σ Γ t
   : WfAst.wf Σ (it_mkProd_or_LetIn Γ t) -> All (wf_decl Σ) Γ * WfAst.wf Σ t.
 Proof.
   revert t. induction Γ; [simpl; auto with wf|]. intros t XX.
@@ -318,7 +314,7 @@ Proof.
    destruct y => //. eapply IHargs. intuition eauto.
 Qed.
 
-Lemma All_local_env_wf_decls {cf} Σ ctx :  
+Lemma All_local_env_wf_decls Σ ctx :  
   TemplateEnvTyping.All_local_env (wf_decl_pred Σ) ctx ->
   All (wf_decl Σ) ctx.
 Proof.
@@ -395,7 +391,7 @@ Proof.
 Qed.
 *)
 
-Lemma wf_subst_context {cf} Σ s k Γ : All (wf_decl Σ) Γ -> All (WfAst.wf Σ) s -> All (wf_decl Σ) (subst_context s k Γ).
+Lemma wf_subst_context Σ s k Γ : All (wf_decl Σ) Γ -> All (WfAst.wf Σ) s -> All (wf_decl Σ) (subst_context s k Γ).
 Proof.
   intros wfΓ. induction wfΓ in s |- *.
   - intros. constructor.
@@ -403,7 +399,7 @@ Proof.
     destruct p. destruct x as [? [] ?]; constructor; simpl in *; wf.
 Qed.
 
-Lemma wf_smash_context {cf} Σ Γ Δ : All (wf_decl Σ) Γ -> All (wf_decl Σ) Δ ->
+Lemma wf_smash_context Σ Γ Δ : All (wf_decl Σ) Γ -> All (wf_decl Σ) Δ ->
   All (wf_decl Σ) (smash_context Δ Γ).
 Proof.
   intros wfΓ; induction wfΓ in Δ |- *; intros wfΔ; simpl; auto.
@@ -665,7 +661,7 @@ Section WfAst.
 
 End WfAst.
 
-Record wf_inductive_body {cf} Σ idecl := {
+Record wf_inductive_body Σ idecl := {
   wf_ind_type : WfAst.wf Σ (ind_type idecl);
   wf_ind_indices : All (WfAst.wf_decl Σ) (ind_indices idecl);
   wf_ind_ctors : All (fun cdecl => WfAst.wf Σ (cstr_type cdecl)) (ind_ctors idecl);
@@ -756,7 +752,7 @@ Section WfLookup.
 End WfLookup.
 
 
-Lemma wf_decl_nactx_na {cf Σ l ctx} :
+Lemma wf_decl_nactx_na {Σ l ctx} :
   All (wf_decl Σ) ctx ->
   wf_nactx l ctx ->
   All wf_na l.
@@ -1240,7 +1236,7 @@ Section TypingWf.
     decompose_app x = decompose_app y -> x = y.
   Proof.
     intros wfx; revert y.
-    induction wfx using @term_wf_forall_list_ind; intros [] wfy; 
+    induction wfx using term_wf_forall_list_ind; intros [] wfy; 
     eapply wf_inv in wfy; simpl in wfy; simpl;
     intros [= ?]; try intuition congruence.
   Qed.
@@ -1256,7 +1252,7 @@ Section TypingWf.
     strip_casts t = mkApps (strip_casts f) (map strip_casts l).
   Proof.
     intros wf.
-    induction wf using @term_wf_forall_list_ind; simpl; intros; auto; noconf H;
+    induction wf using term_wf_forall_list_ind; simpl; intros; auto; noconf H;
     try noconf H0;
       rewrite ?map_map_compose  ?compose_on_snd ?compose_map_def ?map_length;
         f_equal; solve_all; eauto.

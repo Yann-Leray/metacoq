@@ -1,5 +1,5 @@
 (* Distributed under the terms of the MIT license. *)
-From Coq Require Import OrdersTac Ascii ExtrOcamlBasic ExtrOcamlString ExtrOcamlZInt ExtrOCamlInt63 ExtrOCamlFloats.
+From Coq Require Import OrdersTac Ascii ExtrOcamlBasic ExtrOcamlZInt ExtrOCamlInt63 ExtrOCamlFloats.
 From MetaCoq.Template Require Import utils MC_ExtrOCamlZPosInt.
 From MetaCoq.SafeChecker Require Import PCUICSafeChecker PCUICSafeConversion
      SafeTemplateChecker.
@@ -17,9 +17,6 @@ Extract Inductive Hexadecimal.int => unit [ "(fun _ -> ())" "(fun _ -> ())" ] "(
 Extract Inductive Number.int => unit [ "(fun _ -> ())" "(fun _ -> ())" ] "(fun _ _ _ -> assert false)".
 
 (** Here we could extract uint63_from/to_model to the identity *)
-
-Extract Constant ascii_compare =>
- "fun x y -> Char.compare".
 
 Extraction Blacklist Classes config uGraph Universes Ast String List Nat Int Init
            UnivSubst Typing Checker Retyping OrderedType Logic Common Equality Classes
@@ -39,7 +36,7 @@ Extraction Inline Equations.Prop.Logic.True_rect_dep Equations.Prop.Logic.False_
 (** This Inline is because of a problem of weak type variables (partial application?) *)
 Extraction Inline PCUICPrimitive.prim_val_reflect_eq.
 
-Extract Constant PCUICWfEnv.guard_impl => 
+Extract Constant PCUICWfEnvImpl.guard_impl => 
   "(fun _ _ _ _ -> true)".
 
 Extract Constant PCUICTyping.guard_checking => 

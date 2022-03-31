@@ -16,6 +16,15 @@ From MetaCoq.PCUIC Require Import PCUICInduction.
 Section CheckerFlags.
   Context {cf:checker_flags}.
 
+
+  Lemma wf_universe_type0 Σ : wf_universe Σ Universe.type0.
+  Proof.
+    simpl.
+    intros l hin%UnivExprSet.singleton_spec.
+    subst l. simpl.
+    apply LS.union_spec. right; apply global_levels_Set.
+  Qed.
+  
   Lemma wf_universe_type1 Σ : wf_universe Σ Universe.type1.
   Proof.
     simpl.
@@ -82,15 +91,15 @@ Section CheckerFlags.
     apply forallbP. intros x; apply wf_universe_levelP.
   Qed.
   
-  Lemma wf_universe_subst_instance_univ (Σ : global_env_ext) univs u l :
+  Lemma wf_universe_subst_instance_univ (Σ : global_env_ext) univs u s :
     wf Σ ->
-    wf_universe Σ l ->
+    wf_universe Σ s ->
     wf_universe_instance (Σ.1, univs) u ->
-    wf_universe (Σ.1, univs) (subst_instance u l). 
+    wf_universe (Σ.1, univs) (subst_instance u s). 
   Proof.
-    destruct l; simpl; auto. rename n into t. 
+    destruct s as [| |t]; cbnr.
     intros wfΣ Hl Hu e [[l n] [inl ->]]%In_subst_instance.
-    destruct l; simpl; auto.
+    destruct l as [|s|n']; simpl; auto.
     - unfold global_ext_levels.
       apply LS.union_spec. right.
       apply global_levels_Set.
@@ -98,7 +107,7 @@ Section CheckerFlags.
       simpl in Hl.
       apply monomorphic_level_in_global_ext in Hl.
       eapply LS.union_spec. now right.
-    - specialize (Hl (Level.Var n0, n) inl).
+    - specialize (Hl (Level.Var n', n) inl).
       eapply LS.union_spec in Hl as [Hl|Hl].
       + red in Hu.
         unfold levels_of_udecl in Hl.
@@ -109,9 +118,10 @@ Section CheckerFlags.
           eapply nth_error_forall in Hu; eauto.
           eapply LS.union_spec; right. eapply global_levels_Set.
         * unfold subst_instance. simpl.
-          destruct (nth_error u n0) eqn:hnth.
+          destruct (nth_error u n') eqn:hnth.
           2:{ simpl. rewrite hnth. eapply LS.union_spec; right; apply global_levels_Set. }
-          eapply nth_error_forall in Hu. 2:eauto. change (nth_error u n0) with (nth_error u n0) in *.
+          eapply nth_error_forall in Hu. 2:eauto. 
+          change (nth_error u n') with (nth_error u n') in *.
           rewrite -> hnth. simpl. apply Hu.
       + now apply not_var_global_levels in Hl.
   Qed.
@@ -294,6 +304,8 @@ Section CheckerFlags.
       end.
 
     Definition wf_universes t := on_universes wf_universeb closedu t.
+
+  
 
     Lemma wf_universeb_instance_forall u :
       forallb wf_universeb (map Universe.make u) = wf_universeb_instance Σ u.
@@ -683,21 +695,27 @@ Qed.
     eapply In_unfold_var. exists k; split; eauto.
   Qed.
 
-  Definition wf_decl_universes Σ d :=
-    option_default (wf_universes Σ) d.(decl_body) true &&
-    wf_universes Σ d.(decl_type).
-  
+  Definition on_decl_universes (fu : Universe.t -> bool) (fc : nat -> term -> bool) d :=
+      option_default (on_universes fu fc) d.(decl_body) true &&
+      on_universes fu fc d.(decl_type).
+
+  Definition wf_decl_universes Σ := on_decl_universes (wf_universeb Σ) closedu.
+
+  Definition on_ctx_universes (fu : Universe.t -> bool) (fc : nat -> term -> bool) Γ :=
+    forallb (on_decl_universes fu fc) Γ.
+
   Definition wf_ctx_universes Σ Γ :=
     forallb (wf_decl_universes Σ) Γ.
   
   Lemma wf_universes_it_mkProd_or_LetIn {Σ Γ T} : 
     wf_universes Σ (it_mkProd_or_LetIn Γ T) = wf_ctx_universes Σ Γ && wf_universes Σ T.
   Proof.
-    induction Γ as [ |[na [b|] ty] Γ] using rev_ind ; simpl; auto ;
-    now rewrite it_mkProd_or_LetIn_app {1}/wf_universes /=
-      -!/(wf_universes _ _) IHΓ /wf_ctx_universes forallb_app /=
-      {3}/wf_decl_universes -!/(wf_universes _ _) /= ;
+    induction Γ as [ |[na [b|] ty] Γ] using rev_ind ; simpl; auto;
+    rewrite it_mkProd_or_LetIn_app {1}/wf_universes /=
+    -!/(wf_universes _ _) IHΓ /wf_ctx_universes forallb_app /=
+    {3}/wf_decl_universes -!/(wf_universes _ _) / on_decl_universes /= /wf_universes;
     repeat bool_congr.
+
   Qed.
 
   Lemma test_context_app p Γ Δ : 

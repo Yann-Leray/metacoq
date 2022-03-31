@@ -13,7 +13,7 @@ From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICPrimitive
   PCUICValidity PCUICPrincipality PCUICElimination 
   PCUICOnFreeVars PCUICWellScopedCumulativity PCUICSN PCUICEtaExpand.
      
-From MetaCoq.SafeChecker Require Import PCUICErrors PCUICWfEnv PCUICSafeReduce PCUICSafeRetyping.
+From MetaCoq.SafeChecker Require Import PCUICErrors PCUICWfEnv PCUICWfEnvImpl PCUICSafeReduce PCUICSafeRetyping.
 From MetaCoq.Erasure Require Import EAstUtils EArities Extract Prelim EDeps ErasureCorrectness.
 
 Local Open Scope string_scope.
@@ -122,7 +122,7 @@ Section fix_sigma.
     exact (map_squash (wf_ext_wf _) Σ).
   Qed.
 
-  Definition abstract_env_rel' := @abstract_env_rel _ _ optimized_abstract_env_struct.
+  Definition abstract_env_rel' := @abstract_env_ext_rel _ _ optimized_abstract_env_ext_struct.
 
   Definition term_rel : Relation_Definitions.relation (∑ Γ t, forall Σ0 : global_env_ext, abstract_env_rel' Σ Σ0 -> welltyped Σ0 Γ t) :=
     fun '(Γ2; B; H) '(Γ1; t1; H2) =>
@@ -147,7 +147,6 @@ Section fix_sigma.
   Qed.
 
   Ltac sq' := 
-    try unsquash_wf_env;
     repeat match goal with
           | H : ∥ _ ∥ |- _ => destruct H; try clear H
           end; try eapply sq.
@@ -156,16 +155,17 @@ Section fix_sigma.
   Proof.
     intros (Γ & s & H). sq'.
     assert (wfΣ' : abstract_env_rel' Σ Σ) by reflexivity.
-    set (H' := H _ wfΣ').
+    pose proof (abstract_env_ext_wf _ wfΣ') as wf. sq. 
+    set (H' := H _ wfΣ'). 
     induction (normalisation Σ _ Γ s H') as [s _ IH]. cbn in IH.
     induction (wf_cod' s) as [s _ IH_sub] in Γ, H , H', IH |- *.
     econstructor.
-    intros (Γ' & B & ?) [(na & A & ? & ?)]; eauto. subst.
+    intros (Γ' & B & ?) [(na & A & ? & ?)]; eauto. subst. 
     eapply Relation_Properties.clos_rt_rtn1 in r. inversion r.
       + subst. eapply IH_sub. econstructor. cbn. reflexivity.
         intros. eapply IH.
         inversion H0.
-        * subst. econstructor. eapply prod_red_r. eassumption.
+        * subst. econstructor. eapply prod_red_r.  eassumption.
         * subst. eapply cored_red in H2 as [].
           eapply cored_red_trans. 2: eapply prod_red_r. 2:eassumption.
           eapply PCUICReduction.red_prod_r. eauto.
@@ -199,19 +199,16 @@ Section fix_sigma.
   
   Opaque wf_reduction.
   
-  Ltac sq := try unsquash_wf_env;
+  Ltac sq := 
     repeat match goal with
           | H : ∥ _ ∥ |- _ => destruct H
           end; try eapply sq.
-
-  Definition optimized_impl : abstract_env_impl :=
-    (wf_env_ext ; optimized_abstract_env_struct ; optimized_abstract_env_prop).
 
   Equations(noeqns noind) is_arity Γ (HΓ : forall Σ0 : global_env_ext, abstract_env_rel' Σ Σ0 -> ∥wf_local Σ0 Γ∥) T (HT : forall Σ0 : global_env_ext, abstract_env_rel' Σ Σ0 -> welltyped Σ0 Γ T) :
     {Is_conv_to_Arity Σ Γ T} + {~ Is_conv_to_Arity Σ Γ T}
     by wf ((Γ;T;HT) : (∑ Γ t, forall Σ0 : global_env_ext, abstract_env_rel' Σ Σ0 -> welltyped Σ0 Γ t)) term_rel :=
     {
-      is_arity Γ HΓ T HT with inspect (@reduce_to_sort _ _ optimized_impl Σ Γ T HT) => {
+      is_arity Γ HΓ T HT with inspect (@reduce_to_sort _ _ optimized_abstract_env_ext_impl Σ Γ T HT) => {
       | exist (Checked_comp H) rsort => left _ ;
       | exist (TypeError_comp _) rsort with inspect (reduce_to_prod Γ T _) => {
         | exist (Checked_comp (na; A; B; H)) rprod with is_arity (Γ,, vass na A) _ B _ :=
@@ -221,16 +218,18 @@ Section fix_sigma.
     }.
   Next Obligation. econstructor. clear rsort is_arity. 
     assert (wfΣ' : abstract_env_rel' Σ Σ) by reflexivity. 
+    pose proof (abstract_env_ext_wf _ wfΣ') as [wf]. 
     specialize_Σ wfΣ'.
     split. sq. eassumption. econstructor.
   Qed.
-  Next Obligation. exact optimized_impl. Defined.  
+  Next Obligation. exact optimized_abstract_env_ext_impl. Defined.  
   Next Obligation. eauto. Defined.  
   Next Obligation. unfold  is_arity_obligations_obligation_3.
   assert (wfΣ' : abstract_env_rel' Σ Σ) by reflexivity.
   exact (HT _ wfΣ'). Defined.
   Next Obligation.
     clear rprod. assert (wfΣ' : abstract_env_rel' Σ Σ) by reflexivity.
+    pose proof (abstract_env_ext_wf _ wfΣ') as [wf]. 
     specialize_Σ wfΣ'.
     destruct (HT _ wfΣ') as []; sq.
     eapply subject_reduction_closed in X; eauto.
@@ -239,6 +238,7 @@ Section fix_sigma.
   Qed.
   Next Obligation.
     clear rprod.  assert (wfΣ' : abstract_env_rel' Σ Σ) by reflexivity.
+    pose proof (abstract_env_ext_wf _ wfΣ') as [wf]. 
     specialize_Σ wfΣ'.
     sq. destruct (HT _ wfΣ') as [].
     eapply subject_reduction_closed in X; eauto.
@@ -282,8 +282,8 @@ Section fix_sigma.
   Qed.
 
   Next Obligation.
-    pose proof (reduce_to_sort_complete (X_type := optimized_impl) _ eq_refl _ a0 (eq_sym rsort));
-    pose proof (reduce_to_prod_complete (X_type := optimized_impl)  _ eq_refl _ e (eq_sym rprod)).
+    pose proof (reduce_to_sort_complete (X_type := optimized_abstract_env_ext_impl) _ eq_refl _ a0 (eq_sym rsort));
+    pose proof (reduce_to_prod_complete (X_type := optimized_abstract_env_ext_impl)  _ eq_refl _ e (eq_sym rprod)).
     destruct HΣ.
     apply Is_conv_to_Arity_inv in H as [(?&?&?&[r])|(?&[r])]; eauto.
     - eapply H1, r.
@@ -296,7 +296,7 @@ Opaque wf_reduction_aux.
 Transparent wf_reduction.
 
 (* Top.sq should be used but the behavior is a bit different *)
-Local Ltac sq := try unsquash_wf_env;
+Local Ltac sq := 
   repeat match goal with
          | H : ∥ _ ∥ |- _ => destruct H
          end; try eapply sq.
@@ -312,12 +312,12 @@ Opaque type_of_typing.
 Program Definition is_erasable (Σ : wf_env_ext) (Γ : context) (t : PCUICAst.term) 
   (wt : forall Σ0 : global_env_ext, abstract_env_rel' Σ Σ0 -> welltyped Σ0 Γ t) :
   ({∥isErasable Σ Γ t∥} + {∥(isErasable Σ Γ t -> False)∥}) :=
-  let T := @type_of_typing extraction_checker_flags _ optimized_impl Σ Γ t wt in
+  let T := @type_of_typing extraction_checker_flags _ optimized_abstract_env_ext_impl Σ Γ t wt in
   let b := is_arity Σ Γ _ T.π1 _ in
   match b : {_} + {_} return _ with
   | left _ => left _
-  | right _ => let K := @type_of_typing extraction_checker_flags _ optimized_impl _ Γ T.π1 _ in
-       match reduce_to_sort (X_type := optimized_impl) (X := Σ) Γ K.π1 _ with
+  | right _ => let K := @type_of_typing extraction_checker_flags _ optimized_abstract_env_ext_impl _ Γ T.π1 _ in
+       match reduce_to_sort (X_type := optimized_abstract_env_ext_impl) (X := Σ) Γ K.π1 _ with
        | Checked_comp (u; Hu) =>
           match is_propositional u with true => left _ | false => right _ end
        | TypeError_comp _ _ => False_rect _ _
@@ -329,6 +329,7 @@ Next Obligation.
   destruct (wt _ wfΣ'); sq; eauto. pcuic. Qed.
 Next Obligation.
   assert (wfΣ' : abstract_env_rel' Σ Σ) by reflexivity.
+  pose proof (abstract_env_ext_wf _ wfΣ') as [wf]. 
   sq.  
   destruct type_of_typing as [T HT]. cbn.   
   specialize_Σ wfΣ'. sq. destruct X as [HT _]. eapply validity in HT; pcuic.
@@ -336,6 +337,7 @@ Qed.
 Next Obligation.
   destruct type_of_typing as [x Hx]. cbn in *.  
   assert (wfΣ' : abstract_env_rel' Σ Σ) by reflexivity.
+  pose proof (abstract_env_ext_wf _ wfΣ') as [wf]. 
   specialize_Σ wfΣ'. destruct Hx as [[HT ?]]. 
   destruct H as [T' [redT' isar]].
   destruct wt as [T ht].
@@ -346,6 +348,7 @@ Next Obligation. eauto. Defined.
 Next Obligation.  
   destruct type_of_typing as [x Hx]; cbn in *.
   assert (wfΣ' : abstract_env_rel' Σ Σ) by reflexivity.
+  pose proof (abstract_env_ext_wf _ wfΣ') as [wf]. 
   specialize_Σ wfΣ'. destruct Hx as [[Hx ?]]. 
   sq. destruct wt. cbn in H.
   now eapply validity in Hx; pcuic.
@@ -354,6 +357,7 @@ Next Obligation.
   match goal with | |- welltyped _ _ ?X.π1 => set (tot := X) end. 
   destruct tot as [T HT]; cbn in *.
   assert (wfΣ' : abstract_env_rel' Σ Σ) by reflexivity. clear H. 
+  pose proof (abstract_env_ext_wf _ wfΣ') as [wf]. 
   specialize_Σ wfΣ'. pose (wt _ wfΣ'); destruct HT as [[HT ?]]. 
   sq. destruct wt.
   eapply validity in HT; pcuic.
@@ -366,6 +370,7 @@ Next Obligation.
   destruct (type_of_typing _ _ _ _) as [? ?].
   simpl in *. 
   assert (wfΣ' : abstract_env_rel' Σ Σ) by reflexivity. clear H. 
+  pose proof (abstract_env_ext_wf _ wfΣ') as [wf]. 
   clear Heq_anonymous0. specialize_Σ wfΣ'. 
   destruct wt.
   sq. red. exists x0 ; split; intuition eauto. 
@@ -383,6 +388,7 @@ Next Obligation.
   destruct (type_of_typing _ _ _ _) as [? ?].
   destruct a as [u' redu']. simpl in *.
   assert (wfΣ' : abstract_env_rel' Σ Σ) by reflexivity.
+  pose proof (abstract_env_ext_wf _ wfΣ') as [wf]. 
   clear Heq_anonymous0. specialize_Σ wfΣ'. 
   sq. 
   pose proof (PCUICContextConversion.closed_red_confluence X0 X) as [v' [redl redr]].
@@ -400,15 +406,16 @@ Next Obligation.
     2:reflexivity.
     2:eapply validity; eauto.
     eapply leq_universe_propositional_r in t0; auto. congruence.
-    apply wfΣ.
+    apply wf.
 Qed. 
 Next Obligation.
   unfold type_of in *.
   sq.
   symmetry in Heq_anonymous.
-  pose proof (reduce_to_sort_complete (X_type := optimized_impl) (X := Σ) _ eq_refl _ _ Heq_anonymous).
+  pose proof (reduce_to_sort_complete (X_type := optimized_abstract_env_ext_impl) (X := Σ) _ eq_refl _ _ Heq_anonymous).
   clear Heq_anonymous.
   assert (wfΣ' : abstract_env_rel' Σ Σ) by reflexivity.
+  pose proof (abstract_env_ext_wf _ wfΣ') as [wf]. 
   destruct (type_of_typing _ _ _ _.π1 _) as [? ?]. cbn in *.
   specialize_Σ wfΣ'.   destruct s as [[? pt]].
   destruct (type_of_typing _ _ _ _) as [? ?]. cbn in *. 
@@ -450,7 +457,7 @@ Qed.
 Section Erase.
   Variable (Σ : wf_env_ext).
 
-  Ltac sq' := try unsquash_wf_env;
+  Ltac sq' := 
              repeat match goal with
                     | H : ∥ _ ∥ |- _ => destruct H; try clear H
                     end; try eapply sq.
@@ -553,8 +560,8 @@ Section Erase.
       try clear brs'; try clear c'; try clear br'; 
       try clear d' dbody'; try clear erase; try clear erase_terms; try clear erase_brs; try clear erase_mfix.
     all: cbn; intros; subst; lazymatch goal with [ |- False ] => idtac | _ => try clear he end.
-    all: unsquash_wf_env.
     all: assert (wfΣ' : abstract_env_rel' Σ Σ) by reflexivity;
+         pose proof (abstract_env_ext_wf _ wfΣ') as [wf];
          specialize_Σ wfΣ'.
     all: try destruct Ht as [ty Ht]; try destruct s0; simpl in *.
     - now eapply inversion_Evar in Ht.
@@ -704,8 +711,8 @@ Proof.
     destruct is_box.
     * cbn in *. clear H0. 
       assert (wfΣ' : abstract_env_rel' Σ Σ) by reflexivity;
+      pose proof (abstract_env_ext_wf _ wfΣ') as [wf]. 
       specialize_Σ wfΣ'. destruct Ht, H.
-      destruct Σ.(wf_env_ext_wf).
       eapply (EArities.Is_type_app _ _ _ [_]); eauto.
       eauto using typing_wf_local.
     * assumption.
@@ -739,6 +746,7 @@ Proof.
     all: try solve [constructor; eauto].
   all:try destruct Σ.(wf_env_ext_wf) as [wfΣ].
   all: cbn in *; assert (wfΣ' : abstract_env_rel' Σ Σ) by reflexivity;
+  pose proof (abstract_env_ext_wf _ wfΣ') as [wf];
   specialize_Σ wfΣ'.
   
   - constructor. clear Heq.
@@ -805,22 +813,27 @@ Definition erase_mutual_inductive_body (mib : mutual_inductive_body) : E.mutual_
 
 Lemma wf_env_fresh (Σ : wf_env) : EnvMap.EnvMap.fresh_globals Σ.(declarations).
 Proof.
-  destruct Σ.(wf_env_wf).
+  destruct Σ.(referenced_impl_wf).
   now eapply wf_fresh_globals. 
 Qed.
 
 Lemma wf_env_eta (Σ : wf_env) : {| universes := Σ.(universes); declarations := Σ.(declarations) |} = Σ.
 Proof.
-  destruct Σ => /= //. destruct wf_env_env => //.
+  destruct Σ => /= //. destruct referenced_impl_env => //.
 Qed.
 
-Program Definition remove_kn (kn : kername) (Σ : wf_env) decls (prf : exists d, Σ.(wf_env_env).(declarations) = (kn, d) :: decls) : wf_env :=
- {| wf_env_env := {| universes := Σ.(wf_env_env).(universes); declarations := decls |};
-    wf_env_map := EnvMap.EnvMap.remove kn Σ.(wf_env_map);
-    wf_env_graph := Σ.(wf_env_graph) |}.
+Program Definition remove_kn (kn : kername) (Σ : wf_env) decls (prf : exists d, Σ.(referenced_impl_env).(declarations) = (kn, d) :: decls) : wf_env :=
+ {| wf_env_referenced := {| referenced_impl_env := {| universes := Σ.(referenced_impl_env).(universes); declarations := decls |} |};
+    wf_env_map := EnvMap.EnvMap.remove kn Σ.(wf_env_map); 
+    |}.
 
 Import EnvMap.
-Next Obligation. 
+Next Obligation.
+  destruct Σ.(referenced_impl_wf). sq.
+  destruct X as [onu ond]; split => //. rewrite H in ond.
+  now depelim ond.
+Qed.
+Next Obligation.
   pose proof Σ.(wf_env_map_repr). red in H0.
   rewrite H in H0.
   set (Σ0 := EnvMap.of_global_env decls).
@@ -834,28 +847,10 @@ Next Obligation.
   rewrite H0 -H1. reflexivity.
 Qed.
   
-Next Obligation.
-  destruct Σ.(wf_env_wf). sq.
-  destruct X as [onu ond]; split => //. rewrite H in ond.
-  now depelim ond.
-Qed.
-
-Next Obligation.
-  have wfG := Σ.(wf_env_graph_wf).
-  rewrite -(wf_env_eta Σ) in wfG.
-  rewrite H in wfG.
-  eapply wfG.
-Qed.
-
 Program Definition make_wf_env_ext (Σ : wf_env) (univs : universes_decl) (prf : ∥ wf_ext (Σ, univs) ∥) : wf_env_ext :=
-  {| wf_env_ext_env := (Σ, univs);
+  {| wf_env_ext_referenced := {| referenced_impl_env_ext := (Σ, univs);|} ;
      wf_env_ext_map := Σ.(wf_env_map);
-     wf_env_ext_map_repr := Σ.(wf_env_map_repr);
-     wf_env_ext_graph := 
-      match uGraph.gc_of_constraints (constraints_of_udecl univs) with
-      | Some gc => uGraph.add_uctx (levels_of_udecl univs, gc) Σ.(wf_env_graph)
-      | None => !%prg
-      end |}.
+     wf_env_ext_map_repr := Σ.(wf_env_map_repr) |}.
 
 Require Import Morphisms.
 From MetaCoq.Template Require Import uGraph.
@@ -865,7 +860,7 @@ Proof.
   split; cbn; auto.
 Qed.
 
-Next Obligation.
+(* Next Obligation.
   pose proof (wf_ext_gc_of_uctx prf) as [uctx' isg].
   move: isg.
   rewrite /uGraph.gc_of_uctx /=.
@@ -875,9 +870,9 @@ Next Obligation.
   destruct (uGraph.gc_of_constraints
       (ConstraintSet.union (constraints_of_udecl univs)
         (global_constraints Σ))) => //.
-Qed.
+Qed. *)
 
-Next Obligation.
+(* Next Obligation.
   set (foo := (fun H => False_rect _ (make_wf_env_ext_obligation_2 _ _ _ H))). clearbody foo.
   destruct gc_of_constraints eqn:eqgc => //.
   - rewrite /global_ext_uctx /global_ext_constraints /=.
@@ -905,10 +900,10 @@ Next Obligation.
     cbn in wfG. symmetry. rewrite -wfG H. 
     now eapply uGraph.add_uctx_make_graph.
   - symmetry in eqgc. now elim (make_wf_env_ext_obligation_2 _ _ prf eqgc).
-Qed.
+Qed. *)
 
 Program Fixpoint erase_global_decls (deps : KernameSet.t) (Σ : wf_env) (decls : global_declarations) 
-  (prop : Σ.(wf_env_env).(declarations) = decls) : E.global_declarations :=
+  (prop : Σ.(referenced_impl_env).(declarations) = decls) : E.global_declarations :=
   match decls with
   | [] => []
   | (kn, ConstantDecl cb) :: decls =>
@@ -934,11 +929,11 @@ Next Obligation.
   now eexists.
 Qed.
 Next Obligation.
-  epose proof Σ.(wf_env_wf).
+  epose proof Σ.(referenced_impl_wf).
   sq. destruct X. rewrite -Heq_decls in o0. depelim o0. split => //.
 Qed.
 Next Obligation.
-  epose proof Σ.(wf_env_wf).
+  epose proof Σ.(referenced_impl_wf).
   sq. destruct X. rewrite -Heq_decls in o0. depelim o0. apply o2.
 Qed.
 
@@ -968,12 +963,9 @@ Proof.
 Defined.
 
 Definition build_wf_env {cf : checker_flags} (Σ : global_env) (wfΣ : ∥ wf Σ ∥) : wf_env := 
-  {| wf_env_env := Σ;
+  {| wf_env_referenced := {| referenced_impl_env := Σ ; referenced_impl_wf := wfΣ;  |} ; 
      wf_env_map := EnvMap.EnvMap.of_global_env Σ.(declarations); 
-     wf_env_map_repr := EnvMap.EnvMap.repr_global_env Σ.(declarations);
-     wf_env_wf := wfΣ;
-     wf_env_graph := proj1_sig (graph_of_wf wfΣ);
-     wf_env_graph_wf := proj2_sig (graph_of_wf wfΣ) |}.
+     wf_env_map_repr := EnvMap.EnvMap.repr_global_env Σ.(declarations); |}.
 
 Definition erase_global deps Σ :=
   erase_global_decls deps Σ Σ.(declarations) eq_refl.
@@ -981,12 +973,12 @@ Definition erase_global deps Σ :=
 Definition global_erased_with_deps (Σ : global_env) (Σ' : EAst.global_declarations) kn :=
   (exists cst, declared_constant Σ kn cst /\
    exists cst' : EAst.constant_body,
-    ETyping.declared_constant Σ' kn cst' /\
+    EGlobalEnv.declared_constant Σ' kn cst' /\
     erases_constant_body (Σ, cst_universes cst) cst cst' /\
     (forall body : EAst.term,
      EAst.cst_body cst' = Some body -> erases_deps Σ Σ' body)) \/
   (exists mib mib', declared_minductive Σ kn mib /\ 
-    ETyping.declared_minductive Σ' kn mib' /\
+    EGlobalEnv.declared_minductive Σ' kn mib' /\
     erases_mutual_inductive_body mib mib').
 
 Definition includes_deps (Σ : global_env) (Σ' : EAst.global_declarations) deps :=  
@@ -1237,14 +1229,13 @@ Proof.
     red. destruct H. split; eauto.
     red in H. red.
     inv wfΣ. inv X.
-    rewrite -H. simpl. unfold lookup_env; simpl; unfold eq_kername. destruct kername_eq_dec; try congruence.
+    rewrite -H. simpl. unfold lookup_env; simpl. destruct (eqb_spec (inductive_mind p.1) kn); try congruence.
     eapply lookup_env_Some_fresh in H. subst kn; contradiction.
   - econstructor; eauto.
     red. destruct H. split; eauto.
     inv wfΣ. inv X.
     red in H |- *.
-    rewrite -H. simpl. unfold lookup_env; simpl; unfold eq_kername.
-    unfold lookup_env in H; simpl in H. destruct kername_eq_dec; try congruence.
+    rewrite -H. simpl. unfold lookup_env; simpl; destruct (eqb_spec (inductive_mind p.1.1) kn); try congruence.
     eapply lookup_env_Some_fresh in H. subst kn. contradiction.
 Qed.
 
@@ -1256,23 +1247,23 @@ Proof.
   intros wf hl. 
   eapply lookup_env_Some_fresh in hl.
   inv wf. inv X.
-  destruct (kername_eq_dec kn kn'); subst; congruence.
+  destruct (eqb_spec kn kn'); subst; congruence.
 Qed.
 
 Lemma lookup_env_cons_disc {Σ kn kn' d} : 
   kn <> kn' ->
   lookup_env (add_global_decl Σ (kn', d)) kn = lookup_env Σ kn.
 Proof.
-  intros Hk. simpl; unfold lookup_env; simpl; unfold eq_kername; simpl.
-  destruct kername_eq_dec; congruence.
+  intros Hk. simpl; unfold lookup_env; simpl.
+  destruct (eqb_spec kn kn'); congruence.
 Qed.
 
 Lemma elookup_env_cons_disc {Σ kn kn' d} : 
   kn <> kn' ->
-  ETyping.lookup_env ((kn', d) :: Σ) kn = ETyping.lookup_env Σ kn.
+  EGlobalEnv.lookup_env ((kn', d) :: Σ) kn = EGlobalEnv.lookup_env Σ kn.
 Proof.
-  intros Hk. simpl; unfold eq_kername.
-  destruct kername_eq_dec; congruence.
+  intros Hk. simpl.
+  destruct (eqb_spec kn kn'); congruence.
 Qed.
 
 Lemma global_erases_with_deps_cons kn kn' d d' Σ Σ' : 
@@ -1288,7 +1279,7 @@ Proof.
   { eapply lookup_env_Some_fresh in declc.
     intros <-; contradiction. }
   exists cst'.
-  unfold ETyping.declared_constant. rewrite ETyping.elookup_env_cons_fresh //.
+  unfold EGlobalEnv.declared_constant. rewrite EGlobalEnv.elookup_env_cons_fresh //.
   { eapply lookup_env_Some_fresh in declc.
     intros <-; contradiction. }
   red in ebody. unfold erases_constant_body.
@@ -1326,7 +1317,7 @@ Proof.
   { eapply lookup_env_Some_fresh in declc.
     intros <-. contradiction. }
   exists cst'.
-  unfold ETyping.declared_constant.
+  unfold EGlobalEnv.declared_constant.
   red in ebody. unfold erases_constant_body.
   destruct (cst_body cst) eqn:bod; destruct (E.cst_body cst') eqn:bod' => //.
   intuition auto.
@@ -1349,7 +1340,7 @@ Qed.
 
 Lemma erase_constant_body_correct (Σ : wf_env_ext) Σ' cb (onc : ∥ on_constant_decl (lift_typing typing) Σ cb ∥) :
   wf Σ' -> extends_decls Σ Σ' ->
-  erases_constant_body (Σ', Σ.(wf_env_ext_env).2) cb (fst (erase_constant_body Σ cb onc)).
+  erases_constant_body (Σ', Σ.(referenced_impl_env_ext).2) cb (fst (erase_constant_body Σ cb onc)).
 Proof.
   red. sq. destruct cb as [name [bod|] univs]; simpl. intros.
   eapply (erases_weakeninv_env (Σ := Σ) (Σ' := (Σ', univs))); simpl; auto.
@@ -1400,15 +1391,6 @@ Proof.
   destruct destArity as [[? ?]|] eqn:da; auto.
 Qed.
 
-Lemma lookup_env_closed {Σ kn decl} : ETyping.closed_env Σ -> ETyping.lookup_env Σ kn = Some decl -> ETyping.closed_decl decl.
-Proof.
-  induction Σ; cbn => //.
-  move/andP => [] cla cle.
-  unfold eq_kername; destruct kername_eq_dec.
-  move=> [= <-]. apply cla.
-  now eapply IHΣ.
-Qed.
-
 Lemma erases_closed Σ Γ t t' : Σ;;; Γ |- t ⇝ℇ t' -> PCUICAst.closedn #|Γ| t -> ELiftSubst.closedn #|Γ| t'.
 Proof.
   induction 1 using erases_forall_list_ind; cbn; auto; try solve [rtoProp; repeat solve_all].
@@ -1445,12 +1427,12 @@ Proof.
     specialize (H i hin) as [[decl Hdecl]].
     rewrite /lookup_env eq in Hdecl. noconf Hdecl.
   - intros e H sub i hin.
-    destruct Σ.(wf_env_wf) as [wfΣ].
+    destruct Σ.(referenced_impl_wf) as [wfΣ].
     destruct a as [kn d].
     eapply KernameSet.subset_spec in sub.
     destruct (H i hin) as [[decl Hdecl]]. unfold lookup_env in Hdecl.
     cbn in Hdecl.
-    pose proof (eqb_spec i kn). unfold eqb in H0; cbn in H0.
+    pose proof (eqb_spec i kn).
     rewrite e in Hdecl. move: Hdecl. cbn -[erase_global_decls].
     elim: H0. intros -> [= <-].
     * destruct d as [|]; [left|right].
@@ -1458,7 +1440,7 @@ Proof.
         unfold lookup_env; simpl; rewrite e. cbn. rewrite eq_kername_refl //.
         pose proof (sub _ hin) as indeps.
         eapply KernameSet.mem_spec in indeps.
-        unfold ETyping.declared_constant.
+        unfold EGlobalEnv.declared_constant.
         destruct (H _ hin) as [[decl hd]].
         eexists; intuition eauto.
         cbn. 
@@ -1585,7 +1567,7 @@ Proof.
   rewrite HΣ' in H.
   assert (wfΣ' : abstract_env_rel' Σext Σext) by reflexivity.
   destruct (wt _ wfΣ') as [T wt'].
-  destruct Σext.(wf_env_ext_wf) as [wfΣ].
+  destruct Σext.(referenced_impl_ext_wf) as [wfΣ].
   unshelve epose proof (erase_global_erases_deps (Σ' := Σ') wfΣ wt' H _); cycle 2.
   intros.
   rewrite <- Ht'.
@@ -1670,7 +1652,7 @@ Lemma erase_mkApps {Σ : wf_env_ext} Γ t args H2 Ht Hargs :
   erase Σ Γ (mkApps t args) H2 = 
   E.mkApps (erase Σ Γ t Ht) (map_erase Σ Γ args Hargs).
 Proof.
-  sq.
+  pose proof (referenced_impl_ext_wf Σ) as [wf]. 
   intros Hwflocal Herasable. induction args in t, H2, Ht, Hargs, Herasable |- *.
   - cbn. eapply erase_irrel.
   - cbn [mkApps]. 
@@ -1683,13 +1665,15 @@ Proof.
     etransitivity. simp erase. reflexivity. unfold erase_clause_1.
     unfold inspect. unfold erase_clause_1_clause_2.
     elim: is_erasableb_reflect.
-    + intros. exfalso. eapply Herasable. destruct p.
+    + intros. exfalso. 
+      eapply Herasable. destruct p.
       cbn. destruct (H2 _ eq_refl). eapply Is_type_app; eauto.
     + cbn [map_erase]. 
       epose proof (fst (erase_irrel _)). cbn.
       intros he. f_equal => //. f_equal.
       eapply erase_irrel. eapply erase_irrel.
-      eapply map_erase_irrel. Unshelve. cbn in wfΣ'; subst; eauto.  exact Σ.
+      eapply map_erase_irrel. 
+      Unshelve. cbn in wfΣ'; subst; eauto.  exact Σ.
 Qed.
 
 Lemma map_erase_length Σ Γ t H1 : length (map_erase Σ Γ t H1) = length t.
@@ -1725,7 +1709,7 @@ Local Arguments erase_global_decls _ _ _ : clear implicits.
 Lemma lookup_env_erase (Σ : wf_env) deps kn d :
   KernameSet.In kn deps -> 
   lookup_env Σ kn = Some (InductiveDecl d) ->
-  ETyping.lookup_env (erase_global deps Σ) kn = Some (EAst.InductiveDecl (erase_mutual_inductive_body d)).
+  EGlobalEnv.lookup_env (erase_global deps Σ) kn = Some (EAst.InductiveDecl (erase_mutual_inductive_body d)).
 Proof.
   intros hin.
   rewrite /lookup_env. 
@@ -1737,19 +1721,19 @@ Proof.
   - move=> /= //.
   - intros e. destruct a as [kn' d'].
     cbn -[erase_global_decls].
-    unfold eq_kername. destruct kername_eq_dec. subst kn'.
+    case: (eqb_spec kn kn'); intros e'; subst.
     intros [= ->].
     unfold erase_global_decls.
     eapply KernameSet.mem_spec in hin. rewrite hin /=.
     now rewrite eq_kername_refl.
     intros hl. destruct d'. simpl.
     destruct KernameSet.mem. cbn.
-    unfold eq_kername. destruct kername_eq_dec => //. 
+    rewrite (negbTE (proj2 (neqb _ _) e')).
     eapply IHg => //. eapply KernameSet.union_spec. left => //.
     eapply IHg => //.
     simpl.
     destruct KernameSet.mem. cbn.
-    unfold eq_kername. destruct kername_eq_dec => //. 
+    rewrite (negbTE (proj2 (neqb _ _) e')).
     eapply IHg => //.
     eapply IHg => //. 
 Qed.
@@ -1757,7 +1741,7 @@ Qed.
 Lemma erase_global_declared_constructor (Σ : wf_env) ind c mind idecl cdecl deps :
    declared_constructor Σ (ind, c) mind idecl cdecl ->
    KernameSet.In ind.(inductive_mind) deps -> 
-   ETyping.declared_constructor (erase_global deps Σ) (ind, c) (erase_mutual_inductive_body mind) (erase_one_inductive_body idecl) (cdecl.(cstr_name), cdecl.(cstr_arity)).
+   EGlobalEnv.declared_constructor (erase_global deps Σ) (ind, c) (erase_mutual_inductive_body mind) (erase_one_inductive_body idecl) (cdecl.(cstr_name), cdecl.(cstr_arity)).
 Proof.
   intros [[]] Hin.
   cbn in *. split. split. 
@@ -1766,21 +1750,20 @@ Proof.
   - cbn. erewrite map_nth_error; eauto.
 Qed.
 
-From MetaCoq.Erasure Require Import EEtaExpanded.
+From MetaCoq.Erasure Require Import EEtaExpandedFix.
 
 Lemma All_map_All {A B C} {Q : C -> Type} {P : C -> A -> Prop}
   {Q' : B -> Type} {R : C -> A -> Prop} 
   f args (ha: forall y : C, Q y -> ∥ All (R y) args ∥) :
   (forall y : C, Q y -> All (P y) args) ->
   (forall x y rx, P y x -> Q' (f x rx)) ->
-  All Q' (map_All f args ha).
+  forall y, Q y -> All Q' (map_All f args ha).
 Proof.
-  (* funelim (map_All f args ha).
+  funelim (map_All f args ha).
   - constructor.
-  - intros ha hf. 
-    depelim ha. constructor; eauto.
-Qed. *)
-Admitted.
+  - intros ha hf y hy. pose proof (ha y hy). depelim X0. econstructor; eauto.
+    eapply X; eauto. intros. eapply ha in X1. now invs X1.
+Qed.
  
 Lemma erase_brs_eq Σ Γ p ts wt : 
   erase_brs Σ Γ p ts wt = map_All (fun br wt => (erase_context (bcontext br), erase Σ _ (bbody br) wt)) ts wt.
@@ -1801,21 +1784,51 @@ Proof.
 Qed.
 
 Lemma isConstruct_erase Σ Γ t wt : 
-  ~ PCUICEtaExpand.isConstruct t -> ~ isConstruct (erase Σ Γ t wt).
+~ (PCUICEtaExpand.isConstruct t || PCUICEtaExpand.isFix t || PCUICEtaExpand.isRel t) -> ~
+  (isConstruct (erase Σ Γ t wt) || isFix (erase Σ Γ t wt) || isRel (erase Σ Γ t wt)).
 Proof.
   apply (erase_elim Σ
-    (fun Γ t wt e => ~ PCUICEtaExpand.isConstruct t -> ~ isConstruct e)
+    (fun Γ t wt e => ~ (PCUICEtaExpand.isConstruct t || PCUICEtaExpand.isFix t || PCUICEtaExpand.isRel t) -> ~ (isConstruct e || isFix e || isRel e))
     (fun Γ l awt e => True)
     (fun Γ p l awt e => True)
     (fun Γ l awt e => True)); intros => //. bang.
 Qed.
 
-Lemma eta_expand_erase {Σ : wf_env_ext} Σ' {Γ t} 
-  (wt : forall Σ0 : global_env_ext, abstract_env_rel' Σ Σ0 -> welltyped Σ0 Γ t) :
-  PCUICEtaExpand.expanded Σ t ->
-  erases_global Σ Σ' ->
-  expanded Σ' (@erase Σ Γ t wt).
+Lemma map_All_length {A B C : Type} {Q : C -> Type} {P : C -> A -> Prop}
+(fn : forall x : A, (forall y : C, Q y -> P y x) -> B) 
+  (l : list A) (Hl : forall y : C, Q y -> ∥ All (P y) l ∥) :
+#| (map_All fn l Hl)| = #|l|.
 Proof.
+  funelim (map_All fn l Hl); cbn; congruence.
+Qed.
+Local Hint Rewrite @map_All_length : len.
+
+Lemma apply_expanded Σ Γ Γ' t t' :
+  expanded Σ Γ t -> Γ = Γ' -> t = t' -> expanded Σ Γ' t'.
+Proof. intros; now subst. Qed.
+
+Lemma nth_error_map_All {A B C} {Q : C -> Type} {P : C -> A  -> Prop} 
+(fn : forall (x : A) , (forall (y:C),  Q y -> P y x) -> B) :
+forall l : list A, forall H : (forall y : C, Q y -> ∥ All (P y) l ∥),
+forall n x,
+  nth_error l n = Some x ->
+  exists D, nth_error (map_All fn l H) n = Some (fn x D).
+Proof.
+  intros.
+  funelim (map_All fn l H).
+  - destruct n; invs H0.
+  - destruct n; invs H1.
+    + eexists. reflexivity.
+    + now eapply H.
+Qed.
+
+Lemma eta_expand_erase {Σ : wf_env_ext} Σ' {Γ t} 
+  (wt : forall Σ0 : global_env_ext, abstract_env_rel' Σ Σ0 -> welltyped Σ0 Γ t) Γ' :
+  PCUICEtaExpand.expanded Σ Γ' t ->
+  erases_global Σ Σ' ->
+  expanded Σ' Γ' (@erase Σ Γ t wt).
+Proof.
+  pose proof (referenced_impl_ext_wf Σ) as [wf]. 
   intros exp deps.
   induction exp in Γ, wt, deps |- *.
   all:simp erase.
@@ -1823,12 +1836,30 @@ Proof.
   all: eauto using expanded.
   all : assert (wfΣ' : abstract_env_rel' Σ Σ) by reflexivity;
         specialize_Σ wfΣ'.
-  all: try (unfold inspect, erase_clause_1, erase_clause_1_clause_2;
+  all: try (unfold inspect, erase_clause_1, erase_clause_1_clause_2; cbn;
     destruct is_erasableb; [ now eauto using expanded | eauto using expanded]).
   all: try now (invs deps; eauto using expanded).
+  - simp erase. destruct inspect as [b ise] eqn:hi. destruct b.
+    + simp erase. constructor.
+    + rewrite -hi -erase_equation_1.
+      destruct (wt _ wfΣ') as (T & wt').
+      clear hi; move: ise. elim: is_erasableb_reflect => // happ _.
+      rewrite erase_mkApps //.
+      * eapply welltyped_mkApps_inv; sq; eauto.
+      * intros. simp erase. destruct (inspect (is_erasableb Σ Γ (tRel n) Hyp0)). destruct x.
+        -- exfalso. sq. move: e.
+           elim: is_erasableb_reflect => // ise' _; sq. specialize X as X'. destruct X' as [].
+           apply happ. eapply Is_type_app in X; tea.
+           eapply typing_wf_local; eauto.
+        -- sq. cbn.
+           econstructor. eauto.
+           now rewrite map_erase_length.
+           { solve_all.  clear - deps H2. induction H2; econstructor; eauto. eapply p. eauto. } 
+      * eapply typing_wf_local; eauto.
+      * intros. cbn in H3; subst. eapply welltyped_mkApps_inv; sq; eauto.
   - econstructor.
     solve_all. rewrite erase_terms_eq. 
-    eapply All_map_All. intros. exact H0. cbn. intros x wx rx [Hx IH]. eauto.
+    eapply All_map_All. intros. exact H0. cbn. intros x wx rx [Hx IH]. eauto. eauto.
   - simp erase. destruct inspect as [b ise] eqn:hi. destruct b.
     + simp erase. now econstructor.
     + rewrite -hi -erase_equation_1. clear hi.
@@ -1836,7 +1867,7 @@ Proof.
       destruct (wt _ wfΣ') as (T & wt'). revert deps. rewrite erase_mkApps. 
       * eapply welltyped_mkApps_inv; sq; eauto.
       * intros. econstructor; eauto.
-        -- now eapply isConstruct_erase.
+        -- eapply wGraph.negbe. now eapply isConstruct_erase.
         -- clear - H1 deps. induction H1; cbn.
           ++ econstructor.
           ++ depelim Hyp1. cbn. econstructor; eauto.
@@ -1849,14 +1880,39 @@ Proof.
     + bang.
   - econstructor; eauto.
     solve_all. rewrite erase_brs_eq.
-    eapply All_map_All. intros. exact H0. intros x y wx [exp' IH]. eauto.
+    eapply All_map_All; tea. intros. eapply H0. cbn. intros x wx ? [exp' IH]. len. eauto.
+  - simp erase. destruct inspect as [b ise] eqn:hi. destruct b.
+    + simp erase. constructor.
+    + rewrite -hi -erase_equation_1.
+      destruct (wt _ wfΣ') as (T & wt').
+      clear hi; move: ise. elim: is_erasableb_reflect => // happ _.
+      rewrite erase_mkApps //.
+      * eapply welltyped_mkApps_inv; sq; eauto.
+      * intros. simp erase. destruct (inspect (is_erasableb Σ Γ (tFix mfix idx) Hyp0)). destruct x.
+        -- exfalso. sq. move: e.
+           elim: is_erasableb_reflect => // ise' _; sq. specialize X as X'. destruct X' as [].
+           apply happ. eapply Is_type_app in X; tea.
+           eapply typing_wf_local; eauto.
+        -- sq. cbn. eapply nth_error_map_All in H4 as [D Hnth].
+           eapply expanded_tFix.
+           3:{ destruct args; cbn in *; congruence. }
+          { rewrite erase_mfix_eq. solve_all. eapply All_map_All.
+            intros. eapply H0. intros. cbn in H |- *. destruct H.
+            eapply apply_expanded. eapply e1. eauto.
+            2: reflexivity. 2: eauto.
+            rewrite !rev_map_spec. do 2 f_equal. clear. 
+            generalize (erase_obligation_13 Σ Γ mfix idx Hyp0).
+            generalize (fix_context mfix). generalize mfix. clear.
+            intros. induction mfix; cbn; f_equal. eapply IHmfix.
+          }
+           { solve_all.  clear - deps H2. induction H2; econstructor; eauto. eapply p. eauto. }
+           { rewrite erase_mfix_eq. eapply Hnth. }
+           rewrite map_erase_length. cbn. lia.
+      * eapply typing_wf_local; eauto.
+      * cbn; intros; subst. eapply welltyped_mkApps_inv; sq; eauto. 
   - econstructor; eauto.
     solve_all. rewrite erase_mfix_eq.
-    eapply All_map_All. intros. exact H0. intros x y wx [exp' IH].
-    now eapply IH. 
-  - econstructor; eauto.
-    solve_all. rewrite erase_mfix_eq.
-    eapply All_map_All. intros. exact H0. intros x y wx [exp' IH]. now eapply IH.
+    eapply All_map_All. intros. exact H0. intros x y wx [exp' IH]. len. eauto. eauto.
   - simp erase. destruct inspect as [b ise] eqn:hi. destruct b.
     + simp erase. constructor.
     + rewrite -hi -erase_equation_1.
@@ -1879,19 +1935,19 @@ Proof.
            unshelve edestruct @declared_constructor_inv as (? & ? & ?); eauto.
            shelve. eapply weaken_env_prop_typing. 
            2: erewrite <- cstr_args_length; eauto; lia.
-           eapply wfΣ.
+           eapply wf.
            }
            solve_all. clear - deps H2.
            induction H2.
            ++ econstructor.
            ++ econstructor; eauto. eapply p. eauto.
       * eapply typing_wf_local; eauto.
-      * cbn; intros; subst. eapply welltyped_mkApps_inv; sq; eauto. 
+      * cbn; intros; subst. eapply welltyped_mkApps_inv; sq; eauto.
 Qed.
 
 Lemma erase_global_closed Σ deps :
   let Σ' := erase_global deps Σ in
-  ETyping.closed_env Σ'.
+  EGlobalEnv.closed_env Σ'.
 Proof.
   sq.
   unfold erase_global.
@@ -1901,14 +1957,14 @@ Proof.
   revert Σ e deps.
   induction decls; [cbn; auto|].
   intros Σ e deps.
-  destruct Σ.(wf_env_wf).
+  destruct Σ.(referenced_impl_wf).
   destruct a as [kn d].
   destruct d as []; simpl; destruct KernameSet.mem.
   assert (wfs : PCUICTyping.wf {| universes := Σ.(universes); declarations := decls |}).
   { depelim X. rewrite e in o0. depelim o0; now split. }
-  + cbn [ETyping.closed_env forallb]. cbn.
+  + cbn [EGlobalEnv.closed_env forallb]. cbn.
     rewrite [forallb _ _](IHdecls) // andb_true_r.
-    rewrite /test_snd /ETyping.closed_decl /=.
+    rewrite /test_snd /EGlobalEnv.closed_decl /=.
     set (er := erase_global_decls_obligation_1 _ _ _ _ _ _ _).
     set (er' := erase_global_decls_obligation_2 _ _ _ _ _ _ _).
     clearbody er er'.
@@ -1922,9 +1978,8 @@ Proof.
     eapply erases_closed in H => //.
     cbn. destruct (obl _ eq_refl). clear H. now eapply PCUICClosedTyp.subject_closed in X0.
   + eapply IHdecls => //.
-  + cbn [ETyping.closed_env forallb].
-    rewrite {1}/test_snd {1}/ETyping.closed_decl /=.
+  + cbn [EGlobalEnv.closed_env forallb].
+    rewrite {1}/test_snd {1}/EGlobalEnv.closed_decl /=.
     eapply IHdecls => //.
   + eapply IHdecls => //.
 Qed.
-

@@ -37,9 +37,10 @@ Lemma leq_universe_subset {cf:checker_flags} ctrs ctrs' t u
   : ConstraintSet.Subset ctrs ctrs'
     -> leq_universe ctrs t u -> leq_universe ctrs' t u.
 Proof.
-  intros Hctrs H. unfold leq_universe in *.
-  destruct check_univs; [|trivial].
-  intros v Hv. apply H.
+  intros Hctrs.
+  destruct t, u; cbnr; trivial.
+  intros H; unfold_rel_algexp.
+  apply H.
   eapply satisfies_subset; eauto.
 Qed.
 
@@ -47,9 +48,10 @@ Lemma eq_universe_subset {cf:checker_flags} ctrs ctrs' t u
   : ConstraintSet.Subset ctrs ctrs'
     -> eq_universe ctrs t u -> eq_universe ctrs' t u.
 Proof.
-  intros Hctrs H. unfold eq_universe in *.
-  destruct check_univs; [|trivial].
-  intros v Hv. apply H.
+  intros Hctrs.
+  destruct t, u; cbnr; trivial.
+  intros H; unfold_rel_algexp.
+  apply H.
   eapply satisfies_subset; eauto.
 Qed.
 
@@ -145,7 +147,7 @@ Lemma lookup_global_Some_fresh `{checker_flags} Σ c decl :
   lookup_global Σ c = Some decl -> ~ (fresh_global c Σ).
 Proof.
   induction Σ; cbn. 1: congruence.
-  unfold eq_kername; destruct kername_eq_dec; subst.
+  destruct (eqb_spec c a.1); subst.
   - intros [= <-] H2. inv H2.
     contradiction.
   - intros H1 H2. apply IHΣ; tas.
@@ -171,7 +173,7 @@ Proof.
   - simpl. auto.
   - intros hl. depelim hΣ. specialize (IHΣ'' c decl hΣ hl).
     simpl in *.
-    unfold eq_kername; destruct kername_eq_dec; subst; auto.
+    destruct (eqb_spec c kn); subst; auto.
     apply lookup_global_Some_fresh in IHΣ''; contradiction.
 Qed.
 #[global]
@@ -395,17 +397,17 @@ Qed.
 
 Lemma weakening_env_is_allowed_elimination `{CF:checker_flags} Σ Σ' φ u allowed :
   wf Σ' -> extends Σ Σ' ->
-  is_allowed_elimination (global_ext_constraints (Σ, φ)) u allowed ->
-  is_allowed_elimination (global_ext_constraints (Σ', φ)) u allowed.
+  is_allowed_elimination (global_ext_constraints (Σ, φ)) allowed u ->
+  is_allowed_elimination (global_ext_constraints (Σ', φ)) allowed u.
 Proof.
-  intros wfΣ ext al.
-  unfold is_allowed_elimination in *.
-  destruct check_univs; auto.
-  intros val sat.
-  unshelve epose proof (al val _) as al.
-  { eapply satisfies_subset; eauto.
-    apply global_ext_constraints_app, ext. }
-  destruct allowed; auto; cbn in *; destruct ?; auto.
+  destruct allowed; cbnr; trivial.
+  intros wfΣ ext [ | al]; auto.
+  destruct u; cbn in *; try elim al.
+  right.
+  unfold_rel_algexp.
+  apply al.
+  eapply satisfies_subset; eauto.
+  apply global_ext_constraints_app, ext.
 Qed.
 
 #[global]
@@ -550,7 +552,7 @@ Proof.
   destruct Σ as [univs Σ]; cbn in *.
   induction wfΣ; simpl. 1: discriminate.
   cbn in HH. subst udecl.
-  unfold eq_kername in HH; destruct kername_eq_dec; subst.
+  destruct (eqb_spec c kn); subst.
   - apply some_inj in HH; destruct HH. subst.
     clear -o. unfold on_udecl, on_udecl_prop in *.
     destruct o as [H1 [H2 [H3 H4]]]. repeat split.

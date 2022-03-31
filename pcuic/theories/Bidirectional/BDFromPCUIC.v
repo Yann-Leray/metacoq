@@ -11,24 +11,16 @@ Implicit Types (cf : checker_flags) (Σ : global_env_ext).
 
 (** Preliminary lemmata missing from MetaCoq *)
 Lemma is_allowed_elimination_monotone `{checker_flags} Σ s1 s2 allowed :
-  leq_universe Σ s1 s2 -> is_allowed_elimination Σ s2 allowed -> is_allowed_elimination Σ s1 allowed.
+  leq_universe Σ s1 s2 -> is_allowed_elimination Σ allowed s2 -> is_allowed_elimination Σ allowed s1.
 Proof.
-  intros le elim.
-  unfold is_allowed_elimination in elim |- *.
-  red in le.
-  destruct check_univs ; auto.
-  unfold is_allowed_elimination0 in elim |- *.
-  intros v satisf.
-  specialize (le v satisf).
-  specialize (elim v satisf).
-  destruct allowed ; auto.
-  all: destruct (⟦s1⟧_v)%u.
-  all: destruct (⟦s2⟧_v)%u.
-  all: auto.
-  all: red in le ; auto.
-  rewrite Z.sub_0_r in le.
-  apply Nat2Z.inj_le in le.
-  destruct le ; auto.
+  destruct allowed, s2; cbnr; trivial;
+  destruct s1; cbnr; intros H1 H2; trivial; try now destruct H1.
+  { now left. }
+  destruct H2 as [|H2]; [now left|right].
+  unfold_rel_algexp.
+  specialize (H1 v Hv); specialize (H2 v Hv).
+  cbn in H2.
+  lia.
 Qed.
 
 Lemma ctx_inst_length {ty Σ Γ args Δ} :
@@ -131,15 +123,13 @@ Proof.
       apply conv_infer_sort in p ; auto.
       destruct p as (s' & ? & ?).
       eexists.
-      split; [erewrite leq_relevance; [apply e| |]|]; eauto.
-      { admit. }
+      split; [erewrite leq_relevance|]; eauto.
     + destruct tu as [s [e Hs]].
       apply conv_check in p ; auto.
       apply conv_infer_sort in p0 ; auto.
       destruct p0 as (?&?&?).
       eexists.
-      split; [erewrite leq_relevance; [apply e | |]|]; eauto.
-      { admit. }
+      split; [erewrite leq_relevance|]; eauto.
     + by apply conv_check in p.
       
   - intros.
@@ -163,10 +153,8 @@ Proof.
     destruct CumB as (?&?&?).
     eexists.
     split.
-    + constructor.
-      2,3: eauto.
-      erewrite leq_relevance; [apply e | |]; eauto.
-      { admit. }
+    + constructor. 2,3: eauto.
+      now erewrite leq_relevance.
     + constructor ; cbn ; auto.
       1: by apply wf_local_closed_context.
       constructor.
@@ -179,8 +167,7 @@ Proof.
     eexists.
     split.
     + econstructor. 2,3: eassumption.
-      erewrite leq_relevance; [apply e| |]; eauto.
-      { admit. }
+      now erewrite leq_relevance.
     + apply ws_cumul_pb_Prod ; auto.
       eapply isType_ws_cumul_pb_refl.
       by eexists ; eauto.
@@ -193,8 +180,7 @@ Proof.
     split.
     + econstructor.
       2-4: eassumption.
-      erewrite leq_relevance; [apply e| |]; eauto.
-      { admit. }
+      now erewrite leq_relevance.
     + apply ws_cumul_pb_LetIn_bo.
       eassumption.
 
@@ -368,10 +354,8 @@ Proof.
     + apply (All_impl Alltypes).
       intros ? [s [[e Hs] r]].
       apply conv_infer_sort in r as [s' []] ; auto.
-      eexists; split.
-      erewrite leq_relevance; [apply e| |]; eauto.
-      { admit. }      
-      eauto.
+      eexists.
+      split; [erewrite leq_relevance|]; eauto.
     + apply (All_impl Allbodies).
       intros ? [? s].
       by apply conv_check in s ; auto.
@@ -388,10 +372,8 @@ Proof.
     + apply (All_impl Alltypes).
       intros ? [? [[? ?] s]].
       apply conv_infer_sort in s as [? []] ; auto.
-      eexists; split.
-      erewrite leq_relevance; [apply e| |]; eauto.
-      { admit. }
-      eauto.
+      eexists.
+      split; [erewrite leq_relevance|]; eauto.
     + apply (All_impl Allbodies).
       intros ? [? s].
       by apply conv_check in s ; auto.
@@ -439,13 +421,12 @@ Proof.
   now eexists.
 Qed.
 
-Lemma isTypeRel_infering_sort `{checker_flags} {Σ : global_env_ext} {wfΣ : wf_ext Σ} {Γ t r} :
+Lemma isTypeRel_infering_sort `{checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ t r} :
   isTypeRel Σ Γ t r -> ∑ u', relevance_of_sort u' = r × Σ ;;; Γ |- t ▹□ u'.
 Proof.
   intros [s [e ty]].
   eapply typing_infering_sort in ty as [s' []]; tea.
-  exists s'; split; [|auto].
-  erewrite leq_relevance; [apply e| |]; eauto.
+  exists s'; split; [erewrite leq_relevance|]; eauto.
 Qed.
 
 Lemma typing_infer_prod `{checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ t na A B} :
@@ -478,7 +459,7 @@ Proof.
   now eapply type_Prop_wf.
 Qed.
 
-Lemma wf_local_rel_wf_local_bd `{checker_flags} {Σ} (wfΣ : wf_ext Σ) {Γ Γ'} :
+Lemma wf_local_rel_wf_local_bd `{checker_flags} {Σ} (wfΣ : wf Σ) {Γ Γ'} :
   wf_local_rel Σ Γ Γ' ->
   wf_local_bd_rel Σ Γ Γ'.
 Proof.

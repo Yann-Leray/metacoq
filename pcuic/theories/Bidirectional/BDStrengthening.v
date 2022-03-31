@@ -390,14 +390,14 @@ Section OnFreeVars.
     - easy.
     - easy.
     - intros until bty.
-      move => _ _ _ Hbty ? ? /= /andP [] ? ?.
+      move => _ _ _ _ Hbty ? ? /= /andP [] ? ?.
       apply /andP ; split ; tea.
       apply Hbty ; tea.
       rewrite on_ctx_free_vars_snoc.
       apply /andP ; split ; tea.
 
     - intros until A.
-      move => _ _ _ _ _ Ht ? ? /= /andP [] ? /andP [] ? ?.
+      move => _ _ _ _ _ _ Ht ? ? /= /andP [] ? /andP [] ? ?.
       repeat (apply /andP ; split ; tea).
       apply Ht ; tea.
       rewrite on_ctx_free_vars_snoc.
@@ -618,8 +618,10 @@ Proof.
     induction hΓ.
     + constructor.
     + constructor ; tea.
+      destruct tu as (s' & e & H).
       eexists ; eauto.
     + constructor ; tea.
+      destruct tu as (s' & e & H).
       eexists ; eauto.
 
   - intros Γ Γ' wfΓ' allΓ'. red. move => P Δ f hf hΓ hΓ'.
@@ -630,7 +632,9 @@ Proof.
       move: hΓ' => /andP [] ? ?.
       constructor ; eauto.
       1: by eapply IHallΓ' ; eauto.
+      destruct tu as (s' & e & H).
       eexists.
+      split; [apply e|].
       eapply s.
       * eapply urenaming_context ; tea.
       * rewrite on_ctx_free_vars_concat.
@@ -642,7 +646,9 @@ Proof.
       move: hΓ' => /andP [] ? /andP /= [] ? ?.
       constructor ; eauto.
       * by eapply IHallΓ' ; eauto.
-      * eexists.
+      * destruct tu as (s' & e & H).
+        eexists.
+        split; [apply e|].
         eapply s.
         1: eapply urenaming_context ; tea.
         2: eauto.
@@ -816,9 +822,10 @@ Proof.
     + by rewrite nth_error_map H0 /=.
     + eapply All_mix in X ; tea.
       eapply All_map, All_impl ; tea.
-      move => ? [] /andP [] ? ? [] ? [] ? p.
+      move => ? [] /andP [] ? ? [] ? [] [e Hs] p.
       rewrite -map_dtype.
       eexists.
+      split; [apply e|].
       eapply p ; tea.
     + eapply All_mix in X0 ; tea.
       eapply All_map, All_impl ; tea.
@@ -840,9 +847,10 @@ Proof.
     + by rewrite nth_error_map H0 /=.
     + eapply All_mix in X ; tea.
       eapply All_map, All_impl ; tea.
-      move => ? [] /andP [] ? ? [] ? [] ? p.
+      move => ? [] /andP [] ? ? [] ? [] [e Hs] p.
       rewrite -map_dtype.
       eexists.
+      split; [apply e|].
       eapply p ; tea.
     + eapply All_mix in X0 ; tea.
       eapply All_map, All_impl ; tea.

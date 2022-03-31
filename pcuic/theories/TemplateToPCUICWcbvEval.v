@@ -487,7 +487,7 @@ Proof.
     eapply WfAst.wf_mkApps => //.
     eapply wf_csubst; eauto.
     specialize (IHev1 f'). now wf_inv IHev1 [].
-  - wf_inv wf [[hb0 ht] hb1]. eapply IHev2.
+  - wf_inv wf [[[hna hb0] ht] hb1]. eapply IHev2.
     eapply wf_csubst; eauto. 
   - wf_inv wf a. eapply IHev.
     eapply WfAst.wf_subst_instance.
@@ -500,19 +500,24 @@ Proof.
     wf_inv wf [mdecl' [idecl' []]].
     destruct (declared_inductive_inj d (proj1 H0)). subst mdecl' idecl'.
     rewrite /Typing.iota_red. 
-    eapply All2_nth_error in a1; tea.
+    eapply All2_nth_error in a0 as []; tea.
     2:{ apply H0. }
     eapply WfAst.wf_subst. 
     * eapply All_rev, All_skipn.
-      specialize (IHev1 w0).
+      specialize (IHev1 w1).
       now wf_inv IHev1 [].
     * eapply wf_expand_lets => //.
       rewrite /bctx.
       eapply (wf_case_branch_context_gen (ind:=(ci.(ci_ind), c))); tea.
       now eapply typing_wf_sigma.
-      eapply declared_inductive_wf_ctors.
-      now eapply on_global_wf_Forall_decls, typing_wf_sigma.
-      apply H0. apply a1.
+      eapply wf_decl_nactx_na; [|eauto].
+      eapply wf_cstr_branch_context; eauto.
+      apply typing_wf_sigma; tea.
+      eapply (All_nth_error _ (fun ctor => All _ (Ast.Env.cstr_args ctor))).
+      2: apply H0.
+      all: eapply declared_inductive_wf_ctors.
+      1,3: now eapply on_global_wf_Forall_decls, typing_wf_sigma.
+      1,2: apply H0.
 
   - apply IHev2.
     wf_inv wf H. specialize (IHev1 wf).
@@ -540,8 +545,8 @@ Proof.
   - wf_inv wf [mdecl' [idecl' []]].
     eapply IHev2.
     econstructor; tea.
-    eapply IHev1 in w0.
-    wf_inv w0 [hfix hargs].
+    eapply IHev1 in w1.
+    wf_inv w1 [hfix hargs].
     eapply WfAst.wf_mkApps => //.
     eapply wf_cunfold_cofix; tea. now depelim hfix.
 
@@ -588,7 +593,7 @@ Proof.
     pose proof (eval_beta _ _ _ _ _ _ _ _ IHev1 IHev2 evf').
     eapply eval_mkApps; tea.
       
-  - wf_inv wf [[hb0 ht] hb1].
+  - wf_inv wf [[[hbna hb0] ht] hb1].
     forward IHev1 by auto.
     pose proof (eval_wf hb0 ev1).
     forward IHev2. { eapply wf_csubst; eauto. }
@@ -610,16 +615,16 @@ Proof.
     eapply forall_decls_declared_inductive in decli; tea.
     rewrite trans_lookup_inductive.
     rewrite (declared_inductive_lookup _ decli).
-    eapply All2_nth_error in a1; tea. 2:eapply H0.
+    eapply All2_nth_error in a0; tea. 2:eapply H0.
     epose proof (forall_decls_declared_constructor _ _ _ _ _ _ _ H0) as decl'; tea.
-    destruct a1.
+    destruct a0.
     econstructor; tea.
     rewrite trans_mkApps in IHev1. eapply IHev1 => //.
     erewrite (nth_error_map2 _ _ _ _ _ _ (proj2 decl')).
     reflexivity.
     rewrite nth_error_map H /=. reflexivity.
     len. rewrite H1.
-    { eapply All2_length in a1. len in a1.
+    { eapply All2_length in w2. len in w2.
       rewrite /bctx case_branch_context_assumptions //.
       rewrite /trans_branch /=.
       rewrite map2_map2_bias_left. len.
@@ -635,11 +640,20 @@ Proof.
         rewrite /bctx.
         eapply (wf_case_branch_context_gen (ind:=(ci.(ci_ind), c))); tea.
         now eapply typing_wf_sigma.
+        eapply wf_decl_nactx_na; [|eauto].
+        eapply wf_cstr_branch_context; eauto.
+        apply typing_wf_sigma; tea.
+        apply H0.
+        eapply (All_nth_error _ (fun ctor => All _ (Ast.Env.cstr_args ctor))).
+        2: apply H0.
+        eapply declared_inductive_wf_ctors.
+        now eapply on_global_wf_Forall_decls, typing_wf_sigma.
+        apply H0.  
         eapply declared_inductive_wf_ctors.
         now eapply on_global_wf_Forall_decls, typing_wf_sigma.
         apply H0. }
     rewrite (trans_iota_red Σ ci.(ci_ind) mdecl idecl) in IHev2.
-    { eapply All2_length in a1. len in a1. }
+    { eapply All2_length in w2. len in w2. }
     apply IHev2.
 
   - wf_inv wf hdiscr.
@@ -707,10 +721,10 @@ Proof.
     pose proof (forall_decls_declared_inductive _ _ _ _ _ _ decli) as decli';  tea.
     rewrite trans_lookup_inductive.
     rewrite (declared_inductive_lookup _ decli').
-    assert (w1 : WfAst.wf Σ (Ast.mkApps (Ast.tCoFix mfix idx) args))
+    assert (w2 : WfAst.wf Σ (Ast.mkApps (Ast.tCoFix mfix idx) args))
       by (eapply eval_wf; eauto).
-    eapply WfAst.wf_mkApps_napp in w1 as []; [|easy].
-    wf_inv w1 x. 
+    eapply WfAst.wf_mkApps_napp in w2 as []; [|easy].
+    wf_inv w2 x. 
     eapply eval_cofix_case.
     eapply trans_cunfold_cofix; tea. 
     rewrite trans_mkApps in IHev1.  eapply IHev1. eauto.

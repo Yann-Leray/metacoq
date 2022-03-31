@@ -40,16 +40,16 @@ Definition type_of_constructor mdecl (cdecl : constructor_body) (c : inductive *
 Definition extends (Σ Σ' : global_env) :=
   Σ.(universes) ⊂_cs Σ'.(universes) ×
   { Σ'' & Σ'.(declarations) = Σ'' ++ Σ.(declarations) }.
-  
+
 (** ** Typing relation *)
 
 Include PCUICEnvTyping.
 
 (* AXIOM Postulate existence of a guard condition checker *)
 
-Inductive FixCoFix : Type := Fix | CoFix. 
+Inductive FixCoFix : Type := Fix | CoFix.
 
-Class GuardChecker := 
+Class GuardChecker :=
 { (* guard check for both fixpoints (Fix) and cofixpoints (CoFix)  *)
   guard : FixCoFix -> global_env_ext -> context -> mfixpoint term -> Prop ;
 }.
@@ -58,8 +58,8 @@ Axiom guard_checking : GuardChecker.
 #[global]
 Existing Instance guard_checking.
 
-Definition fix_guard := guard Fix. 
-Definition cofix_guard := guard CoFix. 
+Definition fix_guard := guard Fix.
+Definition cofix_guard := guard CoFix.
 
 Definition destInd (t : term) :=
   match t with
@@ -79,10 +79,10 @@ Definition isCoFinite (r : recursivity_kind) :=
   | _ => false
   end.
 
-Definition check_recursivity_kind 
+Definition check_recursivity_kind
   (lookup: kername -> option global_decl) ind r :=
   match lookup ind with
-  | Some (InductiveDecl mib) => Reflect.eqb mib.(ind_finite) r
+  | Some (InductiveDecl mib) => ReflectEq.eqb mib.(ind_finite) r
   | _ => false
   end.
 
@@ -109,7 +109,7 @@ Definition wf_fixpoint_gen
   | Some (ind :: inds) =>
     (* Check that mutually recursive fixpoints are all on the same mututal
        inductive block *)
-    forallb (Reflect.eqb ind) inds &&
+    forallb (eqb ind) inds &&
     check_recursivity_kind lookup ind Finite
   | _ => false
   end.
@@ -135,19 +135,19 @@ Definition wf_cofixpoint_gen
   | Some (ind :: inds) =>
     (* Check that mutually recursive cofixpoints are all producing
        coinductives in the same mututal coinductive block *)
-    forallb (Reflect.eqb ind) inds &&
+    forallb (eqb ind) inds &&
     check_recursivity_kind lookup ind CoFinite
   | _ => false
   end.
 
-  
+
 Definition wf_cofixpoint (Σ : global_env) := wf_cofixpoint_gen (lookup_env Σ).
 
-Definition wf_universe Σ s := 
+Definition wf_universe Σ s :=
   match s with
-  | Universe.lProp 
+  | Universe.lProp
   | Universe.lSProp => True
-  | Universe.lType u => 
+  | Universe.lType u =>
     forall l, UnivExprSet.In l u -> LevelSet.In (UnivExpr.get_level l) (global_ext_levels Σ)
   end.
 
@@ -161,10 +161,10 @@ Variant case_side_conditions `{checker_flags} wf_local_fun typing Σ Γ ci p ps 
     (wf_pred : wf_predicate mdecl idecl p)
     (cons : consistent_instance_ext Σ (ind_universes mdecl) p.(puinst))
     (wf_pctx : wf_local_fun Σ (Γ ,,, predctx))
-    (* The predicate context is fixed, it is only used as a cache for information from the 
+    (* The predicate context is fixed, it is only used as a cache for information from the
       global environment *)
     (conv_pctx : eq_context_upto_names p.(pcontext) (ind_predicate_context ci.(ci_ind) mdecl idecl))
-    (allowed_elim : is_allowed_elimination Σ ps idecl.(ind_kelim))
+    (allowed_elim : is_allowed_elimination Σ idecl.(ind_kelim) ps)
     (ind_inst : ctx_inst typing Σ Γ (p.(pparams) ++ indices)
                          (List.rev (subst_instance p.(puinst)
                                                    (ind_params mdecl ,,, ind_indices idecl))))
@@ -175,7 +175,7 @@ Variant case_branch_typing `{checker_flags} wf_local_fun typing Σ Γ (ci:case_i
     (wf_brs : wf_branches idecl brs)
     (brs_ty :
        All2i (fun i cdecl br =>
-        (* Also a cache, brctxty is built from br.(bcontext) by substituting in the 
+        (* Also a cache, brctxty is built from br.(bcontext) by substituting in the
            parameters and universe instance  *)
                 eq_context_upto_names br.(bcontext) (cstr_branch_context ci mdecl cdecl) ×
                 let brctxty := case_branch_type ci.(ci_ind) mdecl idecl p br ptm i cdecl in
@@ -215,14 +215,14 @@ Inductive typing `{checker_flags} (Σ : global_env_ext) (Γ : context) : term ->
     Σ ;;; Γ |- tLetIn na b B t : tLetIn na b B A
 
 | type_App : forall t na A B s u,
-    (* Paranoid assumption, allows to show equivalence with template-coq, 
+    (* Paranoid assumption, allows to show equivalence with template-coq,
        but eventually unnecessary thanks to validity. *)
     Σ ;;; Γ |- tProd na A B : tSort s ->
     Σ ;;; Γ |- t : tProd na A B ->
     Σ ;;; Γ |- u : A ->
     Σ ;;; Γ |- tApp t u : B{0 := u}
 
-| type_Const : forall cst u decl, 
+| type_Const : forall cst u decl,
     wf_local Σ Γ ->
     declared_constant Σ cst decl ->
     consistent_instance_ext Σ decl.(cst_universes) u ->
@@ -234,7 +234,7 @@ Inductive typing `{checker_flags} (Σ : global_env_ext) (Γ : context) : term ->
     consistent_instance_ext Σ mdecl.(ind_universes) u ->
     Σ ;;; Γ |- tInd ind u : idecl.(ind_type)@[u]
 
-| type_Construct : forall ind i u mdecl idecl cdecl, 
+| type_Construct : forall ind i u mdecl idecl cdecl,
     wf_local Σ Γ ->
     declared_constructor Σ (ind, i) mdecl idecl cdecl ->
     consistent_instance_ext Σ mdecl.(ind_universes) u ->
@@ -246,9 +246,9 @@ Inductive typing `{checker_flags} (Σ : global_env_ext) (Γ : context) : term ->
     declared_inductive Σ ci.(ci_ind) mdecl idecl ->
     Σ ;;; Γ ,,, predctx |- p.(preturn) : tSort ps ->
     Σ ;;; Γ |- c : mkApps (tInd ci.(ci_ind) p.(puinst)) (p.(pparams) ++ indices) ->
-    case_side_conditions (fun Σ Γ => wf_local Σ Γ) typing Σ Γ ci p ps 
+    case_side_conditions (fun Σ Γ => wf_local Σ Γ) typing Σ Γ ci p ps
                          mdecl idecl indices predctx  ->
-    case_branch_typing (fun Σ Γ => wf_local Σ Γ) typing Σ Γ ci p ps 
+    case_branch_typing (fun Σ Γ => wf_local Σ Γ) typing Σ Γ ci p ps
                         mdecl idecl ptm brs ->
     Σ ;;; Γ |- tCase ci p c brs : mkApps ptm (indices ++ [c])
 
@@ -264,10 +264,10 @@ Inductive typing `{checker_flags} (Σ : global_env_ext) (Γ : context) : term ->
     nth_error mfix n = Some decl ->
     All (fun d => {s & relevance_of_sort s = d.(dname).(binder_relevance) × Σ ;;; Γ |- d.(dtype) : tSort s}) mfix ->
     All (fun d => (Σ ;;; Γ ,,, fix_context mfix |- d.(dbody) : lift0 #|fix_context mfix| d.(dtype))) mfix ->
-    wf_fixpoint Σ mfix -> 
+    wf_fixpoint Σ mfix ->
     Σ ;;; Γ |- tFix mfix n : decl.(dtype)
-  
-| type_CoFix : forall mfix n decl, 
+
+| type_CoFix : forall mfix n decl,
     wf_local Σ Γ ->
     cofix_guard Σ Γ mfix ->
     nth_error mfix n = Some decl ->
@@ -275,11 +275,11 @@ Inductive typing `{checker_flags} (Σ : global_env_ext) (Γ : context) : term ->
     All (fun d => Σ ;;; Γ ,,, fix_context mfix |- d.(dbody) : lift0 #|fix_context mfix| d.(dtype)) mfix ->
     wf_cofixpoint Σ mfix ->
     Σ ;;; Γ |- tCoFix mfix n : decl.(dtype)
-  
-| type_Cumul : forall t A B s, 
-    Σ ;;; Γ |- t : A -> 
+
+| type_Cumul : forall t A B s,
+    Σ ;;; Γ |- t : A ->
     Σ ;;; Γ |- B : tSort s ->
-    Σ ;;; Γ |- A <=s B -> 
+    Σ ;;; Γ |- A <=s B ->
     Σ ;;; Γ |- t : B
 
 where " Σ ;;; Γ |- t : T " := (typing Σ Γ t T)
@@ -323,7 +323,7 @@ Module PCUICTypingDef <: EnvironmentTyping.Typing PCUICTerm PCUICEnvironment PCU
 
   Definition typing := @typing.
   Definition wf_universe := @wf_universe.
-  Definition inds := inds. 
+  Definition inds := inds.
   Definition destArity := destArity [].
 End PCUICTypingDef.
 
@@ -340,7 +340,7 @@ Include PCUICDeclarationTyping.
 
 Definition isWfArity {cf:checker_flags} Σ (Γ : context) T :=
   (isType Σ Γ T × { ctx & { s & (destArity [] T = Some (ctx, s)) } }).
-  
+
 Definition tybranches {cf} Σ Γ ci mdecl idecl p ps ptm n ctors brs :=
   All2i
   (fun (i : nat) (cdecl : constructor_body) (br : branch term) =>
@@ -354,8 +354,8 @@ Definition branches_size {cf} {Σ Γ ci mdecl idecl p ps ptm brs}
    (typing_size : forall Σ Γ t T, Σ ;;; Γ |- t : T -> size)
   {n ctors}
   (a : tybranches Σ Γ ci mdecl idecl p ps ptm n ctors brs) : size :=
-  (all2i_size _ (fun i x y p => 
-    Nat.max 
+  (all2i_size _ (fun i x y p =>
+    Nat.max
       (wf_local_size _ typing_size _ p.2.1)
       (Nat.max (typing_size _ _ _ _ p.2.2.1) (typing_size _ _ _ _ p.2.2.2))) a).
 
@@ -425,7 +425,7 @@ Definition globenv_size (Σ : global_env) : size :=
 
 Arguments lexprod [A B].
 
-(** We make these well-formedness conditions type-classes as they are genrally 
+(** We make these well-formedness conditions type-classes as they are genrally
     globally available. *)
 Definition wf `{checker_flags} := Forall_decls_typing typing.
 Existing Class wf.
@@ -468,7 +468,7 @@ Defined.
 Hint Extern 4 (wf_local _ ?Γ) =>
   match goal with
   | [ H : typing _ _ _ _ |- _ ] => exact (typing_wf_local H)
-  | [ H : PCUICTypingDef.typing _ _ _ _ _ |- _ ] => exact (typing_wf_local H)  
+  | [ H : PCUICTypingDef.typing _ _ _ _ _ |- _ ] => exact (typing_wf_local H)
   end : pcuic.
 
 #[global]
@@ -476,7 +476,7 @@ Hint Resolve typing_wf_local : wf.
 
 Definition env_prop `{checker_flags} (P : forall Σ Γ t T, Type) (PΓ : forall Σ Γ, Type) :=
   forall Σ (wfΣ : wf Σ.1) Γ t T (ty : Σ ;;; Γ |- t : T),
-    Forall_decls_typing P Σ.1 * 
+    Forall_decls_typing P Σ.1 *
     (PΓ Σ Γ * P Σ Γ t T).
 
 Lemma env_prop_typing `{checker_flags} {P PΓ} : env_prop P PΓ ->
@@ -485,7 +485,7 @@ Lemma env_prop_typing `{checker_flags} {P PΓ} : env_prop P PΓ ->
 Proof. intros. now apply X. Qed.
 
 Lemma type_Prop_wf `{checker_flags} Σ Γ : wf_local Σ Γ -> Σ ;;; Γ |- tSort Universe.lProp : tSort Universe.type1.
-Proof. 
+Proof.
   repeat constructor; auto.
 Defined.
 
@@ -508,7 +508,7 @@ Proof.
   apply type_Prop.
 Defined.
 
-Lemma type_Cumul' {cf:checker_flags} {Σ Γ t} T {T'} : 
+Lemma type_Cumul' {cf:checker_flags} {Σ Γ t} T {T'} :
   Σ ;;; Γ |- t : T ->
   isType Σ Γ T' ->
   Σ ;;; Γ |- T <=s T' ->
@@ -578,9 +578,9 @@ Qed.
 
 (** *** An induction principle ensuring the Σ declarations enjoy the same properties.
     Also theads the well-formedness of the local context and the induction principle for it,
-    and gives the right induction hypothesis on typing judgments in application spines, 
+    and gives the right induction hypothesis on typing judgments in application spines,
     fix and cofix blocks. This general version allows to get the induction hypothesis on
-    any subderivation of the head of applications. 
+    any subderivation of the head of applications.
 
     The specialized version `typing_ind_env` below is the one used in general, with
     no special case for applications.
@@ -591,7 +591,7 @@ Lemma typing_ind_env_app_size `{cf : checker_flags} :
         (Pdecl := fun Σ Γ wfΓ t T tyT => P Σ Γ t T)
         (PΓ : global_env_ext -> context -> Type),
 
-   (forall Σ (wfΣ : wf Σ.1)  (Γ : context) (wfΓ : wf_local Σ Γ), 
+   (forall Σ (wfΣ : wf Σ.1)  (Γ : context) (wfΓ : wf_local Σ Γ),
         All_local_env_over typing Pdecl Σ Γ wfΓ -> PΓ Σ Γ) ->
 
    (forall Σ (wfΣ : wf Σ.1) (Γ : context) (wfΓ : wf_local Σ Γ) (n : nat) decl,
@@ -663,10 +663,10 @@ Lemma typing_ind_env_app_size `{cf : checker_flags} :
        consistent_instance_ext Σ mdecl.(ind_universes) u ->
        P Σ Γ (tConstruct ind i u) (type_of_constructor mdecl cdecl (ind, i) u)) ->
 
-     (forall (Σ : global_env_ext) (wfΣ : wf Σ) (Γ : context) (wfΓ : wf_local Σ Γ),     
+     (forall (Σ : global_env_ext) (wfΣ : wf Σ) (Γ : context) (wfΓ : wf_local Σ Γ),
       forall (ci : case_info) p c brs indices ps mdecl idecl
         (isdecl : declared_inductive Σ.1 ci.(ci_ind) mdecl idecl),
-        Forall_decls_typing P Σ.1 -> 
+        Forall_decls_typing P Σ.1 ->
         PΓ Σ Γ ->
         mdecl.(ind_npars) = ci.(ci_npar) ->
         eq_context_upto_names p.(pcontext) (ind_predicate_context ci.(ci_ind) mdecl idecl) ->
@@ -677,10 +677,10 @@ Lemma typing_ind_env_app_size `{cf : checker_flags} :
         forall pret : Σ ;;; Γ ,,, predctx |- p.(preturn) : tSort ps,
         P Σ (Γ ,,, predctx) p.(preturn) (tSort ps) ->
         PΓ Σ (Γ ,,, predctx) ->
-        is_allowed_elimination Σ ps idecl.(ind_kelim) ->
+        is_allowed_elimination Σ idecl.(ind_kelim) ps ->
         ctx_inst typing Σ Γ (p.(pparams) ++ indices)
           (List.rev (subst_instance p.(puinst) (mdecl.(ind_params) ,,, idecl.(ind_indices)))) ->
-        ctx_inst P Σ Γ (p.(pparams) ++ indices) 
+        ctx_inst P Σ Γ (p.(pparams) ++ indices)
           (List.rev (subst_instance p.(puinst) (mdecl.(ind_params) ,,, idecl.(ind_indices)))) ->
         Σ ;;; Γ |- c : mkApps (tInd ci.(ci_ind) p.(puinst)) (p.(pparams) ++ indices) ->
         P Σ Γ c (mkApps (tInd ci.(ci_ind) p.(puinst)) (p.(pparams) ++ indices)) ->
@@ -720,7 +720,7 @@ Lemma typing_ind_env_app_size `{cf : checker_flags} :
        let types := fix_context mfix in
        cofix_guard Σ Γ mfix ->
        nth_error mfix n = Some decl ->
-       PΓ Σ (Γ ,,, types) ->       
+       PΓ Σ (Γ ,,, types) ->
        All (fun d => {s & (relevance_of_sort s = binder_relevance (dname d) × Σ ;;; Γ |- d.(dtype) : tSort s)%type * P Σ Γ d.(dtype) (tSort s)})%type mfix ->
        All (fun d => (Σ ;;; Γ ,,, types |- d.(dbody) : lift0 #|types| d.(dtype))%type *
            P Σ (Γ ,,, types) d.(dbody) (lift0 #|types| d.(dtype)))%type mfix ->
@@ -742,7 +742,7 @@ Proof.
   intros XΓ X X0 X1 X2 X3 X4 X5 X6 X7 X8 X9 X10 X11 X12 Σ wfΣ Γ t T H.
   (* NOTE (Danil): while porting to 8.9, I had to split original "pose" into 2 pieces,
     otherwise it takes forever to execure the "pose", for some reason *)
-  pose proof (@Fix_F { Σ : _ & { wfΣ : wf Σ.1 & { Γ : context & 
+  pose proof (@Fix_F { Σ : _ & { wfΣ : wf Σ.1 & { Γ : context &
                           { t : term & { T : term & Σ ;;; Γ |- t : T }}}}}) as p0.
 
   specialize (p0 (PCUICUtils.dlexprod (precompose lt (fun Σ => globenv_size (fst Σ)))
@@ -764,7 +764,7 @@ Proof.
   intros IH. simpl in IH.
   split.
   - clear X X0 X1 X2 X3 X4 X5 X6 X7 X8 X9 X10 X11 X12.
-    destruct Σ as [Σ φ]. 
+    destruct Σ as [Σ φ].
     red. cbn. do 2 red in wfΣ. cbn in wfΣ.
     destruct Σ as [univs Σ]; cbn in *.
     set (Σg:= {| universes := univs; declarations := Σ |}) in *.
@@ -776,7 +776,7 @@ Proof.
     set (wfΣ := (ongu, o) : on_global_env (lift_typing typing) {| universes := univs; declarations := Σ |}).
     set (Σ':= {| universes := univs; declarations := Σ |}) in *.
     constructor; auto.
-    * simple refine (let IH' := IH ((Σ', udecl); 
+    * simple refine (let IH' := IH ((Σ', udecl);
       (wfΣ; []; (tSort Universe.lProp); _; _)) in _).
       shelve. simpl. apply type_Prop.
       forward IH'. constructor 1; cbn. lia.
@@ -866,7 +866,7 @@ Proof.
       simpl in IH.
       forward IH.
       constructor 2. simpl. apply H0.
-      split; apply IH. } 
+      split; apply IH. }
     rename X13 into X14.
 
     assert (Hdecls: typing_size H > 1 -> Forall_decls_typing P Σ.1).
@@ -890,13 +890,13 @@ Proof.
       PΓ Σ Γ').
     { intros. eapply (Hwf _ (typing_wf_local Hty)); auto.
       pose proof (typing_wf_local_size Hty). lia. }
-      
+
     clear IH.
     assert (pΓ : PΓ Σ Γ).
     { apply (Htywf _ _ _ H). lia. }
     split; auto.
     set (wfΓ := typing_wf_local H); clearbody wfΓ.
-    
+
     destruct H; simpl in pΓ;
       try solve [  match reverse goal with
                       H : _ |- _ => eapply H
@@ -913,10 +913,10 @@ Proof.
           end; eauto. all:try unshelve eapply X14; simpl; auto; try lia.
         exact H. 2:exact H0. 1-2:lia.
         simpl. instantiate (1:= H). instantiate (1:=H0).
-        intros. 
+        intros.
         eapply X14. instantiate (1 := Ht').
         simpl. lia.
-        
+
     -- match reverse goal with
         H : _ |- _ => eapply H
         end; eauto.
@@ -927,7 +927,7 @@ Proof.
 
     -- eapply X7; eauto. apply Hdecls; simpl; lia.
 
-    -- simpl in pΓ. destruct c0, c1. 
+    -- simpl in pΓ. destruct c0, c1.
        eapply (X8 Σ wfΣ Γ (typing_wf_local H0) ci); eauto.
         ++ eapply (X14 _ _ _ H); eauto. rewrite /predctx; simpl; lia.
         ++ eapply (X14 _ _ _ H); eauto. rewrite /predctx; simpl; lia.
@@ -954,11 +954,11 @@ Proof.
 
         ++ eapply (X14 _ _ _ H0); simpl. lia.
         ++ clear Hdecls. simpl in Hwf, Htywf, X14.
-          clear -Hwf Htywf X14. 
+          clear -Hwf Htywf X14.
           subst ptm predctx; induction brs_ty.
           ** constructor.
           ** destruct r0 as [eq [wfcbc [t t0]]]. constructor.
-              --- split; auto. intros brctxty. 
+              --- split; auto. intros brctxty.
                   repeat split.
                   +++ eapply (Hwf _ wfcbc); eauto. simpl.
                     change (fun (x : global_env_ext) (x0 : context) (x1 x2 : term)
@@ -1022,10 +1022,10 @@ Proof.
           remember (fix_context mfix) as mfixcontext. clear Heqmfixcontext.
 
           induction a1; econstructor; eauto.
-          ++ split; auto. 
+          ++ split; auto.
             eapply (X _ (typing_wf_local p) _ _ p). simpl. lia.
           ++ eapply IHa1. intros.
-            eapply (X _ X0 _ _ Hty). simpl; lia.       
+            eapply (X _ X0 _ _ Hty). simpl; lia.
 
     -- clear X X0 X1 X2 X3 X4 X5 X6 X7 X8 X9 X10 X12.
         eapply X11; eauto; clear X11. simpl in *.
@@ -1037,7 +1037,7 @@ Proof.
           {intros. eapply (Htywf _ _ _ Hty); eauto. lia. }
           destruct mfix. now rewrite nth_error_nil in e.
           depelim a1.
-          eapply (X _ _ _ t). simpl. lia.        
+          eapply (X _ _ _ t). simpl. lia.
         * assert(forall (t T : term) (Hty : Σ;;; Γ |- t : T),
                   typing_size Hty <
                   S (all_size (fun x : def term =>
@@ -1069,7 +1069,7 @@ Proof.
         remember (fix_context mfix) as mfixcontext. clear Heqmfixcontext.
 
         induction a1; econstructor; eauto.
-        ++ split; auto. 
+        ++ split; auto.
           eapply (X _ (typing_wf_local p) _ _ p). simpl. lia.
         ++ eapply IHa1. intros.
           eapply (X _ X0 _ _ Hty). simpl; lia.
@@ -1080,7 +1080,7 @@ Lemma typing_ind_env `{cf : checker_flags} :
          (Pdecl := fun Σ Γ wfΓ t T tyT => P Σ Γ t T)
          (PΓ : global_env_ext -> context -> Type),
 
-    (forall Σ (wfΣ : wf Σ.1)  (Γ : context) (wfΓ : wf_local Σ Γ), 
+    (forall Σ (wfΣ : wf Σ.1)  (Γ : context) (wfΓ : wf_local Σ Γ),
          All_local_env_over typing Pdecl Σ Γ wfΓ -> PΓ Σ Γ) ->
 
     (forall Σ (wfΣ : wf Σ.1) (Γ : context) (wfΓ : wf_local Σ Γ) (n : nat) decl,
@@ -1147,11 +1147,11 @@ Lemma typing_ind_env `{cf : checker_flags} :
         PΓ Σ Γ ->
         consistent_instance_ext Σ mdecl.(ind_universes) u ->
         P Σ Γ (tConstruct ind i u) (type_of_constructor mdecl cdecl (ind, i) u)) ->
-    
-    (forall (Σ : global_env_ext) (wfΣ : wf Σ) (Γ : context) (wfΓ : wf_local Σ Γ),     
+
+    (forall (Σ : global_env_ext) (wfΣ : wf Σ) (Γ : context) (wfΓ : wf_local Σ Γ),
     forall (ci : case_info) p c brs indices ps mdecl idecl
       (isdecl : declared_inductive Σ.1 ci.(ci_ind) mdecl idecl),
-      Forall_decls_typing P Σ.1 -> 
+      Forall_decls_typing P Σ.1 ->
       PΓ Σ Γ ->
       mdecl.(ind_npars) = ci.(ci_npar) ->
       eq_context_upto_names p.(pcontext) (ind_predicate_context ci.(ci_ind) mdecl idecl) ->
@@ -1162,10 +1162,10 @@ Lemma typing_ind_env `{cf : checker_flags} :
       forall pret : Σ ;;; Γ ,,, predctx |- p.(preturn) : tSort ps,
       P Σ (Γ ,,, predctx) p.(preturn) (tSort ps) ->
       PΓ Σ (Γ ,,, predctx) ->
-      is_allowed_elimination Σ ps idecl.(ind_kelim) ->
+      is_allowed_elimination Σ idecl.(ind_kelim) ps ->
       ctx_inst typing Σ Γ (p.(pparams) ++ indices)
         (List.rev (subst_instance p.(puinst) (mdecl.(ind_params) ,,, idecl.(ind_indices)))) ->
-      ctx_inst P Σ Γ (p.(pparams) ++ indices) 
+      ctx_inst P Σ Γ (p.(pparams) ++ indices)
         (List.rev (subst_instance p.(puinst) (mdecl.(ind_params) ,,, idecl.(ind_indices)))) ->
       Σ ;;; Γ |- c : mkApps (tInd ci.(ci_ind) p.(puinst)) (p.(pparams) ++ indices) ->
       P Σ Γ c (mkApps (tInd ci.(ci_ind) p.(puinst)) (p.(pparams) ++ indices)) ->
@@ -1181,7 +1181,7 @@ Lemma typing_ind_env `{cf : checker_flags} :
           (Σ ;;; Γ ,,, brctxty.1 |- brctxty.2 : tSort ps) ×
           (P Σ (Γ ,,, brctxty.1) brctxty.2 (tSort ps)))) 0 idecl.(ind_ctors) brs ->
       P Σ Γ (tCase ci p c brs) (mkApps ptm (indices ++ [c]))) ->
-      
+
     (forall Σ (wfΣ : wf Σ.1) (Γ : context) (wfΓ : wf_local Σ Γ) (p : projection) (c : term) u
           mdecl idecl cdecl pdecl (isdecl : declared_projection Σ.1 p mdecl idecl cdecl pdecl) args,
         Forall_decls_typing P Σ.1 -> PΓ Σ Γ ->
@@ -1271,14 +1271,14 @@ Section All_local_env.
     destruct Σ as [univs Σ]; rewrite /on_global_env /lookup_env; cbn.
     intros [cu Σp].
     induction Σp; simpl. congruence.
-    unfold eq_kername; destruct kername_eq_dec; subst.
-    intros [= ->].
-    exists ({| universes := univs; declarations := Σ |}).
-    split.
-    - red; cbn. split; [split;[lsets|csets]|].
-      exists [(kn, decl)] => //.
-    - split => //.
-    - apply o0.
+    destruct (eqb_specT c kn); subst.
+    - intros [= ->].
+      exists ({| universes := univs; declarations := Σ |}).
+      split.
+      * red; cbn. split; [split;[lsets|csets]|].
+        exists [(kn, decl)] => //.
+      * split => //.
+      * apply o0.
     - intros hl. destruct (IHΣp hl) as [Σ' []].
       exists Σ'.
       split=> //.
@@ -1357,9 +1357,9 @@ Section All_local_env.
         intros Γ t []; cbn;
         now rewrite app_context_assoc.
   Defined.
-  
+
   Definition wf_local_app {Σ Γ1 Γ2} :
-    wf_local Σ Γ1 -> 
+    wf_local Σ Γ1 ->
     wf_local_rel Σ Γ1 Γ2 ->
     wf_local Σ (Γ1 ,,, Γ2).
   Proof.
@@ -1381,7 +1381,7 @@ Section All_local_env.
   Qed.
 
   Lemma wf_local_app_ind {Σ Γ1 Γ2} :
-    wf_local Σ Γ1 -> 
+    wf_local Σ Γ1 ->
     (wf_local Σ Γ1 -> wf_local_rel Σ Γ1 Γ2) ->
     wf_local Σ (Γ1 ,,, Γ2).
   Proof.
@@ -1413,7 +1413,7 @@ Section All_local_env.
     apply IHwfΓ. auto with arith.
   Defined.
 
-  Lemma wf_local_app_skipn {Σ Γ Γ' n} : 
+  Lemma wf_local_app_skipn {Σ Γ Γ' n} :
     wf_local Σ (Γ ,,, Γ') ->
     wf_local Σ (Γ ,,, skipn n Γ').
   Proof.

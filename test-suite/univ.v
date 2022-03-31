@@ -1,7 +1,7 @@
 From MetaCoq.Template Require Import All.
-Require Import String List Arith.
+Require Import List Arith.
 Import ListNotations MCMonadNotation.
-Open Scope string.
+Open Scope bs_scope.
 
 Notation "'unfolded' d" :=
   ltac:(let y := eval unfold d in d in exact y) (at level 100, only parsing).
@@ -107,7 +107,7 @@ Module to.
  MetaCoq Run (t <- tmQuoteInductive (cp "list") ;;
               t <- tmEval all (mind_body_to_entry t) ;;
               tmPrint t ;;
-              tmMkInductive (clean_universes_decl t)).
+              tmMkInductive false (clean_universes_decl t)).
 
  Print list.
 End to.

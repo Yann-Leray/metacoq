@@ -150,6 +150,7 @@ Proof.
       + constructor.
         * econstructor; cbn; auto.
           -- exists (Universe.super Prop_univ).
+             split; [auto|].
              constructor; auto.
              constructor.
           -- instantiate (1 := []).

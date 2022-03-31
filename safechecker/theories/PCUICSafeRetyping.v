@@ -394,12 +394,13 @@ Qed.
     sq.
     constructor ; tea.
     inversion X0.
-    eapply infering_sort_isType; eauto.
+    eexists; split; eauto.
+    eapply infering_sort_typing; eauto.
   Defined.
   Next Obligation.
     cbn ; intros. destruct s1, s2.
     cbn. specialize_Σ wfΣ. sq.
-    now constructor.
+    econstructor; eauto.
   Defined.
 
   Next Obligation.

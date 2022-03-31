@@ -238,8 +238,9 @@ Lemma substitution_wf_local_rel `{checker_flags} {Σ} {wfΣ : wf Σ} {Γ Γ' s �
         rewrite app_context_cons in Ht ; depelim Ht.
         constructor ; cbn.
         + eapply IHΔ ; tea.
-        + rewrite Nat.add_0_r. 
-          eapply isType_substitution ; tea.
+        + 
+          rewrite Nat.add_0_r. 
+          eapply isTypeRel_substitution ; tea.
           now rewrite -app_context_assoc.
         + rewrite Nat.add_0_r.
           eapply substitution ; tea.
@@ -250,7 +251,7 @@ Lemma substitution_wf_local_rel `{checker_flags} {Σ} {wfΣ : wf Σ} {Γ Γ' s �
         constructor ; cbn.
         + eapply IHΔ ; tea.
         + rewrite Nat.add_0_r. 
-          eapply isType_substitution ; tea.
+          eapply isTypeRel_substitution ; tea.
           now rewrite -app_context_assoc.
    Qed.
 

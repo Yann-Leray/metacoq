@@ -1001,6 +1001,7 @@ Lemma trans_wf {cf} {Σ : PCUICEnvironment.global_env_ext} {wfΣ : wf Σ} {Γ t}
 Proof.
   intros H. induction t in Γ, H |- * using term_forall_list_ind; simpl; eapply wt_inv in H; cbn in H; eauto; try constructor; auto.
   all:try constructor; intuition eauto.
+  1,2,3: destruct n, binder_relevance; [exists Universe.lProp|exists Universe.lSProp]; cbnr.
   - destruct H. eauto.
   - destruct H; eauto.
   - destruct H; eauto.
@@ -1017,8 +1018,8 @@ Proof.
     split; eauto.
     eapply trans_cstr_branch_context_eq => //.
     cbn; eauto. cbn in p0. destruct p0. eauto.
-  - cbn. red in X. solve_all.
-  - cbn. red in X. solve_all.
+  - cbn. red in X. solve_all. split; eauto. destruct (dname x), binder_relevance; [exists Universe.lProp | exists Universe.lSProp]; auto.
+  - cbn. red in X. solve_all. split; eauto. destruct (dname x), binder_relevance; [exists Universe.lProp | exists Universe.lSProp]; auto.
   (* - destruct p as [? []]; constructor. *)
 Qed.
 

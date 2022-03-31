@@ -1818,6 +1818,15 @@ Proof.
   eapply substitution in Ht; tea. now eexists.
 Qed.
 
+Corollary isTypeRel_substitution {cf} {Σ} {wfΣ : wf Σ} {Γ Γ' s rel Δ T} :
+  subslet Σ Γ s Γ' ->
+  isTypeRel Σ (Γ ,,, Γ' ,,, Δ) T rel ->
+  isTypeRel Σ (Γ ,,, subst_context s 0 Δ) (subst s #|Δ| T) rel.
+Proof.
+  intros Hs [s' [e Ht]].
+  eapply substitution in Ht; tea. now eexists.
+Qed.
+
 Corollary substitution_wf_local {cf} {Σ} {wfΣ : wf Σ} {Γ Γ' s Δ} :
   subslet Σ Γ s Γ' ->
   wf_local Σ (Γ ,,, Γ' ,,, Δ) ->

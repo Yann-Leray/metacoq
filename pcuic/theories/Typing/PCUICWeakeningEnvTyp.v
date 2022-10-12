@@ -1,6 +1,6 @@
 (* Distributed under the terms of the MIT license. *)
 From MetaCoq.Template Require Import config utils.
-From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils
+From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICRelevance
   PCUICEquality PCUICContextSubst PCUICUnivSubst PCUICCases
   PCUICReduction PCUICCumulativity PCUICTyping PCUICRelevanceTerm
   PCUICGuardCondition PCUICGlobalEnv
@@ -24,7 +24,7 @@ Ltac my_rename_hyp h th :=
 Ltac rename_hyp h ht ::= my_rename_hyp h ht.
 
 Lemma extends_wf_local `{cf : checker_flags} Σ Γ (wfΓ : wf_local Σ Γ) :
-  All_local_env_over typing
+  All_local_env_over isTermRelOpt typing
       (fun Σ0 Γ0 wfΓ (t T : term) ty =>
          forall Σ' : global_env,
            wf Σ' ->

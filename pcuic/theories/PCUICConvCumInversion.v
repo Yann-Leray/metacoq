@@ -218,7 +218,7 @@ Section fixed.
   Lemma eq_term_upto_univ_napp_nonind Re Rle napp t t' :
     eq_term_upto_univ_napp Σ Re Rle napp t t' ->
     isIndConstructApp t = false ->
-    eq_term_upto_univ Σ Re Rle t t'.
+    compare_term_upto_univ Σ R pb t t'.
   Proof using Type.
     intros eq not_ind.
     generalize 0.
@@ -247,7 +247,7 @@ Section fixed.
     eq_termp_napp leq Σ #|args| v v' × All2 (fun x y => eq_term Σ Σ x y) args args'.
   Proof using Type.
     intros noapp1 noapp2 eq.
-    apply eq_term_upto_univ_mkApps_inv in eq as (?&?) => //.
+    apply compare_term_upto_univ_mkApps_inv in eq as (?&?) => //.
   Qed.
   
   Definition conv_cum_napp leq Γ napp t t' :=

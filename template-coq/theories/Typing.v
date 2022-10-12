@@ -32,6 +32,32 @@ Definition type_of_constructor mdecl cdecl (c : inductive * nat) (u : list Level
   let mind := inductive_mind (fst c) in
   subst0 (inds mind u mdecl.(ind_bodies)) (subst_instance u cdecl.(cstr_type)).
 
+(** ** isTermRel *)
+
+
+Inductive isTermRel (Σ : global_env) (Γ : mark_context) : term -> relevance -> Type :=
+| rel_Rel n rel : nth_error Γ n = Some rel -> isTermRel Σ Γ (tRel n) rel
+| rel_Lambda na A t rel : isTermRel Σ (Γ ,, na.(binder_relevance)) t rel -> isTermRel Σ Γ (tLambda na A t) rel
+| rel_LetIn na b B t rel : isTermRel Σ (Γ ,, na.(binder_relevance)) t rel -> isTermRel Σ Γ (tLetIn na b B t) rel
+| rel_App t u rel : isTermRel Σ Γ t rel -> isTermRel Σ Γ (tApp t u) rel
+| rel_Const kn u decl : declared_constant Σ kn decl -> isTermRel Σ Γ (tConst kn u) decl.(cst_relevance)
+| rel_Construct ind i u mdecl idecl cdecl :
+    declared_constructor Σ (ind, i) mdecl idecl cdecl -> isTermRel Σ Γ (tConstruct ind i u) idecl.(ind_relevance)
+| rel_Case ci p c brs : isTermRel Σ Γ (tCase ci p c brs) ci.(ci_relevance)
+| rel_Proj p u mdecl idecl cdecl pdecl :
+    declared_projection Σ p mdecl idecl cdecl pdecl -> isTermRel Σ Γ (tProj p u) pdecl.(proj_relevance)
+| rel_Fix mfix n def :
+    nth_error mfix n = Some def -> isTermRel Σ Γ (tFix mfix n) def.(dname).(binder_relevance)
+| rel_CoFix mfix n def :
+    nth_error mfix n = Some def -> isTermRel Σ Γ (tCoFix mfix n) def.(dname).(binder_relevance)
+| rel_Sort s : isTermRel Σ Γ (tSort s) Relevant
+| rel_Prod na A B : isTermRel Σ Γ (tProd na A B) Relevant
+| rel_Ind ind u : isTermRel Σ Γ (tInd ind u) Relevant. 
+
+Derive Signature for isTermRel.
+
+Definition isTermRelOpt Σ Γ t relopt := option_default (isTermRel Σ Γ t) relopt unit.
+
 (** ** Reduction *)
 
 (** *** Helper functions for reduction *)
@@ -736,6 +762,9 @@ Definition wf_cofixpoint (Σ : global_env) mfix :=
   | _ => false
   end.
 
+Notation lift_typing := (lift_typing0 isTermRelOpt).
+Notation lift_typing2 := (lift_typing02 isTermRelOpt).
+
 Reserved Notation "'wf_local' Σ Γ " (at level 9, Σ, Γ at next level).
 
 Inductive typing `{checker_flags} (Σ : global_env_ext) (Γ : context) : term -> term -> Type :=
@@ -878,6 +907,8 @@ Definition infer_sorting {cf: checker_flags} Σ Γ T := { s : Universe.t & typin
 Module TemplateTyping <: Typing TemplateTerm Env TemplateTermUtils TemplateEnvTyping
   TemplateConversion TemplateConversionPar.
 
+  Definition isTermRel := isTermRel.
+  Definition isTermRelOpt := isTermRelOpt.
   Definition typing := @typing.
   Definition infer_sorting := @infer_sorting.
 
@@ -1099,7 +1130,7 @@ Lemma typing_ind_env `{cf : checker_flags} :
          (PΓ : forall Σ Γ, wf_local Σ Γ -> Type),
 
     (forall Σ (wfΣ : wf Σ) (Γ : context) (wfΓ : wf_local Σ Γ), 
-      All_local_env_over typing Pdecl Σ Γ wfΓ -> PΓ Σ Γ wfΓ) ->
+      All_local_env_over isTermRelOpt typing Pdecl Σ Γ wfΓ -> PΓ Σ Γ wfΓ) ->
 
     (forall Σ (wfΣ : wf Σ) (Γ : context) (wfΓ : wf_local Σ Γ) (n : nat) decl,
         nth_error Γ n = Some decl ->
@@ -1599,10 +1630,10 @@ Definition on_wf_local_decl `{checker_flags} {Σ Γ}
 
 
 Lemma nth_error_All_local_env_over `{checker_flags} {P Σ Γ n decl} (eq : nth_error Γ n = Some decl) {wfΓ : wf_local Σ Γ} :
-  All_local_env_over typing P Σ Γ wfΓ ->
+  All_local_env_over isTermRelOpt typing P Σ Γ wfΓ ->
   let Γ' := skipn (S n) Γ in
   let p := lookup_wf_local_decl wfΓ n eq in
-  (All_local_env_over typing P Σ Γ' (projT1 p) * on_wf_local_decl P (projT1 p) (projT2 p))%type.
+  (All_local_env_over isTermRelOpt typing P Σ Γ' (projT1 p) * on_wf_local_decl P (projT1 p) (projT2 p))%type.
 Proof.
   induction 1 in n, decl, eq |- *. simpl.
   - destruct n; simpl; elimtype False; discriminate eq.

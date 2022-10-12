@@ -241,3 +241,227 @@ Proof.
   eapply env_prop_typing in X; tea.
   apply X.
 Qed.
+
+
+Lemma typable_relevance {cf : checker_flags} Σ (wfΣ : wf Σ) :
+  env_prop (fun Σ Γ t T => match T with tSort s => isTermRelevant Σ (marks_of_context Γ) t | _ => wfTermRel Σ (marks_of_context Γ) t end × isTermRelevant Σ (marks_of_context Γ) T)
+  (fun Σ => All_local_env (lift_typing (fun Σ Γ t T => match T with tSort s => isTermRelevant Σ (marks_of_context Γ) t | _ => wfTermRel Σ (marks_of_context Γ) t end × isTermRelevant Σ (marks_of_context Γ) T) Σ)).
+Proof.
+  eapply typing_ind_env; intros; simpl in *; auto.
+  - induction X; constructor; eauto.
+    + apply on_sortrel_impl_id with tu => //.
+    + apply on_triplefull_impl_id with tu => //.
+  - apply nth_error_All_local_env with (1 := H) in X.
+    destruct decl; cbn in *.
+    destruct X as (Hb & s & e & Hs1 & Hs2).
+    split.
+    2: apply isTermRel_lift.
+    2: replace () Hs1.
+
+  intros (_ & s & _ & Hs).
+  induction t in Γ, s, Hs |- * using term_forall_list_ind.
+  all: try solve [ econstructor; eauto ].
+  - destruct (nth_error (marks_of_context Γ) n) eqn:Heq.
+    1: now constructor.
+    rewrite nth_error_map in Heq.
+    destruct nth_error eqn:Heq0 => //. clear Heq.
+    exfalso. inv isty.
+    remember (tRel n).
+    induction X => //; auto.
+    noconf Heqt. congruence.
+  - exfalso. inv isty.
+    remember (tVar i).
+    induction X => //.
+  - exfalso. inv isty.
+    remember (tEvar n l).
+    induction X0 => //.
+  - edestruct IHt1.
+    2: edestruct IHt2.
+    3: { eexists; econstructor; tea. instantiate (1 := Γ ,, vass n t1) in i; apply i.
+    inv isty.
+    remember (tLambda n t1 t2).
+    induction X => //; auto.
+    noconf Heqt.
+    now econstructor.
+  - edestruct IHt3.
+    2: eexists; constructor; instantiate (1 := Γ ,, vdef n t1 t2) in i; apply i.
+    inv isty.
+    remember (tLetIn n t1 t2 t3).
+    induction X => //; auto.
+    noconf Heqt.
+    now econstructor.
+  - edestruct IHt1.
+    2: eexists; constructor; apply i.
+    inv isty.
+    remember (tApp t1 t2).
+    induction X => //; auto.
+    noconf Heqt.
+    now econstructor.
+  - destruct (lookup_constant Σ s) eqn:Heq.
+    1: eexists; econstructor; now apply lookup_constant_declared.
+    exfalso.
+    inv isty.
+    remember (tConst s u).
+    induction X => //; auto.
+    noconf Heqt.
+    apply declared_constant_lookup in d. congruence.
+  - destruct (lookup_constructor Σ i n) as [[[? ?] ?] |] eqn:Heq.
+    1: eexists; econstructor. now apply lookup_constructor_declared. 
+    exfalso.
+    inv isty.
+    remember (tConstruct i n u).
+    induction X => //; auto.
+    noconf Heqt.
+    apply declared_constructor_lookup in d. cbn in d. congruence.
+  - edestruct IHt.
+    2: exists ind.(ci_relevance); econstructor; tea.
+    2: destruct x, ind, ci_relevance; try constructor; exfalso.
+    all: inv isty.
+    all: remember (tCase _ p t l).
+    all: induction X1 => //; auto.
+    all: noconf Heqt0.
+    1: econstructor; tea.
+
+    pose proof ()
+
+
+    destruct c0.
+    unfold BasicAst.ci_ind in *.
+    assert (on_ind_body cumulSpec0 (lift_typing typing) Σ (inductive_mind ci_ind) mdecl (inductive_ind ci_ind) idecl) by admit.
+    destruct X1.
+    
+    unfold ind_kelim in allowed_elim.
+    destruct ps => //.
+    admit.
+  - destruct (lookup_projection Σ s) as [[[[mdecl ?] ?] ?] |] eqn:Heq.
+    destruct (ind_npars mdecl == proj_npars s) eqn:Heq_pars. apply eqb_eq in Heq_pars.
+    1: eexists; econstructor; now apply lookup_projection_declared. 
+    all: exfalso.
+    all: inv isty.
+    all: remember (tProj s t).
+    all: induction X => //; auto.
+    all: noconf Heqt0.
+    all: apply declared_projection_lookup in d as d'.
+    2: congruence.
+    destruct d as [_ [_ ?]].
+    rewrite d' in Heq. inversion Heq; subst.
+    rewrite H in Heq_pars; clear H.
+    induction (proj_npars s) => //.
+  - destruct (nth_error m n) eqn:Heq.
+    1: eexists; now constructor.
+    exfalso. inv isty.
+    remember (tFix m n).
+    induction X0 => //; auto.
+    noconf Heqt. congruence.
+  - destruct (nth_error m n) eqn:Heq.
+    1: eexists; now constructor.
+    exfalso. inv isty.
+    remember (tCoFix m n).
+    induction X0 => //; auto.
+    noconf Heqt. congruence.
+
+Lemma typable_relevance {cf : checker_flags} Σ (wfΣ : wf Σ.1) Γ t : welltyped Σ Γ t -> wfTermRel Σ.1 (marks_of_context Γ) t.
+Proof.
+  intro isty.
+  induction t in Γ, isty |- * using term_forall_list_ind.
+  all: try solve [ eexists; econstructor; eauto ].
+  - destruct (nth_error (marks_of_context Γ) n) eqn:Heq.
+    1: eexists; now constructor.
+    rewrite nth_error_map in Heq.
+    destruct nth_error eqn:Heq0 => //. clear Heq.
+    exfalso. inv isty.
+    remember (tRel n).
+    induction X => //; auto.
+    noconf Heqt. congruence.
+  - exfalso. inv isty.
+    remember (tVar i).
+    induction X => //.
+  - exfalso. inv isty.
+    remember (tEvar n l).
+    induction X0 => //.
+  - edestruct IHt1.
+    2: edestruct IHt2.
+    3: { eexists; econstructor; tea. instantiate (1 := Γ ,, vass n t1) in i; apply i.
+    inv isty.
+    remember (tLambda n t1 t2).
+    induction X => //; auto.
+    noconf Heqt.
+    now econstructor.
+  - edestruct IHt3.
+    2: eexists; constructor; instantiate (1 := Γ ,, vdef n t1 t2) in i; apply i.
+    inv isty.
+    remember (tLetIn n t1 t2 t3).
+    induction X => //; auto.
+    noconf Heqt.
+    now econstructor.
+  - edestruct IHt1.
+    2: eexists; constructor; apply i.
+    inv isty.
+    remember (tApp t1 t2).
+    induction X => //; auto.
+    noconf Heqt.
+    now econstructor.
+  - destruct (lookup_constant Σ s) eqn:Heq.
+    1: eexists; econstructor; now apply lookup_constant_declared.
+    exfalso.
+    inv isty.
+    remember (tConst s u).
+    induction X => //; auto.
+    noconf Heqt.
+    apply declared_constant_lookup in d. congruence.
+  - destruct (lookup_constructor Σ i n) as [[[? ?] ?] |] eqn:Heq.
+    1: eexists; econstructor. now apply lookup_constructor_declared. 
+    exfalso.
+    inv isty.
+    remember (tConstruct i n u).
+    induction X => //; auto.
+    noconf Heqt.
+    apply declared_constructor_lookup in d. cbn in d. congruence.
+  - edestruct IHt.
+    2: exists ind.(ci_relevance); econstructor; tea.
+    2: destruct x, ind, ci_relevance; try constructor; exfalso.
+    all: inv isty.
+    all: remember (tCase _ p t l).
+    all: induction X1 => //; auto.
+    all: noconf Heqt0.
+    1: econstructor; tea.
+
+    pose proof ()
+
+
+    destruct c0.
+    unfold BasicAst.ci_ind in *.
+    assert (on_ind_body cumulSpec0 (lift_typing typing) Σ (inductive_mind ci_ind) mdecl (inductive_ind ci_ind) idecl) by admit.
+    destruct X1.
+    
+    unfold ind_kelim in allowed_elim.
+    destruct ps => //.
+    admit.
+  - destruct (lookup_projection Σ s) as [[[[mdecl ?] ?] ?] |] eqn:Heq.
+    destruct (ind_npars mdecl == proj_npars s) eqn:Heq_pars. apply eqb_eq in Heq_pars.
+    1: eexists; econstructor; now apply lookup_projection_declared. 
+    all: exfalso.
+    all: inv isty.
+    all: remember (tProj s t).
+    all: induction X => //; auto.
+    all: noconf Heqt0.
+    all: apply declared_projection_lookup in d as d'.
+    2: congruence.
+    destruct d as [_ [_ ?]].
+    rewrite d' in Heq. inversion Heq; subst.
+    rewrite H in Heq_pars; clear H.
+    induction (proj_npars s) => //.
+  - destruct (nth_error m n) eqn:Heq.
+    1: eexists; now constructor.
+    exfalso. inv isty.
+    remember (tFix m n).
+    induction X0 => //; auto.
+    noconf Heqt. congruence.
+  - destruct (nth_error m n) eqn:Heq.
+    1: eexists; now constructor.
+    exfalso. inv isty.
+    remember (tCoFix m n).
+    induction X0 => //; auto.
+    noconf Heqt. congruence.
+Qed.
+

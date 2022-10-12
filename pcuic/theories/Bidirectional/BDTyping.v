@@ -3,7 +3,7 @@
 From Coq Require Import Bool List Arith Lia.
 From Coq Require String.
 From MetaCoq.Template Require Import config utils monad_utils.
-From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils
+From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICRelevance
   PCUICLiftSubst PCUICUnivSubst PCUICEquality PCUICUtils
   PCUICPosition PCUICTyping PCUICCumulativity PCUICReduction.
 
@@ -90,7 +90,7 @@ Inductive infering `{checker_flags} (Σ : global_env_ext) (Γ : context) : term 
   ctx_inst (checking Σ) Γ (pparams p)
       (List.rev mdecl.(ind_params)@[p.(puinst)]) ->
   isCoFinite mdecl.(ind_finite) = false ->
-  R_global_instance Σ (eq_universe Σ) (leq_universe Σ)
+  R_global_instance Σ (fun pb => compare_universe pb Σ) Cumul
       (IndRef ci) #|args| u (puinst p) ->
   All2 (convAlgo Σ Γ) (firstn (ci_npar ci) args) (pparams p) ->
   (* case_branch_typing *)
@@ -318,10 +318,10 @@ Section BidirectionalInduction.
     let PsortΣ := fun Σ => Psort in
 
     (forall (Γ : context) (wfΓ : wf_local_bd Σ Γ), 
-      All_local_env_over_sorting checking infering_sort Pdecl_check Pdecl_sort Σ Γ wfΓ -> PΓ Γ) ->
+      All_local_env_over_sorting isTermRelOpt checking infering_sort Pdecl_check Pdecl_sort Σ Γ wfΓ -> PΓ Γ) ->
 
     (forall (Γ Γ' : context) (wfΓ' : wf_local_bd_rel Σ Γ Γ'), 
-      All_local_rel_over_sorting checking infering_sort Pdecl_check_rel Pdecl_sort_rel Σ Γ Γ' wfΓ' -> PΓ_rel Γ Γ') ->
+      All_local_rel_over_sorting isTermRelOpt checking infering_sort Pdecl_check_rel Pdecl_sort_rel Σ Γ Γ' wfΓ' -> PΓ_rel Γ Γ') ->
 
     (forall (Γ : context) (n : nat) decl,
       nth_error Γ n = Some decl ->
@@ -398,7 +398,7 @@ Section BidirectionalInduction.
       ctx_inst Pcheck Γ p.(pparams)
           (List.rev (subst_instance p.(puinst) mdecl.(ind_params))) ->
       isCoFinite mdecl.(ind_finite) = false ->
-      R_global_instance Σ (eq_universe Σ) (leq_universe Σ)
+      R_global_instance Σ (fun pb => compare_universe pb Σ) Cumul
           (IndRef ci) #|args| u (puinst p) ->
       All2 (convAlgo Σ Γ) (firstn (ci_npar ci) args) (pparams p) ->
       (* case_branch_typing *)

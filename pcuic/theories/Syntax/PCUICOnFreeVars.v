@@ -4,7 +4,7 @@ Require Import ssreflect ssrfun ssrbool.
 From MetaCoq.Template Require Import config utils MCPred.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICCases PCUICInduction
   PCUICLiftSubst PCUICUnivSubst 
-  PCUICEquality PCUICSigmaCalculus PCUICClosed.
+  PCUICSigmaCalculus PCUICClosed.
 
 Require Import Equations.Prop.DepElim.
 From Equations Require Import Equations.
@@ -1152,6 +1152,16 @@ Qed.
 #[global]
 Hint Rewrite @on_ctx_free_vars_snoc : fvs.
 
+Lemma on_ctx_free_vars_snoc' {P Γ d} : 
+  on_ctx_free_vars P (Γ ,, d) =
+  on_ctx_free_vars (addnP 1 P) Γ && (P 0 ==> on_free_vars_decl (addnP 1 P) d).
+Proof.
+  cbn.
+  rewrite andb_comm. f_equal.
+  rewrite alli_shift.
+  induction Γ; cbnr.
+Qed.
+
 Lemma test_context_k_closed_on_free_vars_ctx k ctx :
   test_context_k (fun k => on_free_vars (closedP k xpredT)) k ctx =
   on_free_vars_ctx (closedP k xpredT) ctx.
@@ -1471,20 +1481,6 @@ Proof.
     * split => //; apply auxt => //.
     * now apply auxm.
 Defined.
-
-Lemma alpha_eq_on_free_vars P (Γ Δ : context) :
-  All2 (PCUICEquality.compare_decls eq eq) Γ Δ ->
-  on_free_vars_ctx P Γ -> on_free_vars_ctx P Δ.
-Proof.
-  induction 1; cbn; auto.
-  rewrite !alli_app /= !andb_true_r.
-  move/andP => [] IH hx.
-  specialize (IHX IH).
-  unfold PCUICOnFreeVars.on_free_vars_ctx in IHX.
-  rewrite IHX /=.
-  len in hx. len. rewrite -(All2_length X).
-  destruct r; cbn in *; subst; auto.
-Qed.
 
 Lemma on_free_vars_ctx_any_xpredT P Γ : 
   on_free_vars_ctx P Γ -> on_free_vars_ctx xpredT Γ.

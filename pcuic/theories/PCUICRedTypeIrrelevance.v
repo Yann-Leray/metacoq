@@ -1,7 +1,7 @@
 From Coq Require Import ssreflect. 
 From Equations Require Import Equations.
 From MetaCoq.Template Require Import config utils.
-From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICTyping PCUICLiftSubst 
+From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICRelevance PCUICTyping PCUICLiftSubst 
   PCUICReduction PCUICContextReduction.
 
 From Coq Require Import CRelationClasses.
@@ -46,6 +46,7 @@ Section ContextChangeTypesReduction.
   Context (Σ : global_env).
 
 Definition pres_let_bodies (c : context_decl) (c' : context_decl) : Type :=
+  c.(decl_name).(binder_relevance) = c'.(decl_name).(binder_relevance) ×
   match c.(decl_body) with 
   | None => unit
   | Some b => decl_body c' = Some b
@@ -62,12 +63,20 @@ Qed. *)
 
 Global Instance pres_let_bodies_trans : Transitive pres_let_bodies.
 Proof using Type.
-  intros x y z; unfold pres_let_bodies.
-  now destruct decl_body => // ->.
+  intros x y z [] []; unfold pres_let_bodies.
+  split.
+  - now etransitivity.
+  - destruct decl_body => //; rewrite y0 in y1 => //.
 Qed.
 
 (* Global Instance pres_let_bodies_equiv : Equivalence pres_let_bodies.
 Proof. constructor; typeclasses eauto. Qed. *)
+
+Lemma pres_let_bodies_marks_of_context Γ Γ' : All2_fold (fun _ _ => pres_let_bodies) Γ Γ' -> marks_of_context Γ = marks_of_context Γ'.
+Proof.
+  induction 1; cbn; f_equal; tas.
+  now inv p.
+Qed.
 
 Lemma OnOne2All_All3 {A B} (P Q : A -> B -> B -> Type) l l' l'' :
   OnOne2All P l l' l'' ->
@@ -95,8 +104,10 @@ Lemma context_pres_let_bodies_red1 Γ Γ' s t :
   red1 Σ Γ s t -> red1 Σ Γ' s t.
 Proof using Type.
   intros HT X0. induction X0 using red1_ind_all in Γ', HT |- *; eauto.
+  all: pose proof (Z := pres_let_bodies_marks_of_context _ _ HT).
   all:pcuic.
-  all:try solve [econstructor; eauto; solve_all].
+  all:try solve [econstructor; eauto using pres_let_bodies_refl; solve_all].
+  all: try solve [ econstructor; congruence ].
   - econstructor.
     move: H; case: nth_error_spec => [x hnth hi|hi] /= // [=] hbod.
     eapply All2_fold_nth in HT as [d' [hnth' [_ pres]]]; eauto.
@@ -133,24 +144,19 @@ Qed.
 End ContextChangeTypesReduction.
 
 Lemma fix_context_pres_let_bodies Γ mfix mfix' :
-  #|mfix| = #|mfix'| ->
+  All2 (fun d d' => d.(dname).(binder_relevance) = d'.(dname).(binder_relevance)) mfix mfix' ->
   All2_fold (fun _ _ => pres_let_bodies) (Γ,,, fix_context mfix) (Γ,,, fix_context mfix').
 Proof.
   intros len.
   apply All2_fold_app.
-  - apply All2_fold_refl.
-    intros.
-    destruct x.
-    destruct decl_body; constructor;
-    reflexivity.
+  - apply pres_let_bodies_ctx_refl.
   - unfold fix_context, mapi.
     generalize 0 at 2 4.
     induction mfix in mfix', len |- *; intros n.
-    + destruct mfix'; [|cbn in *; discriminate len].
-      constructor.
-    + destruct mfix'; cbn in *; [discriminate len|].
+    + inv len. constructor.
+    + inv len. simpl.
       apply All2_fold_app.
       * constructor; [constructor|].
-        constructor.
-      * apply IHmfix; lia.
+        constructor; cbnr; tas.
+      * apply IHmfix => //.
 Qed.

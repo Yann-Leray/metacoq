@@ -1523,12 +1523,12 @@ Section CheckEnv.
     - constructor; tas.
       depelim p; constructor; auto.
       eapply eq_term_upto_univ_cumulSpec.
-      eapply eq_term_upto_univ_impl. 5:eauto. all:tea.
+      eapply compare_term_upto_univ_impl. 5:eauto. all:tea.
       now transitivity Rle. auto.
       eapply eq_term_upto_univ_cumulSpec.
-      eapply eq_term_upto_univ_impl; eauto.
+      eapply compare_term_upto_univ_impl; eauto.
       eapply eq_term_upto_univ_cumulSpec.
-      eapply eq_term_upto_univ_impl. 5:eauto. all:tea.
+      eapply compare_term_upto_univ_impl. 5:eauto. all:tea.
       now transitivity Rle. auto.
   Qed.
 

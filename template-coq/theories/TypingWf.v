@@ -806,7 +806,7 @@ Section WfRed.
   Qed.
 
   Lemma wf_it_mkProd_or_LetIn_inv (Σ' : global_env_ext) Γ (wfΓ : wf_local Σ' Γ)
-    : All_local_env_over typing
+    : All_local_env_over isTermRelOpt typing
     (fun (Σ : global_env_ext) (Γ : context) (_ : wf_local Σ Γ)
       (t T : term) (_ : Σ;;; Γ |- t : T) => WfAst.wf Σ t * WfAst.wf Σ T) Σ'
           Γ wfΓ

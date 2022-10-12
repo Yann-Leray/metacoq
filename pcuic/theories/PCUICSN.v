@@ -236,7 +236,7 @@ Section Alpha.
       destruct r2 as [y'' [r2' [e2']]].
       exists y''. split.
       * eapply cored_trans'. all: eassumption.
-      * constructor. eapply eq_term_upto_univ_trans. all: eauto.
+      * constructor. eapply compare_term_upto_univ_trans. all: eauto.
   Qed.
 
   (* Lemma eq_context_upto_nlctx :
@@ -270,7 +270,7 @@ Section Alpha.
       eexists _, _. intuition eauto.
       + constructor. eapply eq_term_trans.
         * eapply eq_term_sym. eapply eq_term_tm_nl.
-        * eapply eq_term_upto_univ_impl; eauto. all:typeclasses eauto.
+        * eapply compare_term_upto_univ_impl; eauto. all:typeclasses eauto.
       + constructor. eapply eq_term_sym. eapply eq_term_tm_nl.
     - intros ? ? ? []. auto.
     - intros ? ? ? r. apply Forall2_eq in r. apply map_inj in r.

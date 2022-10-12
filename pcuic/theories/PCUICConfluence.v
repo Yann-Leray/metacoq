@@ -1,8 +1,8 @@
 (* Distributed under the terms of the MIT license. *)
 From MetaCoq.Template Require Import config utils.
-From MetaCoq.PCUIC Require Import PCUICAst PCUICOnOne PCUICAstUtils PCUICTactics PCUICLiftSubst PCUICTyping
+From MetaCoq.PCUIC Require Import PCUICAst PCUICOnOne PCUICAstUtils PCUICRelevance PCUICTactics PCUICLiftSubst PCUICTyping
      PCUICReduction PCUICEquality PCUICUnivSubstitutionConv
-     PCUICSigmaCalculus PCUICContextReduction
+     PCUICSigmaCalculus PCUICContextReduction PCUICRelevanceTerm PCUICSubstitution PCUICRelevanceRed
      PCUICParallelReduction PCUICParallelReductionConfluence PCUICClosedConv PCUICClosedTyp
      PCUICRedTypeIrrelevance PCUICOnFreeVars PCUICInstDef PCUICInstConv PCUICWeakeningConv PCUICWeakeningTyp. 
 
@@ -221,14 +221,12 @@ Proof.
   now eapply All2_fold_refl.
 Qed.
 
-Lemma on_one_decl_compare_decl Σ Re Rle Γ x y :
-  RelationClasses.Reflexive Re ->
-  RelationClasses.Reflexive Rle ->
-  on_one_decl
-    (fun (_ : context) (y0 v' : term) => eq_term_upto_univ Σ Re Rle y0 v') Γ x y ->
-  compare_decls (eq_term_upto_univ Σ Re Rle) (eq_term_upto_univ Σ Re Rle) x y.
+Lemma on_one_decl_compare_decl Σ R isTermIrrel Γ x y :
+  RelationClasses.Reflexive (R Conv) ->
+  on_one_decl (fun Γ => compare_term_upto_univ_rel Σ R isTermIrrel Conv (marks_of_context Γ)) Γ x y ->
+  compare_decls (fun pb => compare_term_upto_univ_rel Σ R isTermIrrel pb (marks_of_context Γ)) Conv x y.
 Proof.
-  intros heq hle.
+  intros heq.
   destruct x as [na [b|] ty], y as [na' [b'|] ty']; cbn; intuition (subst; auto);
   constructor; auto; reflexivity.
 Qed.
@@ -247,80 +245,107 @@ Notation red1_ctx_rel Σ Δ :=
     (on_one_decl
       (fun (Γ : context) (x0 y0 : term) => red1 Σ (Δ,,, Γ) x0 y0))).
 
-Notation eq_one_decl Σ Re Rle := 
+Notation eq_one_decl Σ R isTermIrrel pb := 
   (OnOne2_local_env
     (on_one_decl
-      (fun _ (x0 y0 : term) => 
-        eq_term_upto_univ Σ Re Rle x0 y0))).
+      (fun Γ => compare_term_upto_univ_rel Σ R isTermIrrel pb (marks_of_context Γ)))).
 
-Lemma red1_eq_context_upto_l {Σ Σ' Rle Re Γ Δ u v} :
-  RelationClasses.Reflexive Rle ->
-  SubstUnivPreserving Rle ->
-  RelationClasses.Reflexive Re ->
-  SubstUnivPreserving Re ->
-  RelationClasses.subrelation Re Rle ->
+Lemma red1_eq_context_upto_l {cf: checker_flags} {Σ (* Σ' *) R pb Γ Δ u v} :
+  RelationClasses.Reflexive (R pb) ->
+  SubstUnivPreserving (R pb) ->
+  RelationClasses.Reflexive (R Conv) ->
+  SubstUnivPreserving (R Conv) ->
+  RelationClasses.subrelation (R Conv) (R pb) ->
+  wfTermRel_ctx Σ Γ ->
+  wfTermRel Σ (marks_of_context Γ) u ->
   red1 Σ Γ u v ->
-  eq_context_upto Σ' Re Rle Γ Δ ->
+  eq_context_upto Σ(* ' *) R isTermIrrel pb [] Γ Δ ->
   ∑ v', red1 Σ Δ u v' *
-        eq_term_upto_univ Σ' Re Re v v'.
+        compare_term_upto_univ_rel Σ(* ' *) R isTermIrrel Conv (marks_of_context Γ) v v'.
 Proof.
-  intros hle hle' he he' hlee h e.
-  induction h in Δ, e |- * using red1_ind_all.
+  intros hle hle' he he' hlee hΓ (rel & hu) h e.
+  induction h in Δ, hΓ, rel, hu, e |- * using red1_ind_all.
   all: try solve [
+    try (apply compare_decls_eq_marks in e as ee; rewrite !ee in X);
     eexists ; split ; [
       solve [ econstructor ; eauto ]
-    | eapply eq_term_upto_univ_refl ; eauto
+    | eapply compare_term_upto_univ_refl ; eauto
     ]
   ].
   all: try solve [
-    destruct (IHh _ e) as [? [? ?]] ;
+    inv hu;
+    eapply IHh in e as [? [? ?]]; tea ;
     eexists ; split ; [
       solve [ econstructor ; eauto ]
     | constructor; eauto ;
-      eapply eq_term_upto_univ_refl ; eauto
+      eapply compare_term_upto_univ_refl ; eauto
     ]
   ].
   all: try solve [
     match goal with
-    | r : red1 _ (?Γ ,, ?d) _ _ |- _ =>
-      assert (e' : eq_context_upto Σ' Re Rle (Γ,, d) (Δ,, d))
+    | r : red1 _ (?Ξ ,, ?d) _ _ |- _ =>
+      assert (e' : eq_context_upto Σ(* ' *) R isTermIrrel pb [] (Ξ,, d) (Δ,, d))
       ; [
         constructor ; [ eauto | constructor; eauto ] ;
-        eapply eq_term_upto_univ_refl ; eauto
+        eapply compare_term_upto_univ_refl ; eauto
       |
       ]
     end;
-    destruct (IHh _ e') as [? [? ?]] ;
+    inv hu;
+    eapply IHh in e' as [? [? ?]]; tea;
+    [|constructor; tas; split => //];
     eexists ; split ; [
       solve [ econstructor ; eauto ]
     | constructor ; eauto ;
-      eapply eq_term_upto_univ_refl ; eauto
+      eapply compare_term_upto_univ_refl ; eauto
     ]
   ].
-  - assert (h : ∑ b',
-                (option_map decl_body (nth_error Δ i) = Some (Some b')) *
-                eq_term_upto_univ Σ' Re Re body b').
-    { induction i in Γ, Δ, H, e |- *.
-      - destruct e.
+  - destruct (nth_error Γ i) as [decl|] eqn:Hbod => //. depelim H.
+    eapply nth_error_All_local_env in hΓ as (Hb & Ht); tea.
+    rewrite -H /= in Hb.
+    assert (h : ∑ b',
+                option_map decl_body (nth_error Δ i) = Some (Some b') ×
+                wfTermRel Σ (marks_of_context (skipn (S i) Γ)) b' ×
+                compare_term_upto_univ_rel Σ(* ' *) R isTermIrrel Conv (marks_of_context (skipn (S i) Δ)) body b').
+    { induction i in Γ, Δ, Hb, Hbod, H, e |- *.
+      - apply compare_decls_eq_marks in e as e'. destruct e.
         + cbn in *. discriminate.
-        + simpl in *. depelim c; noconf H.
-          simpl. eexists; split; eauto.
+        + simpl in *. depelim c; depelim Hbod; noconf H.
+          simpl. eexists; repeat split; eauto.
+          { eexists. eapply eq_term_isTermRel_1 in Hb; tea. now rewrite app_context_nil_l in c. }
+          inversion e'. rewrite H1. now rewrite app_context_nil_l in c.
       - destruct e.
         + cbn in *. discriminate.
         + simpl in *. eapply IHi in H ; eauto.
     }
-    destruct h as [b' [e1 e2]].
+    destruct h as [b' (e1 & e2 & e3)].
     eexists. split.
     + constructor. eassumption.
-    + eapply eq_term_upto_univ_lift ; eauto.
+    + rewrite -(firstn_skipn (S i) (marks_of_context Γ)).
+      eapply weakening_compare_term_pb_0; tea.
+      * rewrite firstn_length_le => //.
+        apply nth_error_Some_length in Hbod. len.
+      * eapply isTermRel_is_open_term, Hb.
+      * eapply wfTermRel_is_open_term, e2.
+      * apply compare_decls_eq_marks in e. rewrite e -map_skipn //.
   - eapply OnOne2_prod_inv in X as [_ X].
-    eapply OnOne2_apply, OnOne2_apply in X; tea.
+    eapply OnOne2_apply in X; tea.
+    eapply OnOne2_apply in X; tea.
+    inv hu. destruct X0 as (X0 & _).
+    apply OnOne2_All_mix_left with (1 := X0) in X.
+    eapply OnOne2_impl in X. 2: exact (fun x y '(fH, (r; H)) => fH r H).
+    eapply OnOne2_apply in X; tea.
     eapply OnOne2_exist' in X as [pars' [parred pareq]]; intros; tea.
     eexists. split. eapply case_red_param; tea.
-    econstructor; eauto.
-    red. intuition; eauto. reflexivity.
-    apply All2_same; intros. intuition eauto; reflexivity.
+    econstructor; try reflexivity.
+    repeat split; try reflexivity.
+    eapply OnOne2_All2 with (1 := pareq); eauto. reflexivity.
   - specialize (IHh (Δ ,,, PCUICCases.inst_case_predicate_context p)).
+    forward IHh.
+    apply All_local_rel_app; tas.
+    admit. (* apply wfTermRel_ctx_rel_inst_case_predicate_context; assumption. *)
+    inv hu. destruct X as (X & X' & X''). rewrite -marks_of_context_app in X''.
+    specialize (IHh _ X'').
     forward IHh.
     eapply eq_context_upto_cat => //.
     now apply eq_context_upto_refl.    
@@ -329,53 +354,67 @@ Proof.
     + solve [ econstructor ; eauto ].
     + econstructor; try red; intuition (simpl; eauto); try reflexivity.
       * now eapply All2_same.
+      * rewrite -marks_of_context_app /PCUICCases.inst_case_predicate_context //.
       * eapply All2_same. split; reflexivity.
-  - specialize (IHh _ e) as [? [? ?]].
+  - inv hu.
+    eapply IHh in e as [? [? ?]]; tea.
     eexists. split.
     + solve [ econstructor ; eauto ].
     + econstructor; try red; intuition (simpl; eauto); try reflexivity.
       * now eapply All2_same.
       * eapply All2_same. split; reflexivity.
-  - eapply (OnOne2_impl (Q:=fun x y => (∑ v', _) × bcontext x = bcontext y)) in X; tea.
-    2:{ intros x y [[red IH] eq]. split; tas. 
+  - inv hu.
+    apply OnOne2_All_mix_left with (1 := X1) in X.
+    eapply (OnOne2_impl (Q:=fun x y => (∑ v', _) × bcontext x = bcontext y)) in X; tea.
+    2:{ intros x y [[[red IH] eq] [Hbctx (relbr & Hbbod)]]. split; tas.
         specialize (IH (Δ ,,, inst_case_branch_context p x)).
+        forward IH.
+        apply All_local_rel_app; tas.
+        admit. (* apply wfTermRel_ctx_rel_inst_case_branch_context; assumption. *)
+        rewrite -marks_of_context_app in Hbbod.
+        specialize (IH relbr Hbbod).
         forward IH by now apply eq_context_upto_cat. exact IH. }
     eapply (OnOne2_exist' _ (fun x y => on_Trel_eq (red1 Σ (Δ ,,, inst_case_branch_context p x)) bbody bcontext x y)
-      (fun x y => on_Trel_eq (eq_term_upto_univ Σ' Re Re) bbody bcontext x y)) in X as [brr [Hred Heq]]; tea.
+      (fun br br' => compare_term_upto_univ_rel Σ(* ' *) R isTermIrrel Conv (marks_of_context (Γ,,, inst_case_branch_context p br)) br.(bbody) br'.(bbody) × br.(bcontext) = br'.(bcontext))) in X as [brr [Hred Heq]]; tea.
     2:{ intros x y [[v' [redv' eq]] eqctx].
         exists {| bcontext := bcontext x; bbody := v' |}.
-        intuition auto. }
+        intuition auto.
+        rewrite !marks_of_context_app !mark_inst_case_branch_context -eqctx // in eq |- *. }
     eexists; split.
     eapply case_red_brs; tea.
     econstructor; eauto; try reflexivity.
     eapply OnOne2_All2; tea => /=; unfold eq_branch in *; intuition eauto; try reflexivity.
     now rewrite b.
+    now rewrite -marks_of_context_app.
 
-  - destruct (IHh _ e) as [x [redl redr]].
+  - inv hu.
+    eapply IHh in e as [x [redl redr]]; tea.
     exists (tApp x M2).
     split. constructor; auto.
-    constructor. eapply eq_term_upto_univ_impl. 5:eauto.
+    constructor. eapply compare_term_upto_univ_impl. 6:eauto.
     all:auto. 1-3:typeclasses eauto.
     reflexivity.
   - assert (h : ∑ ll,
       OnOne2 (red1 Σ Δ) l ll *
-      All2 (eq_term_upto_univ Σ' Re Re) l' ll
+      All2 (compare_term_upto_univ_rel Σ(* ' *) R isTermIrrel Conv (marks_of_context Γ)) l' ll
     ).
     { induction X.
       - destruct p as [p1 p2].
-        eapply p2 in e as hh. destruct hh as [? [? ?]].
+        eapply p2 in e as hh; tea. destruct hh as [? [? ?]].
         eexists. split.
         + constructor. eassumption.
         + constructor.
           * assumption.
           * eapply All2_same.
             intros.
-            eapply eq_term_upto_univ_refl ; eauto.
-      - destruct IHX as [ll [? ?]].
+            eapply compare_term_upto_univ_refl ; eauto.
+        + inv hu.
+      - forward IHX by inv hu.
+        destruct IHX as [ll [? ?]]; tea.
         eexists. split.
         + eapply OnOne2_tl. eassumption.
         + constructor ; eauto.
-          eapply eq_term_upto_univ_refl ; eauto.
+          eapply compare_term_upto_univ_refl ; eauto.
     }
     destruct h as [? [? ?]].
     eexists. split.
@@ -388,39 +427,59 @@ Proof.
           (d'.(dname), d'.(dbody), d'.(rarg))
         ) mfix0 mfix'
       *
-      eq_mfix (eq_term_upto_univ Σ' Re Re) mfix1 mfix').
-    { induction X.
+      eq_mfix (compare_term_upto_univ_rel Σ(* ' *) R isTermIrrel Conv) (marks_of_context Γ) mfix1 mfix').
+    { inv hu. eapply All_impl in X0. 2: { exact (fun x '(p, q) => q). } clear def H.
+      unfold eq_mfix. remember (fix_context mfix1) as mfixc eqn:H. clear H.
+      induction X; inv X0.
       - destruct p as [[p1 p2] p3].
-        eapply p2 in e as hh. destruct hh as [? [? ?]].
+        eapply p2 in e as hh; tea. destruct hh as [? [? ?]].
         eexists. split.
         + constructor.
           instantiate (1 := mkdef _ _ _ _ _).
           split ; eauto.
         + constructor.
           * simpl. repeat split ; eauto.
-            eapply eq_term_upto_univ_refl ; eauto.
+            eapply compare_term_upto_univ_refl ; eauto.
           * eapply All2_same.
             intros. repeat split ; eauto.
-            1-2: eapply eq_term_upto_univ_refl ; eauto.
-      - destruct IHX as [? [? ?]].
+            1-2: eapply compare_term_upto_univ_refl ; eauto.
+      - destruct IHX as [? [? ?]]; tea.
         eexists. split.
         + eapply OnOne2_tl. eassumption.
         + constructor ; eauto.
           repeat split ; eauto.
-          1-2: eapply eq_term_upto_univ_refl ; eauto.
+          1-2: eapply compare_term_upto_univ_refl ; eauto.
     }
     destruct h as [? [? ?]].
     eexists. split.
     + eapply fix_red_ty. eassumption.
     + constructor. assumption.
-  - assert (h : ∑ mfix',
+  - assert (marks_of_context (fix_context mfix0) = marks_of_context (fix_context mfix1)). {
+      rewrite /marks_of_context /fix_context !map_rev !map_mapi /= !mapi_cst_map.
+      f_equal.
+      induction X => /=; f_equal; tas.
+      destruct p as [_ ee]; noconf ee; congruence.
+    }
+    assert (h : ∑ mfix',
       OnOne2 (fun d d' =>
           red1 Σ (Δ ,,, fix_context mfix0) d.(dbody) d'.(dbody) ×
           (d.(dname), d.(dtype), d.(rarg)) =
           (d'.(dname), d'.(dtype), d'.(rarg))
         ) mfix0 mfix' *
-      eq_mfix (eq_term_upto_univ Σ' Re Re) mfix1 mfix').
-    { (* Maybe we should use a lemma using firstn or skipn to keep
+      eq_mfix (compare_term_upto_univ_rel Σ(* ' *) R isTermIrrel Conv) (marks_of_context Γ) mfix1 mfix').
+    { inv hu. clear def H0.
+      unfold eq_mfix. rewrite -H.
+      apply OnOne2_All_mix_left with (1 := X0) in X.
+      eapply OnOne2_impl in X.
+      2: {
+        intros ?? [[[r IX] eq] [wfb wft]].
+        rewrite -marks_of_context_app in wfb.
+        eapply eq_context_upto_cat in e; [|reflexivity].
+        eapply All_local_rel_app in hΓ; [|now apply wfTermRel_mfix_wfTermRel_ctx_rel].
+        specialize (IX _ hΓ _ wfb e).
+        exact ((r, IX), eq).
+      }
+      (* Maybe we should use a lemma using firstn or skipn to keep
          fix_context intact. Anything general?
        *)
       Fail induction X using OnOne2_ind_l.
@@ -431,49 +490,47 @@ Proof.
         OnOne2
       ((fun L (x y : def term) =>
        (red1 Σ (Γ ,,, fix_context L) (dbody x) (dbody y)
-        × (forall Δ : context,
-           eq_context_upto Σ' Re Rle (Γ ,,, fix_context L) Δ ->
-           ∑ v' : term,
-             red1 Σ Δ (dbody x) v' × eq_term_upto_univ Σ' Re Re (dbody y) v'))
+        × (∑ v' : term,
+             red1 Σ (Δ ,,, fix_context L) (dbody x) v' × compare_term_upto_univ_rel Σ(* ' *) R isTermIrrel Conv (marks_of_context (Γ ,,, fix_context L)) (dbody y) v'))
        × (dname x, dtype x, rarg x) = (dname y, dtype y, rarg y)) mfix0) mfix0 mfix1
       ) in X.
       Fail induction X using OnOne2_ind_l.
+      clear H X0.
       revert mfix0 mfix1 X.
       refine (OnOne2_ind_l _ (fun (L : mfixpoint term) (x y : def term) =>
-    ((red1 Σ (Γ ,,, fix_context L) (dbody x) (dbody y)
-     × (forall Δ0 : context,
-        eq_context_upto Σ' Re Rle (Γ ,,, fix_context L) Δ0 ->
-        ∑ v' : term,
-          red1 Σ Δ0 (dbody x) v' × eq_term_upto_univ Σ' Re Re (dbody y) v'))
-    × (dname x, dtype x, rarg x) = (dname y, dtype y, rarg y)))
+      ((red1 Σ (Γ,,, fix_context L) (dbody x) (dbody y)
+      × (∑ v' : term, red1 Σ (Δ ,,, fix_context L) (dbody x) v' × compare_term_upto_univ_rel Σ R isTermIrrel Conv (marks_of_context (Γ,,, fix_context L)) (dbody y) v'))
+     × (dname x, dtype x, rarg x) = (dname y, dtype y, rarg y)))
   (fun L mfix0 mfix1 o => ∑ mfix' : list (def term),
   OnOne2
       (fun d d' : def term =>
        red1 Σ (Δ ,,, fix_context L) (dbody d) (dbody d')
        × (dname d, dtype d, rarg d) = (dname d', dtype d', rarg d')) mfix0 mfix'
-    × eq_mfix (eq_term_upto_univ Σ' Re Re) mfix1 mfix') _ _).
+    × All2
+    (fun x y : def term =>
+      eq_binder_annot (dname x) (dname y) ×
+      rarg x = rarg y ×
+      compare_term_upto_univ_rel Σ(* ' *) R isTermIrrel Conv (marks_of_context Γ) (dtype x) (dtype y) ×
+      compare_term_upto_univ_rel Σ(* ' *) R isTermIrrel Conv (marks_of_context Γ ,,, marks_of_context (fix_context L)) (dbody x) (dbody y)) mfix1 mfix') _ _).
       - intros L x y l [[p1 p2] p3].
-        assert (
-           e' : eq_context_upto Σ' Re Rle (Γ ,,, fix_context L) (Δ ,,, fix_context L)
-        ).
-        { eapply eq_context_upto_cat ; eauto. reflexivity. }
-        eapply p2 in e' as hh. destruct hh as [? [? ?]].
+        destruct p2 as [? [? ?]].
         eexists. constructor.
         + constructor.
           instantiate (1 := mkdef _ _ _ _ _).
           split ; eauto.
         + constructor.
           * simpl. repeat split ; eauto.
-            eapply eq_term_upto_univ_refl ; eauto.
+            eapply compare_term_upto_univ_refl ; eauto.
+            now rewrite -marks_of_context_app.
           * eapply All2_same. intros.
             repeat split ; eauto.
-            all: eapply eq_term_upto_univ_refl ; eauto.
+            all: eapply compare_term_upto_univ_refl ; eauto.
       - intros L x l l' h [? [? ?]].
         eexists. constructor.
         + eapply OnOne2_tl. eassumption.
         + constructor ; eauto.
           repeat split ; eauto.
-          all: eapply eq_term_upto_univ_refl ; eauto.
+          all: eapply compare_term_upto_univ_refl ; eauto.
     }
     destruct h as [? [? ?]].
     eexists. split.
@@ -485,40 +542,60 @@ Proof.
           (d.(dname), d.(dbody), d.(rarg)) =
           (d'.(dname), d'.(dbody), d'.(rarg))
         ) mfix0 mfix' *
-        eq_mfix (eq_term_upto_univ Σ' Re Re) mfix1 mfix'
+        eq_mfix (compare_term_upto_univ_rel Σ(* ' *) R isTermIrrel Conv) (marks_of_context Γ) mfix1 mfix'
     ).
-    { induction X.
+    { inv hu. eapply All_impl in X0. 2: { exact (fun x '(p, q) => q). } clear def H.
+      unfold eq_mfix. remember (fix_context mfix1) as mfixc eqn:H. clear H.
+      induction X; inv X0.
       - destruct p as [[p1 p2] p3].
-        eapply p2 in e as hh. destruct hh as [? [? ?]].
+        eapply p2 in e as hh; tea. destruct hh as [? [? ?]].
         eexists. split.
         + constructor.
           instantiate (1 := mkdef _ _ _ _ _).
           split ; eauto.
         + constructor.
           * simpl. repeat split ; eauto.
-            eapply eq_term_upto_univ_refl ; eauto.
+            eapply compare_term_upto_univ_refl ; eauto.
           * eapply All2_same.
             intros. repeat split ; eauto.
-            all: eapply eq_term_upto_univ_refl ; eauto.
-      - destruct IHX as [? [? ?]].
+            all: eapply compare_term_upto_univ_refl ; eauto.
+      - destruct IHX as [? [? ?]]; tea.
         eexists. split.
         + eapply OnOne2_tl. eassumption.
         + constructor ; eauto.
           repeat split ; eauto.
-          all: eapply eq_term_upto_univ_refl ; eauto.
+          all: eapply compare_term_upto_univ_refl ; eauto.
     }
     destruct h as [? [? ?]].
     eexists. split.
     + eapply cofix_red_ty. eassumption.
     + constructor. assumption.
-  - assert (h : ∑ mfix',
+  - assert (marks_of_context (fix_context mfix0) = marks_of_context (fix_context mfix1)). {
+      rewrite /marks_of_context /fix_context !map_rev !map_mapi /= !mapi_cst_map.
+      f_equal.
+      induction X => /=; f_equal; tas.
+      destruct p as [_ ee]; noconf ee; congruence.
+    }
+    assert (h : ∑ mfix',
       OnOne2 (fun d d' =>
           red1 Σ (Δ ,,, fix_context mfix0) d.(dbody) d'.(dbody) ×
           (d.(dname), d.(dtype), d.(rarg)) =
           (d'.(dname), d'.(dtype), d'.(rarg))
         ) mfix0 mfix' *
-        eq_mfix (eq_term_upto_univ Σ' Re Re) mfix1 mfix').
-    { (* Maybe we should use a lemma using firstn or skipn to keep
+        eq_mfix (compare_term_upto_univ_rel Σ(* ' *) R isTermIrrel Conv) (marks_of_context Γ) mfix1 mfix').
+      { inv hu. clear def H0.
+        unfold eq_mfix. rewrite -H.
+        apply OnOne2_All_mix_left with (1 := X0) in X.
+        eapply OnOne2_impl in X.
+        2: {
+          intros ?? [[[r IX] eq] [wfb wft]].
+          rewrite -marks_of_context_app in wfb.
+          eapply eq_context_upto_cat in e; [|reflexivity].
+          eapply All_local_rel_app in hΓ; [|now apply wfTermRel_mfix_wfTermRel_ctx_rel].
+          specialize (IX _ hΓ _ wfb e).
+          exact ((r, IX), eq).
+        }
+      (* Maybe we should use a lemma using firstn or skipn to keep
          fix_context intact. Anything general?
        *)
       Fail induction X using OnOne2_ind_l.
@@ -529,66 +606,66 @@ Proof.
         OnOne2
       ((fun L (x y : def term) =>
        (red1 Σ (Γ ,,, fix_context L) (dbody x) (dbody y)
-        × (forall Δ : context,
-           eq_context_upto Σ' Re Rle (Γ ,,, fix_context L) Δ ->
-           ∑ v' : term,
-             red1 Σ Δ (dbody x) v' × eq_term_upto_univ Σ' Re Re (dbody y) v' ))
+        × (∑ v' : term,
+             red1 Σ (Δ ,,, fix_context L) (dbody x) v' × compare_term_upto_univ_rel Σ(* ' *) R isTermIrrel Conv (marks_of_context (Γ ,,, fix_context L)) (dbody y) v' ))
        × (dname x, dtype x, rarg x) = (dname y, dtype y, rarg y)) mfix0) mfix0 mfix1
       ) in X.
       Fail induction X using OnOne2_ind_l.
+      clear H X0.
       revert mfix0 mfix1 X.
       refine (OnOne2_ind_l _ (fun (L : mfixpoint term) (x y : def term) =>
-    (red1 Σ (Γ ,,, fix_context L) (dbody x) (dbody y)
-     × (forall Δ0 : context,
-        eq_context_upto Σ' Re Rle (Γ ,,, fix_context L) Δ0 ->
-        ∑ v' : term,
-           red1 Σ Δ0 (dbody x) v' × eq_term_upto_univ Σ' Re Re (dbody y) v' ))
-    × (dname x, dtype x, rarg x) = (dname y, dtype y, rarg y)) (fun L mfix0 mfix1 o => ∑ mfix' : list (def term),
-  (OnOne2
+    ((red1 Σ (Γ ,,, fix_context L) (dbody x) (dbody y)
+     × (∑ v' : term,
+          red1 Σ (Δ ,,, fix_context L) (dbody x) v' × compare_term_upto_univ_rel Σ R isTermIrrel Conv (marks_of_context (Γ ,,, fix_context L)) (dbody y) v'))
+    × (dname x, dtype x, rarg x) = (dname y, dtype y, rarg y)))
+  (fun L mfix0 mfix1 o => ∑ mfix' : list (def term),
+  OnOne2
       (fun d d' : def term =>
        red1 Σ (Δ ,,, fix_context L) (dbody d) (dbody d')
        × (dname d, dtype d, rarg d) = (dname d', dtype d', rarg d')) mfix0 mfix'
-    × eq_mfix (eq_term_upto_univ Σ' Re Re) mfix1 mfix')) _ _).
+    × All2
+    (fun x y : def term =>
+      eq_binder_annot (dname x) (dname y) ×
+      rarg x = rarg y ×
+      compare_term_upto_univ_rel Σ(* ' *) R isTermIrrel Conv (marks_of_context Γ) (dtype x) (dtype y) ×
+      compare_term_upto_univ_rel Σ(* ' *) R isTermIrrel Conv (marks_of_context Γ ,,, marks_of_context (fix_context L)) (dbody x) (dbody y)) mfix1 mfix') _ _).
       - intros L x y l [[p1 p2] p3].
-        assert (
-           e' : eq_context_upto Σ' Re Rle (Γ ,,, fix_context L) (Δ ,,, fix_context L)
-        ).
-        { eapply eq_context_upto_cat ; eauto. reflexivity. }
-        eapply p2 in e' as hh. destruct hh as [? [? ?]].
+        destruct p2 as [? [? ?]].
         eexists. constructor.
         + constructor.
           instantiate (1 := mkdef _ _ _ _ _).
           split ; eauto.
         + constructor.
           * simpl. repeat split ; eauto.
-            eapply eq_term_upto_univ_refl ; eauto.
+            eapply compare_term_upto_univ_refl ; eauto.
+            rewrite -marks_of_context_app //.
           * eapply All2_same. intros.
             repeat split ; eauto.
-            all: eapply eq_term_upto_univ_refl ; eauto.
+            all: eapply compare_term_upto_univ_refl ; eauto.
       - intros L x l l' h [? [? ?]].
         eexists. constructor.
         + eapply OnOne2_tl. eassumption.
         + constructor ; eauto.
           repeat split ; eauto.
-          all: eapply eq_term_upto_univ_refl ; eauto.
+          all: eapply compare_term_upto_univ_refl ; eauto.
     }
     destruct h as [? [? ?]].
     eexists. split.
     + eapply cofix_red_body. eassumption.
     + constructor; assumption.
-Qed.
+Admitted.
 
-Lemma eq_context_gen_context_assumptions {eq leq Γ Δ} :
-  eq_context_gen eq leq Γ Δ ->
+Lemma eq_context_gen_context_assumptions {compare pb Γ0 Γ Δ} :
+  eq_context_gen compare pb Γ0 Γ Δ ->
   context_assumptions Γ = context_assumptions Δ.
 Proof.
   induction 1; simpl; auto;
   destruct p => /= //; try lia.  
 Qed.
 
-Lemma eq_context_extended_subst {Σ Re Rle Γ Δ k} :
-  eq_context_gen (eq_term_upto_univ Σ Re Re) (eq_term_upto_univ Σ Re Rle) Γ Δ ->
-  All2 (eq_term_upto_univ Σ Re Re) (extended_subst Γ k) (extended_subst Δ k).
+(* Lemma eq_context_extended_subst {Σ R isTermIrrel pb Γ0 Γ Δ k} :
+  eq_context_upto Σ R isTermIrrel pb Γ0 Γ Δ ->
+  All2 (compare_term_upto_univ_rel Σ R isTermIrrel pb Γ0) (extended_subst Γ k) (extended_subst Δ k).
 Proof.
   intros Heq.
   induction Heq in k |- *; simpl.
@@ -596,102 +673,113 @@ Proof.
   - depelim p => /=.
     * constructor. eauto. constructor; eauto. eauto.
     * constructor.
-      + rewrite (eq_context_gen_context_assumptions Heq).
+      + change (eq_context_upto Σ R isTermIrrel pb Γ0 Γ Γ') in Heq.
+        rewrite (eq_context_gen_context_assumptions Heq).
         len. rewrite (All2_fold_length Heq).
         eapply eq_term_upto_univ_substs; eauto. tc.
         eapply eq_term_upto_univ_lift, e0.
       + eapply IHHeq.
-Qed.
+Qed. *)
 
-Lemma eq_context_gen_eq_context_upto Σ Re Rle Γ Γ' :
-  RelationClasses.Reflexive Re ->
-  RelationClasses.Reflexive Rle ->
-  eq_context_gen eq eq Γ Γ' ->
-  eq_context_upto Σ Re Rle Γ Γ'.
+Lemma eq_context_gen_eq_context_upto Σ R isTermIrrel pb Γ0 Γ Γ' :
+  RelationClasses.Reflexive (R Conv) ->
+  RelationClasses.Reflexive (R pb) ->
+  eq_context_upto_names_gen Γ Γ' ->
+  eq_context_upto Σ R isTermIrrel pb Γ0 Γ Γ'.
 Proof.
   intros.
   eapply All2_fold_impl; tea.
   cbn; intros ????. move => []; constructor; subst; auto; reflexivity.
 Qed.
 
-Lemma red1_eq_context_upto_univ_l {Σ Σ' Re Rle Γ ctx ctx' ctx''} :
-  RelationClasses.Reflexive Re ->
-  RelationClasses.Reflexive Rle ->
-  RelationClasses.Transitive Re ->
-  RelationClasses.Transitive Rle ->
-  SubstUnivPreserving Re ->
-  SubstUnivPreserving Rle ->
-  RelationClasses.subrelation Re Rle ->
-  eq_context_gen (eq_term_upto_univ Σ' Re Re)
-   (eq_term_upto_univ Σ' Re Re) ctx ctx' ->
+Lemma red1_eq_context_upto_univ_l {cf: checker_flags} {Σ R pb Γ ctx ctx' ctx''} :
+  compatible_with_compare_term isTermIrrel ->
+  RelationClasses.Reflexive (R Conv) ->
+  RelationClasses.Reflexive (R pb) ->
+  RelationClasses.Transitive (R Conv) ->
+  RelationClasses.Transitive (R pb) ->
+  SubstUnivPreserving (R Conv) ->
+  SubstUnivPreserving (R pb) ->
+  RelationClasses.subrelation (R Conv) (R pb) ->
+  eq_context_upto Σ R isTermIrrel Conv (marks_of_context Γ) ctx ctx' ->
+  wfTermRel_ctx Σ (Γ ,,, ctx) ->
   OnOne2_local_env (on_one_decl
     (fun (Γ' : context) (u v : term) =>
-    forall (Rle : Relation_Definitions.relation Universe.t)
-      (napp : nat) (u' : term),
-    RelationClasses.Reflexive Re ->
-    RelationClasses.Reflexive Rle ->
-    RelationClasses.Transitive Re ->
-    RelationClasses.Transitive Rle ->
-    SubstUnivPreserving Re ->
-    SubstUnivPreserving Rle ->
-    (forall x y : Universe.t, Re x y -> Rle x y) ->
-    eq_term_upto_univ_napp Σ' Re Rle napp u u' ->
+    forall (pb : conv_pb) (napp : nat) (u' : term),
+    compare_term_upto_univ_napp_rel Σ R isTermIrrel pb napp (marks_of_context (Γ,,, Γ')) u u' ->
     ∑ v' : term,
       red1 Σ (Γ,,, Γ') u' v'
-      × eq_term_upto_univ_napp Σ' Re Rle napp v v')) ctx ctx'' ->
+      × compare_term_upto_univ_napp_rel Σ R isTermIrrel pb napp (marks_of_context (Γ,,, Γ')) v v')) ctx ctx'' ->
   ∑ pctx,
     red1_ctx_rel Σ Γ ctx' pctx *
-    eq_context_gen (eq_term_upto_univ Σ' Re Re) (eq_term_upto_univ Σ' Re Re) ctx'' pctx.
+    eq_context_upto Σ R isTermIrrel Conv (marks_of_context Γ) ctx'' pctx.
 Proof.
-  intros. 
-  rename X into e, X0 into X.
-  induction X in e, ctx' |- *.
+  intros H **.
+  rename X into e, X1 into X.
+  induction X in e, X0, ctx' |- *.
   - red in p. simpl in p.
     depelim e. depelim c.
-    destruct p as [-> p].
-    eapply p in e1 as hh ; eauto.
+    destruct p as [<- p].
+    rewrite -marks_of_context_app in c.
+    eapply p in c as hh ; eauto.
     destruct hh as [? [? ?]].
-    eapply red1_eq_context_upto_l in r; cycle -1.
+    inv X0.
+    eapply red1_eq_context_upto_l in r; cycle -2.
+    { eexists. eapply eq_term_isTermRel_1; tea. now destruct X1. }
     { eapply eq_context_upto_cat; tea.
+      2: rewrite app_context_nil_l; eapply e.
       reflexivity. }
-    all:try tc.
+    all: eauto; tc.
     destruct r as [v' [redv' eqv']].
     eexists; split.
     + constructor; tea. red. cbn. split; tea. reflexivity.
     + constructor. all: eauto. constructor; auto.
+      rewrite -marks_of_context_app.
       now transitivity x.
   - depelim e.
     depelim c.
+    rewrite -!marks_of_context_app in c, c0.
+    inv X0.
     destruct p as [-> [[p ->]|[p ->]]].
-    { eapply p in e2 as hh ; eauto.
+    { eapply p in c0 as hh ; eauto.
       destruct hh as [? [? ?]].
-      eapply red1_eq_context_upto_l in r; cycle -1.
+      eapply red1_eq_context_upto_l in r; cycle -2.
+      { eexists. eapply eq_term_isTermRel_1; tea. now destruct X1. }
       { eapply eq_context_upto_cat; tea.
+        2: rewrite app_context_nil_l; eapply e.
         reflexivity. }
-      all:try tc.
+      all: eauto; tc.
       destruct r as [v' [redv' eqv']].
       eexists; split.
       + constructor; tea. red. cbn. split; tea. reflexivity.
         left. split; tea. reflexivity.
       + constructor. all: eauto. constructor; auto.
+        all: rewrite -marks_of_context_app //.
         now transitivity x. }
-    { eapply p in e1 as hh ; eauto.
+    { eapply p in c as hh ; eauto.
       destruct hh as [? [? ?]].
-      eapply red1_eq_context_upto_l in r; cycle -1.
+      eapply red1_eq_context_upto_l in r; cycle -2.
+      { eexists. eapply eq_term_isTermRel_1; tea. now destruct X1. }
       { eapply eq_context_upto_cat; tea.
+        2: rewrite app_context_nil_l; eapply e.
         reflexivity. }
-      all:try tc.
+      all: eauto; tc.
       destruct r as [v' [redv' eqv']].
       eexists; split.
       + constructor; tea. red. cbn. split; tea. reflexivity.
         right. split; tea. reflexivity.
       + constructor. all: eauto. constructor; auto.
+        all: rewrite -marks_of_context_app //.
         now transitivity x. }
   - depelim e.
-    destruct (IHX _ e) as [? [? ?]].
+    eapply IHX in e as [? [? ?]]; tea.
+    2: now inv X0.
     eexists. split.
     + now eapply onone2_localenv_cons_tl.
     + constructor. all: eauto.
+    enough (ee: marks_of_context Γ0 = marks_of_context Γ'0) by rewrite -ee //.
+    clear -X.
+    induction X; cbn; f_equal; tas; depelim p; congruence.
 Qed.
 
 
@@ -703,20 +791,21 @@ Qed. *)
 
 
 Global Instance eq_context_upto_univ_subst_preserved {cf:checker_flags} Σ
-  (Re Rle : ConstraintSet.t -> Universe.t -> Universe.t -> Prop)
-  {he: SubstUnivPreserved Re} {hle: SubstUnivPreserved Rle}
-  : SubstUnivPreserved (fun φ => eq_context_upto Σ (Re φ) (Rle φ)).
+  (R : conv_pb -> ConstraintSet.t -> Universe.t -> Universe.t -> Prop) pb Γ0
+  {he: SubstUnivPreserved (R Conv)} {hle: SubstUnivPreserved (R pb)}
+  : SubstUnivPreserved (fun φ => eq_context_upto Σ (fun pb => R pb φ) isTermIrrel pb Γ0).
 Proof.
   intros φ φ' u vc Γ Δ eqc.
   eapply All2_fold_map.
   eapply All2_fold_impl; tea.
   cbn; intros.
-  destruct X; constructor; cbn; auto; eapply eq_term_upto_univ_subst_preserved; tc; eauto.
+  destruct X; constructor; cbn; auto; rewrite marks_of_context_univ_subst; eapply compare_term_upto_univ_subst_preserved; tc; eauto.
+  all: intros; now apply isTermRel_subst_instance.
 Qed.
 
 Lemma eq_context_gen_eq_univ_subst_preserved u Γ Δ :
-  eq_context_gen eq eq Γ Δ ->
-  eq_context_gen eq eq (subst_instance u Γ) (subst_instance u Δ).
+  eq_context_upto_names_gen Γ Δ ->
+  eq_context_upto_names_gen (subst_instance u Γ) (subst_instance u Δ).
 Proof.
   intros onctx.
   eapply All2_fold_map.
@@ -725,122 +814,236 @@ Proof.
   destruct X; constructor; cbn; auto; now subst.
 Qed.
 
-Lemma eq_term_upto_univ_subst_instance' {cf:checker_flags} Σ Re Rle :
-  RelationClasses.Reflexive Re ->
-  SubstUnivPreserving Re ->
-  RelationClasses.Transitive Re ->
-  RelationClasses.Transitive Rle ->  
-  RelationClasses.subrelation Re Rle ->
-  SubstUnivPreserved (fun _ => Re) ->
-  SubstUnivPreserved (fun _ => Rle) ->
+Lemma eq_term_upto_univ_subst_instance' {cf:checker_flags} Σ R pb Γ :
+  RelationClasses.Reflexive (R Conv) ->
+  SubstUnivPreserving (R Conv) ->
+  RelationClasses.Transitive (R Conv) ->
+  RelationClasses.Transitive (R pb) ->  
+  RelationClasses.subrelation (R Conv) (R pb) ->
+  SubstUnivPreserved (fun _ => R Conv) ->
+  SubstUnivPreserved (fun _ => R pb) ->
   forall x y napp u1 u2,
-    R_universe_instance Re u1 u2 ->
-    eq_term_upto_univ_napp Σ Re Rle napp x y ->
-    eq_term_upto_univ_napp Σ Re Rle napp (subst_instance u1 x) (subst_instance u2 y).
+    R_universe_instance (R Conv) u1 u2 ->
+    compare_term_upto_univ_napp_rel Σ R isTermIrrel pb napp Γ x y ->
+    compare_term_upto_univ_napp_rel Σ R isTermIrrel pb napp Γ (subst_instance u1 x) (subst_instance u2 y).
 Proof.
   intros.
-  eapply eq_term_upto_univ_trans with (subst_instance u2 x); tc.
+  eapply compare_term_upto_univ_trans with (subst_instance u2 x); tc.
   now eapply eq_term_upto_univ_subst_instance.
-  eapply (eq_term_upto_univ_subst_preserved Σ (fun _ => Re) (fun _ => Rle) napp ConstraintSet.empty ConstraintSet.empty u2).
+  eapply (compare_term_upto_univ_subst_preserved Σ pb (fun pb _ => R pb) isTermIrrel napp Γ ConstraintSet.empty ConstraintSet.empty u2).
   red. destruct check_univs => //.
   assumption.
+  Unshelve. intros; now apply isTermRel_subst_instance.
 Qed.
 
-Lemma eq_context_upto_univ_subst_instance Σ Re Rle :
-  RelationClasses.Reflexive Re ->
-  SubstUnivPreserving Re ->
-  RelationClasses.subrelation Re Rle ->
+Lemma eq_context_upto_univ_subst_instance Σ R pb Γ0 :
+  RelationClasses.Reflexive (R Conv) ->
+  SubstUnivPreserving (R Conv) ->
+  RelationClasses.subrelation (R Conv) (R pb) ->
   forall x u1 u2,
-    R_universe_instance Re u1 u2 ->
-    eq_context_upto Σ Re Rle (subst_instance u1 x) (subst_instance u2 x).
+    R_universe_instance (R Conv) u1 u2 ->
+    eq_context_upto Σ R  isTermIrrel pb Γ0 (subst_instance u1 x) (subst_instance u2 x).
 Proof.
   intros ref hRe subr t.
-  induction t. intros.
+  induction t in Γ0 |- *. intros.
   - rewrite /subst_instance /=. constructor.
-  - rewrite /subst_instance /=. constructor; auto.
+  - rewrite /subst_instance /=. constructor. apply IHt, H.
     destruct a as [na [b|] ty]; cbn; constructor; cbn; eauto using eq_term_upto_univ_subst_instance.
     apply eq_term_upto_univ_subst_instance; eauto. tc.
 Qed.
 
-Lemma eq_context_upto_univ_subst_instance' Σ Re Rle :
-  RelationClasses.Reflexive Re ->
-  RelationClasses.Reflexive Rle ->
-  RelationClasses.Transitive Re ->
-  RelationClasses.Transitive Rle ->
-  SubstUnivPreserving Re ->
-  RelationClasses.subrelation Re Rle ->
+Lemma eq_context_upto_univ_subst_instance' Σ R pb Γ0 :
+  RelationClasses.Reflexive (R Conv) ->
+  RelationClasses.Reflexive (R pb) ->
+  RelationClasses.Transitive (R Conv) ->
+  RelationClasses.Transitive (R pb) ->
+  SubstUnivPreserving (R Conv) ->
+  RelationClasses.subrelation (R Conv) (R pb) ->
   forall x y u1 u2,
-    R_universe_instance Re u1 u2 ->
-    eq_context_gen eq eq x y ->
-    eq_context_upto Σ Re Rle (subst_instance u1 x) (subst_instance u2 y).
+    R_universe_instance (R Conv) u1 u2 ->
+    eq_context_upto_names_gen x y ->
+    eq_context_upto Σ R isTermIrrel pb Γ0 (subst_instance u1 x) (subst_instance u2 y).
 Proof.
   intros ref refl' tr trle hRe subr x y u1 u2 ru eqxy.
-  eapply All2_fold_trans.
-  intros ?????????. eapply compare_decl_trans.
-  eapply eq_term_upto_univ_trans; tc.
-  eapply eq_term_upto_univ_trans; tc.
+  etransitivity.
   eapply eq_context_gen_eq_context_upto; tea.
   eapply eq_context_gen_eq_univ_subst_preserved; tea.
   eapply eq_context_upto_univ_subst_instance; tc. tea.
 Qed.
 
-(*Lemma eq_context_upto_eq_univ_subst_instance {cf:checker_flags} Σ φ Re Rle :
-  RelationClasses.Reflexive (Re φ) ->
-  RelationClasses.Transitive (Re φ) ->
-  RelationClasses.Transitive (Rle φ) ->
-  SubstUnivPreserving (Re φ) ->
-  RelationClasses.subrelation (Re φ) (Rle φ) ->
-  SubstUnivPreserved Re ->
-  SubstUnivPreserved Rle ->
+(*Lemma eq_context_upto_eq_univ_subst_instance {cf:checker_flags} Σ φ R pb Γ :
+  RelationClasses.Reflexive (R Conv φ) ->
+  RelationClasses.Transitive (R Conv φ) ->
+  RelationClasses.Transitive (R pb φ) ->
+  SubstUnivPreserving (R Conv φ) ->
+  RelationClasses.subrelation (R Conv φ) (R pb φ) ->
+  SubstUnivPreserved (R Conv) ->
+  SubstUnivPreserved (R pb) ->
   forall x y u1 u2,
-    R_universe_instance (Re φ) u1 u2 ->
+    R_universe_instance ((R Conv) φ) u1 u2 ->
     valid_constraints φ (subst_instance_cstrs u1 φ) ->
-    eq_context_upto Σ eq eq x y ->
-    eq_context_upto Σ (Re φ) (Rle φ) (subst_instance u1 x) (subst_instance u2 y).
+    eq_context_upto_names_gen Σ Γ x y ->
+    eq_context_upto Σ (R Conv φ) (R pb φ) Γ (subst_instance u1 x) (subst_instance u2 y).
 Proof.
   intros ref tr trle hRe subr p p' x y u1 u2 ru vcstr eqxy.
   eapply All2_fold_trans.
   intros ?????????. eapply compare_decl_trans.
-  eapply eq_term_upto_univ_trans; tc.
-  eapply eq_term_upto_univ_trans; tc.
-  apply (eq_context_upto_univ_subst_preserved Σ Re Rle φ φ u1) => //.
+  eapply compare_term_upto_univ_trans; tc.
+  eapply compare_term_upto_univ_trans; tc.
+  apply (eq_context_upto_univ_subst_preserved Σ (R Conv) (R pb) φ φ u1) => //.
 
   tea.
   eapply eq_context_upto_univ_subst_instance; tc. tea.
 Qed.*)
 
-Lemma red1_eq_term_upto_univ_l {Σ Σ' : global_env} Re Rle napp Γ u v u' :
-  RelationClasses.Reflexive Re ->
-  RelationClasses.Reflexive Rle ->
-  RelationClasses.Transitive Re ->
-  RelationClasses.Transitive Rle ->
-  SubstUnivPreserving Re ->
-  SubstUnivPreserving Rle ->
-  RelationClasses.subrelation Re Rle ->
-  eq_term_upto_univ_napp Σ' Re Rle napp u u' ->
-  red1 Σ Γ u v ->
-  ∑ v', red1 Σ Γ u' v' *
-         eq_term_upto_univ_napp Σ' Re Rle napp v v'.
+Lemma eq_term_upto_univ_subst' {cf:checker_flags} (Σ : global_env_ext) R pb Γ Δ Γ' :
+  RelationClasses.Reflexive (R Conv) ->
+  RelationClasses.Reflexive (R pb) ->
+  RelationClasses.Transitive (R Conv) ->
+  RelationClasses.Transitive (R pb) ->  
+  RelationClasses.subrelation (R Conv) (R pb) ->
+  forall t u napp s s',
+    conv_subst R Σ Γ Δ s s' -> wfTermRel Σ (Γ ,,, Δ ,,, Γ') t ->
+    compare_term_upto_univ_napp_rel Σ R isTermIrrel pb napp (Γ ,,, Δ ,,, Γ') t u ->
+    compare_term_upto_univ_napp_rel Σ R isTermIrrel pb napp (Γ ,,, Γ') (subst s #|Γ'| t) (subst s' #|Γ'| u).
 Proof.
-  intros he he' tRe tRle hle hle' hR e h.
-  induction h in napp, u', e, he, he', tRe, tRle, Rle, hle, hle', hR |- * using red1_ind_all.
+  intros.
+  eapply compare_term_upto_univ_trans with (subst s' #|Γ'| t); tc.
+  + eapply subst2_compare_term_napp; cbn; tea.
+  + eapply subst_compare_term_napp; cbn; tea. now inv X.
+Qed.
+
+Lemma conv_subst_fix_subst R Σ Γ mfix mfix' :
+  wfTermRel_mfix isTermRel Σ Γ (marks_of_context (fix_context mfix)) mfix ->
+  eq_mfix (compare_term_upto_univ_rel Σ R isTermIrrel Conv) Γ mfix mfix' ->
+  conv_subst R Σ Γ (marks_of_context (fix_context mfix)) (fix_subst mfix) (fix_subst mfix').
+Proof.
+  intros wf e.
+  apply conv_subst_left.
+  - rewrite /fix_subst /fix_context /marks_of_context rev_mapi map_mapi /= mapi_cst_map.
+    remember mfix as mfixfix in wf |- * at 1.
+    rewrite -(app_nil_r mfix) in Heqmfixfix.
+    clear -wf Heqmfixfix. revert Heqmfixfix.
+    generalize ([] : mfixpoint term) as mfix1.
+    induction mfix using rev_ind.
+    1: constructor.
+    intros.
+    rewrite rev_app_distr app_length /= Nat.add_1_r.
+    cbn; constructor.
+    1: eapply IHmfix; now rewrite -app_assoc in Heqmfixfix.
+    constructor; tas.
+    rewrite Heqmfixfix nth_error_app1.
+    1: rewrite app_length /= Nat.add_1_r; constructor.
+    rewrite nth_error_app2; [constructor|].
+    rewrite Nat.sub_diag //.
+
+  - pose proof (c := fun idx => eq_Fix _ _ _ Conv 0 _ _ _ idx e).
+    rewrite /fix_subst -(All2_length e).
+    induction #|mfix| in c |- *; constructor; auto.
+Qed.
+
+Lemma conv_subst_cofix_subst R Σ Γ mfix mfix' :
+  wfTermRel_mfix isTermRel Σ Γ (marks_of_context (fix_context mfix)) mfix ->
+  eq_mfix (compare_term_upto_univ_rel Σ R isTermIrrel Conv) Γ mfix mfix' ->
+  conv_subst R Σ Γ (marks_of_context (fix_context mfix)) (cofix_subst mfix) (cofix_subst mfix').
+Proof.
+  intros wf e.
+  apply conv_subst_left.
+  - rewrite /cofix_subst /fix_context /marks_of_context rev_mapi map_mapi /= mapi_cst_map.
+    remember mfix as mfixfix in wf |- * at 1.
+    rewrite -(app_nil_r mfix) in Heqmfixfix.
+    clear -wf Heqmfixfix. revert Heqmfixfix.
+    generalize ([] : mfixpoint term) as mfix1.
+    induction mfix using rev_ind.
+    1: constructor.
+    intros.
+    rewrite rev_app_distr app_length /= Nat.add_1_r.
+    cbn; constructor.
+    1: eapply IHmfix; now rewrite -app_assoc in Heqmfixfix.
+    constructor; tas.
+    rewrite Heqmfixfix nth_error_app1.
+    1: rewrite app_length /= Nat.add_1_r; constructor.
+    rewrite nth_error_app2; [constructor|].
+    rewrite Nat.sub_diag //.
+
+  - pose proof (c := fun idx => eq_CoFix _ _ _ Conv 0 _ _ _ idx e).
+    rewrite /cofix_subst -(All2_length e).
+    induction #|mfix| in c |- *; constructor; auto.
+Qed.
+
+
+Ltac tm_rel_irrel :=
+  match goal with
+  | X : isTermRel _ _ ?t Relevant, X' : isTermRel _ _ ?t Irrelevant |- _ => 
+    pose proof (___X := isTermRel_inj _ _ _ _ _ X X'); discriminate ___X end.
+
+Definition red01 Σ Γ u v : Type := red1 Σ Γ u v + (u = v).
+
+Global Instance red01_refl Σ Γ : Reflexive (red01 Σ Γ).
+Proof.
+  now right.
+Qed.
+
+Ltac solve_irrelevant :=
+  match goal with
+  | |- ∑ v' : term, red01 _ _ ?u' v' × compare_term_upto_univ_napp_rel _ _ _ _ _ _ ?v v' =>
+    exists u'; split; [ reflexivity | apply eq_Irrel ]; [ eapply isTermRel_red1 | tas ] end.
+
+
+Lemma red1_eq_term_upto_univ_l {cf: checker_flags} {Σ : global_env_ext} R pb napp Γ u v u' :
+  RelationClasses.Reflexive (R Conv) ->
+  RelationClasses.Reflexive (R pb) ->
+  RelationClasses.Transitive (R Conv) ->
+  RelationClasses.Transitive (R pb) ->
+  SubstUnivPreserving (R Conv) ->
+  SubstUnivPreserving (R pb) ->
+  RelationClasses.subrelation (R Conv) (R pb) ->
+  on_global_env (fun _ _ _ _ _ => unit) (lift_relation isTermRelOpt (fun _ _ _ _ => unit) (fun _ _ _ _ => unit)) Σ ->
+  wfTermRel_ctx Σ Γ -> wfTermRel Σ (marks_of_context Γ) u ->
+  compare_term_upto_univ_napp_rel Σ R isTermIrrel pb napp (marks_of_context Γ) u u' ->
+  red1 Σ Γ u v ->
+  ∑ v', red01 Σ Γ u' v' *
+        compare_term_upto_univ_napp_rel Σ R isTermIrrel pb napp (marks_of_context Γ) v v'.
+Proof.
+  intros he he' tRe tRle hle hle' hR hΣ hΓ (relu & hu) e h.
+  induction h in pb, napp, u', e, he', tRle, hle', hR, hΣ, hΓ, relu, hu |- * using red1_ind_all.
+  (*
   all: try solve [
-    dependent destruction e ;
+    depelim e ;
+    [ | eapply isTermRel_inj with (r := Relevant) (r' := Irrelevant) in Xirr1; tea => // ] ;
     edestruct IHh as [? [? ?]] ; [ .. | eassumption | ] ; eauto ; tc ;
     eexists ; split ; [
       solve [ econstructor ; eauto ]
     | constructor ; eauto
     ]
   ].
+  *)
   (* tLambda and tProd *)
-  idtac.
-  10,15:solve [
-    dependent destruction e ;
-    edestruct (IHh Rle) as [? [? ?]] ; [ .. | tea | ] ; eauto;
+  (* 10: {
+
+    depelim e ;
+    [ | eapply isTermRel_inj with (r := Relevant) (r' := Irrelevant) in Xirr1; tea => // ].
+    inv X.
+    edestruct IHh as [? [? ?]] ; [ .. | tea | ] ; eauto; cbnr.
+    eexists ; split; [ | constructor; tea ].
+    econstructor.
+    3: now constructor.
+    - constructor.
+      eapply compare_term_upto_univ_napp_rel_relevance in e3.
+      inv Xirr1.
+      rewrite -e1.
+      now apply e3.
+    - constructor.
+      eapply compare_term_upto_univ_napp_rel_relevance in e3.
+      inv Xirr1.
+      rewrite -e1.
+      now apply e3.
+  }
+    ].
     clear h;
     lazymatch goal with
     | r : red1 _ (?Γ,, vass ?na ?A) ?u ?v,
-      e :  eq_term_upto_univ_napp _ _ _ _ ?A ?B
+      e :  compare_term_upto_univ_napp_rel _ _ _ _ _ _ ?A ?B
       |- _ =>
       let hh := fresh "hh" in
       eapply red1_eq_context_upto_l in r as hh ; revgoals;
@@ -859,155 +1062,26 @@ Proof.
     end;
     eexists ; split; [ solve [ econstructor ; eauto ]
     | constructor ; eauto ;
-      eapply eq_term_upto_univ_trans ; eauto ;
+      eapply compare_term_upto_univ_trans ; eauto ;
       eapply eq_term_upto_univ_leq ; eauto
     ]
-  ].
-  - dependent destruction e. dependent destruction e1.
-    eexists. split.
-    + constructor.
-    + eapply eq_term_upto_univ_substs ; eauto.
-      eapply leq_term_leq_term_napp; eauto.
-  - dependent destruction e.
-    eexists. split.
-    + constructor.
-    + eapply eq_term_upto_univ_substs ; try assumption.
-      eapply leq_term_leq_term_napp; eauto.
-      auto.
-  - dependent destruction e.
-    eexists. split.
-    + constructor. eassumption.
-    + eapply eq_term_upto_univ_refl ; assumption.
-  - dependent destruction e.
-    apply eq_term_upto_univ_mkApps_l_inv in e0 as [? [? [[h1 h2] h3]]]. subst.
-    dependent destruction h1.
-    eapply All2_nth_error_Some in e1 as [t' [hnth [eqctx eqbod]]]; tea.
-    have lenctxass := eq_context_gen_context_assumptions eqctx.
-    have lenctx := All2_fold_length eqctx.
-    eexists. split.
-    + constructor; tea. 
-      epose proof (All2_length h2). congruence.
-    + unfold iota_red.
-      eapply eq_term_upto_univ_substs => //.
-      { rewrite /expand_lets /expand_lets_k.
-        eapply eq_term_upto_univ_substs => //.
-        { simpl. rewrite /inst_case_branch_context !inst_case_context_length.
-          rewrite /inst_case_context !context_assumptions_subst_context
-            !context_assumptions_subst_instance.
-          rewrite lenctxass lenctx.
-          eapply eq_term_upto_univ_lift => //.
-          eapply eq_term_upto_univ_leq; tea. lia. }
-      eapply eq_context_extended_subst; tea.
-      rewrite /inst_case_branch_context.
-      eapply eq_context_upto_subst_context; tc.
-      eapply eq_context_upto_univ_subst_instance'.
-      7,8:tea. all:tc. apply e. 
-      now eapply All2_rev, e. }
-      now eapply All2_rev, All2_skipn.
-  - apply eq_term_upto_univ_napp_mkApps_l_inv in e as [? [? [[h1 h2] h3]]]. subst.
-    dependent destruction h1.
-    unfold unfold_fix in H.
-    case_eq (nth_error mfix idx) ;
-      try (intros eq ; rewrite eq in H ; discriminate H).
-    intros d eq. rewrite eq in H. inversion H. subst. clear H.
-    eapply All2_nth_error_Some in e as hh ; try eassumption.
-    destruct hh as (d' & e' & eann & erarg & ? & ?).
-    unfold is_constructor in H0.
-    case_eq (nth_error args (rarg d)) ;
-      try (intros bot ; rewrite bot in H0 ; discriminate H0).
-    intros a' ea.
-    rewrite ea in H0.
-    eapply All2_nth_error_Some in ea as hh ; try eassumption.
-    destruct hh as [a'' [ea' ?]].
-    eexists. split.
-    + eapply red_fix.
-      * unfold unfold_fix. rewrite e'; eauto.
-      * unfold is_constructor. rewrite <- erarg. rewrite ea'.
-        eapply isConstruct_app_eq_term_l ; eassumption.
-    + eapply eq_term_upto_univ_napp_mkApps.
-      * eapply eq_term_upto_univ_substs ; eauto.
-        -- eapply (eq_term_upto_univ_leq _ _ _ 0) ; eauto with arith. 
-        -- unfold fix_subst.
-           apply All2_length in e as el. rewrite <- el.
-           generalize #|mfix|. intro n.
-           induction n.
-           ++ constructor.
-           ++ constructor ; eauto.
-              constructor. assumption.
-      * assumption.
-  - dependent destruction e.
-    apply eq_term_upto_univ_mkApps_l_inv in e0 as [? [? [[h1 h2] h3]]]. subst.
-    dependent destruction h1.
-    unfold unfold_cofix in H.
-    destruct (nth_error mfix idx) eqn:hnth; noconf H.
-    eapply All2_nth_error_Some in e0 as hh ; tea.
-    destruct hh as (d' & e' & eann & erarg & ? & ?).
-    eexists. split.
-    + eapply red_cofix_case.
-      unfold unfold_cofix. rewrite e'. reflexivity.
-    + constructor. all: eauto.
-      eapply eq_term_upto_univ_mkApps. all: eauto.
-      eapply eq_term_upto_univ_substs ; eauto; try exact _.
-      eapply (eq_term_upto_univ_leq _ _ _ 0); auto with arith.
-      typeclasses eauto.
-      unfold cofix_subst.
-      apply All2_length in e0 as el. rewrite <- el.
-      generalize #|mfix|. intro n.
-      induction n.
-      * constructor.
-      * constructor ; eauto.
-        constructor. assumption.
-  - dependent destruction e.
-    apply eq_term_upto_univ_mkApps_l_inv in e as [? [? [[h1 h2] h3]]]. subst.
-    dependent destruction h1.
-    unfold unfold_cofix in H.
-    case_eq (nth_error mfix idx) ;
-      try (intros eq ; rewrite eq in H ; discriminate H).
-    intros d eq. rewrite eq in H. inversion H. subst. clear H.
-    eapply All2_nth_error_Some in e as hh ; try eassumption.
-    destruct hh as (d' & e' & eann & erarg & ? & ?).
-    eexists. split.
-    + eapply red_cofix_proj.
-      unfold unfold_cofix. rewrite e'. reflexivity.
-    + constructor.
-      eapply eq_term_upto_univ_mkApps. all: eauto.
-      eapply eq_term_upto_univ_substs ; eauto; try exact _.
-      eapply (eq_term_upto_univ_leq _ _ _ 0); auto with arith.
-      typeclasses eauto.
-      unfold cofix_subst.
-      apply All2_length in e as el. rewrite <- el.
-      generalize #|mfix|. intro n.
-      induction n.
-      * constructor.
-      * constructor ; eauto.
-        constructor. assumption.
-  - dependent destruction e.
-    eexists. split.
-    + econstructor. all: eauto.
-    + eapply (eq_term_upto_univ_leq _ _ _ 0); tas. auto. auto with arith.
-      now apply eq_term_upto_univ_subst_instance.
-  - dependent destruction e.
-    apply eq_term_upto_univ_mkApps_l_inv in e as [? [? [[h1 h2] h3]]]. subst.
-    dependent destruction h1.
-    eapply All2_nth_error_Some in h2 as hh ; try eassumption.
-    destruct hh as [arg' [e' ?]].
-    eexists. split.
-    + constructor. eassumption.
-    + eapply eq_term_upto_univ_leq ; eauto.
-      eapply eq_term_eq_term_napp; auto. typeclasses eauto.
-  - dependent destruction e.
-    edestruct IHh as [? [? ?]] ; [ .. | eassumption | ] ; eauto.
-    clear h.
+
+  (* } *)
+  10,15:solve [
+    depelim e ;
+    [ | eapply isTermRel_inj with (r := Relevant) (r' := Irrelevant) in Xirr1; tea => // ] ;
+    edestruct (IHh Rle) as [? [? ?]] ; [ .. | tea | ] ; eauto;
+    clear h;
     lazymatch goal with
-    | r : red1 _ (?Γ,, vdef ?na ?a ?A) ?u ?v,
-      e1 : eq_term_upto_univ _ _ _ ?A ?B,
-      e2 : eq_term_upto_univ _ _ _ ?a ?b
+    | r : red1 _ (?Γ,, vass ?na ?A) ?u ?v,
+      e :  compare_term_upto_univ_napp_rel _ _ _ _ _ _ ?A ?B
       |- _ =>
       let hh := fresh "hh" in
-      eapply red1_eq_context_upto_l in r as hh ; revgoals ; [
+      eapply red1_eq_context_upto_l in r as hh ; revgoals;
+      [
         constructor (* with (nb := na) *) ; [
-          eapply (eq_context_upto_refl _ Re Re) ; eauto
-        | econstructor; tea
+          eapply (eq_context_upto_refl _ Re Re); eauto
+        | constructor; tea
         ]
       | reflexivity
       | assumption
@@ -1016,242 +1090,579 @@ Proof.
       | assumption
       | destruct hh as [? [? ?]]
       ]
-     end.
+    end;
+    eexists ; split; [ solve [ econstructor ; eauto ]
+    | constructor ; eauto ;
+      eapply compare_term_upto_univ_trans ; eauto ;
+      eapply eq_term_upto_univ_leq ; eauto
+    ]
+  ]. *)
+  - depelim e. 2: { solve_irrelevant. 3: constructor. all: eauto. }
+    depelim e1. 2: { eapply eq_term_isTermRel_1 in e2; tea. solve_irrelevant. 3: constructor. all: eauto with pcuic. }
     eexists. split.
-    + eapply letin_red_body ; eauto.
-    + constructor ; eauto.
-      eapply eq_term_upto_univ_trans ; eauto.
-      eapply eq_term_upto_univ_leq ; eauto.
-  - dependent destruction e.
+    + do 2 constructor.
+      rewrite -e.
+      eapply eq_term_isTermRel_1; tea.
+    + change (marks_of_context _) with (marks_of_context Γ ,,, []).
+      eapply eq_term_upto_univ_subst' with (Γ' := []) (Δ := [_]); cbn; tea.
+      * apply conv_subst_left; constructor; tea; constructor.
+      * depelim hu; depelim hu1. now eexists.
+      * now eapply compare_term_compare_term_napp.
+  - depelim e. 2: { solve_irrelevant. 3: constructor 2. all: eauto. }
+    eexists. split.
+    + do 2 constructor.
+    + change (marks_of_context _) with (marks_of_context Γ ,,, []).
+      eapply eq_term_upto_univ_subst' with (Γ' := []) (Δ := [_]); cbn; tea.
+      * depelim hu.
+        apply conv_subst_left; constructor; tea; constructor.
+      * depelim hu. now eexists.
+      * now eapply compare_term_compare_term_napp.
+  - depelim e. 2: { solve_irrelevant. 3: constructor. all: eauto. }
+    eexists. split.
+    + do 2 constructor; tea.
+    + reflexivity.
+  - depelim e. 2: { solve_irrelevant. 3: constructor. all: eauto. }
+    depelim hu. apply isTermRel_mkApps_inv in hu as [hu hargs].
+    apply compare_term_upto_univ_mkApps_l_inv_rel in e0 as [cstr' [args' [[h1 h2] h3]]]; tea.
+    subst.
+    depelim h1. 2: tm_rel_irrel.
+    eapply All2_nth_error_Some in e1 as [br' [hnth [eqctx eqbod]]]; tea.
+    have lenctxass := eq_context_gen_context_assumptions eqctx.
+    have lenctx := All2_fold_length eqctx.
+    eexists. split.
+    + do 2 constructor; tea.
+      { inv X; now econstructor. }
+      epose proof (All2_length h2). congruence.
+    + rewrite /iota_red /expand_lets /expand_lets_k.
+      change (marks_of_context _) with (marks_of_context Γ ,,, []).
+      assert (∑ Γ' : context, marks_subslet Σ (marks_of_context Γ) (List.rev (skipn (ci_npar ci) args)) (marks_of_context Γ')) as (Γ' & HΓ') by admit.
+      eapply eq_term_upto_univ_subst' with (Γ' := []); cbn; tea.
+      2: { apply All_nth_error with (2 := H) in a as (_ & Hb). admit. }
+      1: { apply conv_subst_left; tea. apply All2_rev, All2_skipn, h2. }
+      change (_ ,,, _) with (marks_of_context Γ ,,, marks_of_context Γ' ,,, []).
+      assert (HΓ'' : marks_subslet Σ (marks_of_context Γ ,,, marks_of_context Γ') (extended_subst (inst_case_branch_context p br) 0) (marks_of_context (bcontext br))) by admit.
+      eapply eq_term_upto_univ_subst' with (Γ' := []); cbn; tea.
+      2: { apply All_nth_error with (2 := H) in a as (_ & Hb). admit. }
+      1: {
+        apply conv_subst_left; tea.
+        apply eq_context_upto_names_upto_names_gen in eqctx.
+        unfold inst_case_branch_context. admit. }
+      apply marks_subslet_length in HΓ'. rewrite List.rev_length skipn_length H0 Nat.add_comm Nat.add_sub in HΓ'.
+      rewrite !inst_case_context_assumptions -lenctxass !HΓ' !inst_case_branch_context_length -lenctx -(map_length (fun d => d.(decl_name).(binder_relevance))).
+      eapply weakening_compare_term_pb.
+      { apply All_nth_error with (2 := H) in a as (_ & X1). apply wfTermRel_is_open_term in X1. len in X1. apply X1. }
+      { apply All_nth_error with (2 := H) in a as (_ & ? & X1). eapply eq_term_isTermRel_1 in X1; tea. apply isTermRel_is_open_term in X1. len in X1. }
+      eapply eq_term_upto_univ_leq. 3: rewrite mark_inst_case_branch_context in eqbod; apply eqbod.
+      all: tas; auto with arith.
+  - destruct relu. 2: { eapply eq_term_isTermRel_1 in e; tea. solve_irrelevant. 3: econstructor. all: eauto. }
+    apply isTermRel_mkApps_inv in hu as (hu & hargs).
+    apply compare_term_upto_univ_napp_rel_mkApps_l_inv_rel in e as [fix' [args' [[h1 h2] h3]]]; tas.
+    subst.
+    depelim h1; [|tm_rel_irrel].
+    unfold unfold_fix in H.
+    destruct (nth_error mfix idx) eqn:Hnth; noconf H.
+    unfold is_constructor in H0.
+    apply All2_nth_error_Some with (2 := Hnth) in e as hh.
+    destruct hh as (d' & Hnth' & eann & erarg & et & eb).
+    destruct (nth_error args (rarg d)) eqn:Hargsnth => //.
+    apply All2_nth_error_Some with (2 := Hargsnth) in h2 as hh.
+    destruct hh as (t' & Hargsnth' & ett').
+    eexists. split.
+    + do 2 econstructor.
+      rewrite /unfold_fix Hnth' -erarg //.
+      rewrite /is_constructor Hargsnth'.
+      eapply isConstruct_app_eq_term_l; tea. Unshelve. all: admit. (* We need this to be forced relevant *)
+    + eapply compare_term_upto_univ_napp_rel_mkApps; tea.
+      change (marks_of_context _) with (marks_of_context Γ ,,, []).
+      eapply eq_term_upto_univ_subst' with (Γ' := []); cbn; tea.
+      1: apply conv_subst_fix_subst; tas; now inv hu.
+      { inv hu. apply All_nth_error with (2 := Hnth) in X as []. now eexists. }
+      eapply eq_term_upto_univ_leq. 3: eassumption. all: tas; auto with arith.
+  - depelim e. 2: { solve_irrelevant. 3: econstructor. all: eauto. }
+    assert (hc : isTermRelevant Σ (marks_of_context Γ) (mkApps (tCoFix mfix idx) args)) by admit.
+    (* We need this to be forced relevant *)
+    apply isTermRel_mkApps_inv in hc as (hc & hargs).
+    apply compare_term_upto_univ_mkApps_l_inv_rel in e0 as [cofix' [args' [[h1 h2] h3]]]; tea. subst.
+    depelim h1; [|tm_rel_irrel].
+    unfold unfold_cofix in H.
+    destruct (nth_error mfix idx) eqn:hnth; noconf H.
+    eapply All2_nth_error_Some in e0 as hh ; tea.
+    destruct hh as (d' & hnth' & eann & erarg & ? & ?).
+    eexists. split.
+    + constructor. eapply red_cofix_case.
+      unfold unfold_cofix. rewrite hnth'. reflexivity.
+    + constructor; tas.
+      eapply compare_term_upto_univ_mkApps; tas.
+      change (marks_of_context _) with (marks_of_context Γ ,,, []).
+      eapply eq_term_upto_univ_subst' with (Γ' := []); cbn; tea; cbnr.
+      1: apply conv_subst_cofix_subst; tas; now inv hc.
+      { inv hc. apply All_nth_error with (2 := hnth) in X as []. now eexists. }
+      eapply eq_term_upto_univ_leq. 3: eassumption. all: cbnr; auto with arith.
+  - depelim e. 2: { solve_irrelevant. 3: econstructor. all: eauto. }
+    assert (hc : isTermRelevant Σ (marks_of_context Γ) (mkApps (tCoFix mfix idx) args)) by admit.
+    (* We need this to be forced relevant *)
+    apply isTermRel_mkApps_inv in hc as (hc & hargs).
+    apply compare_term_upto_univ_mkApps_l_inv_rel in e as [cofix' [args' [[h1 h2] h3]]]; tea. subst.
+    depelim h1; [|tm_rel_irrel].
+    unfold unfold_cofix in H.
+    destruct (nth_error mfix idx) eqn:hnth; noconf H.
+    eapply All2_nth_error_Some in e as hh ; try eassumption.
+    destruct hh as (d' & hnth' & eann & erarg & ? & ?).
+    eexists. split.
+    + constructor; eapply red_cofix_proj.
+      unfold unfold_cofix. rewrite hnth'. reflexivity.
+    + constructor; tas.
+      eapply compare_term_upto_univ_mkApps; tas.
+      change (marks_of_context _) with (marks_of_context Γ ,,, []).
+      eapply eq_term_upto_univ_subst' with (Γ' := []); cbn; tea; cbnr.
+      1: apply conv_subst_cofix_subst; tas; now inv hc.
+      { inv hc. apply All_nth_error with (2 := hnth) in X as []. now eexists. }
+      eapply eq_term_upto_univ_leq. 3: eassumption. all: cbnr; auto with arith.
+  - depelim e. 2: { solve_irrelevant. 3: econstructor. all: eauto. }
+    eexists. split.
+    + do 2 econstructor. all: eassumption.
+    + eapply (eq_term_upto_univ_leq _ _ _ _ 0); tas. auto with arith.
+      now apply eq_term_upto_univ_subst_instance.
+  - depelim e. 2: { solve_irrelevant. 3: econstructor. all: eauto. }
+    assert (hc : isTermRelevant Σ (marks_of_context Γ) (mkApps (tConstruct (proj_ind p) 0 u) args)) by admit.
+    (* We need this to be forced relevant *)
+    apply isTermRel_mkApps_inv in hc as (hc & hargs).
+    apply compare_term_upto_univ_mkApps_l_inv_rel in e as [cstr' [args' [[h1 h2] h3]]]; tea. subst.
+    depelim h1; [|tm_rel_irrel].
+    eapply All2_nth_error_Some in h2 as hh ; try eassumption.
+    destruct hh as (arg' & hnth' & ?).
+    eexists. split.
+    + do 2 constructor. eassumption.
+    + eapply eq_term_upto_univ_leq. 3: eassumption. all: tas; auto with arith.
+  - depelim e. 2: { solve_irrelevant. 3: econstructor 10. all: eauto. }
+    inv hu.
+    edestruct IHh as [? [[? | ?] ?]]. 8: eassumption. all: eauto; cbnr.
+    2: { subst x. eexists; split; [ now right | now constructor]. }
+    eexists; split.
+    + now do 2 constructor.
+    + now constructor.
+  - depelim e. 2: { solve_irrelevant. 3: econstructor 11. all: eauto. }
+    inv hu.
+    assert (wfTermRel_ctx Σ (Γ ,, vass na N)).
+    { constructor; tas. split; tas. exact tt. }
+    edestruct IHh as [? [[? | ?] ?]]. 8: eassumption. all: eauto; cbnr.
+    2: { eexists; split; [ now right | subst x; now constructor]. }
+    eapply red1_eq_context_upto_l in r as hh; revgoals .
+    { constructor; [eapply eq_context_refl with (compare_term := (fun pb' => compare_term_upto_univ_rel Σ R isTermIrrel pb')); tc|constructor; tea].
+      rewrite app_context_nil_l; apply e2. }
+    all: tas; tc.
+    { eexists. eapply eq_term_isTermRel_1; tea. }
+    destruct hh as (? & ? & ?).
+    eexists; split.
+    + now do 2 constructor.
+    + constructor => //.
+      etransitivity; tea.
+      eapply eq_term_upto_univ_leq; [ .. | eassumption]; auto.
+  - depelim e. 2: { solve_irrelevant. 3: econstructor 12. all: eauto. }
+    inv hu.
+    edestruct IHh as [? [[? | ?] ?]]. 8: eassumption. all: eauto; cbnr.
+    2: { eexists; split; [ now right | subst x; now constructor]. }
+    eexists; split.
+    + constructor. now econstructor 12.
+    + now constructor.
+  - depelim e. 2: { solve_irrelevant. 3: econstructor 13. all: eauto. }
+    inv hu.
+    edestruct IHh as [? [[? | ?] ?]]. 8: eassumption. all: eauto; cbnr.
+    2: { eexists; split; [ now right | subst x; now constructor]. }
+    eexists; split.
+    + constructor. now econstructor 13.
+    + now constructor.
+  - depelim e. 2: { solve_irrelevant. 3: econstructor 14. all: eauto. }
+    inv hu.
+    assert (wfTermRel_ctx Σ (Γ ,, vdef na b t)).
+    { constructor; tas. split; tas. }
+    edestruct IHh as [? [[? | ?] ?]]. 8: eassumption. all: eauto; cbnr.
+    2: { eexists; split; [ now right | subst x; now constructor]. }
+    eapply red1_eq_context_upto_l in r0 as hh; revgoals .
+    { constructor; [eapply eq_context_refl with (compare_term := (fun pb' => compare_term_upto_univ_rel Σ R isTermIrrel pb')); tc|constructor; tea].
+      all: rewrite app_context_nil_l; tea. }
+    all: tas; tc.
+    { eexists. eapply eq_term_isTermRel_1; tea. }
+    destruct hh as (? & ? & ?).
+    eexists; split.
+    + constructor. now econstructor 14.
+    + constructor => //.
+      etransitivity; tea.
+      eapply eq_term_upto_univ_leq; [ .. | eassumption]; auto.
+  - depelim e. 2: { solve_irrelevant. 3: econstructor 15. all: eauto. now eapply OnOne2_prod_inv in X as []. }
     destruct e as [? [? [? ?]]].
+    inv hu.
     eapply OnOne2_prod_inv in X as [_ X].
     assert (h : ∑ args,
-               OnOne2 (red1 Σ Γ) (pparams p') args *
-               All2 (eq_term_upto_univ Σ' Re Re) params' args
+               (OnOne2 (red1 Σ Γ) (pparams p') args + (pparams p' = args)) *
+               All2 (compare_term_upto_univ_rel Σ R isTermIrrel Conv (marks_of_context Γ)) params' args
            ).
     { destruct p, p' as []; cbn in *.
-      induction X in a, pparams, pparams0, X |- *.
+      destruct X0 as (X0 & _).
+      induction X in a, pparams, pparams0, X, X0 |- *.
       - depelim a.
-        eapply p in e as hh ; eauto.
-        destruct hh as [? [? ?]].
+        inv X0. destruct X.
+        eapply p in c0 as hh ; eauto.
+        destruct hh as [? [[? | ?] ?]].
+        2: { eexists; split; [|constructor; tea]. now right. }
         eexists. split.
-        + constructor; tea.
+        + left. constructor; tea.
         + constructor. all: eauto.
         + tc.
       - depelim a.
-        destruct (IHX _ a) as [? [? ?]].
+        inv X0.
+        destruct (IHX _ a) as [? [[? | ?] ?]].
+        1: assumption.
+        2: { eexists; split; [|constructor; tea]. now right. }
         eexists. split.
-        + eapply OnOne2_tl. eassumption.
+        + left. eapply OnOne2_tl. eassumption.
         + constructor. all: eauto.        
     }
-    destruct h as [pars0 [? ?]].
+    destruct h as [pars0 [[? | ?] ?]].
+    2: { subst pars0. eexists; split; [|constructor; tea].
+    now right.
+    repeat (split; tas). rewrite !mark_inst_case_predicate_context // in c0 |- *.
+    rewrite /eq_branches /eq_branch in e1 |- *. solve_all.
+    rewrite !mark_inst_case_branch_context // in b0 |- *. }
     eexists. split.
-    + eapply case_red_param. eassumption.
+    + left. eapply case_red_param. eassumption.
     + constructor. all: eauto.
-      red; intuition eauto.
-  - depelim e.
+      repeat (split; tas). rewrite !mark_inst_case_predicate_context // in c0 |- *.
+      rewrite /eq_branches /eq_branch in e1 |- *. solve_all.
+      rewrite !mark_inst_case_branch_context // in b0 |- *.
+  - depelim e. 2: { solve_irrelevant. 3: econstructor 16. all: eauto. }
     destruct e as [? [? [? ?]]].
-    eapply IHh in e => //.
-    destruct e as [v' [red eq]].
-    eapply red1_eq_context_upto_l in red.
-    7:{ eapply eq_context_upto_cat.
-        2:{ instantiate (1:=PCUICCases.inst_case_predicate_context p').
-            rewrite /inst_case_predicate_context /inst_case_context.
-            eapply eq_context_upto_subst_context; tc.
-            eapply eq_context_upto_univ_subst_instance'.
-            7,8:tea. all:tc. 
-            now eapply All2_rev. }
-        eapply eq_context_upto_refl; tc. }
-    all:tc. 
+    inv hu. destruct X as (X & X' & X'').
+    rewrite -marks_of_context_app in c0, X''.
+    assert (wfTermRel_ctx Σ (Γ ,,, PCUICCases.inst_case_predicate_context p)).
+    { apply All_local_rel_app; tas. admit. (* apply wfTermRel_ctx_rel_inst_case_predicate_context; assumption. *) }
+    eapply IHh in c0 as c00 => //.
+    2: eassumption.
+    destruct c00 as [v' [[red | nored] eq]].
+    2: { eexists; split; [ now right | subst v'; constructor; tas]. 
+    repeat (split; tas). rewrite marks_of_context_app !mark_inst_case_predicate_context // in eq |- *. }
+    eapply red1_eq_context_upto_l in red; revgoals .
+    { eapply eq_context_upto_cat.
+      1: reflexivity.
+      instantiate (1:=PCUICCases.inst_case_predicate_context p').
+      replace (_ ,,, _) with (marks_of_context Γ ,,, []) by rewrite app_context_nil_l //.
+      assert (marks_subslet Σ (marks_of_context Γ) (List.rev (pparams p)) (marks_of_context [])) by admit.
+      assert (marks_subslet Σ (marks_of_context Γ) (List.rev (pparams p')) (marks_of_context [])) by admit.
+      etransitivity.
+      { eapply subst2_eq_context with (Γ' := []); tas; tc. 
+      2: admit. repeat (split; tea). now apply All2_rev. }
+      eapply subst_eq_context with (Γ' := []); tea.
+      eapply eq_context_upto_univ_subst_instance'.
+      7,8:tea. all:tc. }
+    all:tea; tc.
+    { eexists. eapply eq_term_isTermRel_1; tea. }
     destruct red as [ret' [redret eqret]].
     eexists; split.
-    + eapply case_red_return; tea.
+    + left. eapply case_red_return; tea.
     + econstructor; eauto.
       red; simpl; intuition eauto.
+      rewrite !marks_of_context_app !mark_inst_case_predicate_context in eq, eqret |- *.
       now transitivity v'.
 
-  - depelim e.
+  - depelim e. 2: { solve_irrelevant. 3: econstructor 17. all: eauto. }
+    inv hu.
+    eapply IHh in e0 => //.
+    2: eassumption.
+    destruct e0 as [v' [[red | nored] eq]].
+    2: { eexists; split; [ now right | subst v'; constructor; tas]. }
+    eexists; split.
+    + left. eapply case_red_discr; tea.
+    + econstructor; eauto.
+
+  - depelim e. 2: { solve_irrelevant. 3: econstructor 18. all: eauto. eapply OnOne2_prod_inv in X as [X X']. eapply OnOne2_prod_inv in X as [X _]. eapply OnOne2_prod; auto; now split. }
     eapply OnOne2_prod_assoc in X as [_ X].
+    inv hu.
     assert (h : ∑ brs0,
-          OnOne2 (fun br br' => 
-            on_Trel_eq (red1 Σ (Γ ,,, inst_case_branch_context p' br)) bbody bcontext br br') brs' brs0 *
-          eq_branches (eq_term_upto_univ Σ' Re Re) brs'0 brs0
+          (OnOne2 (fun br br' => 
+            on_Trel_eq (red1 Σ (Γ ,,, inst_case_branch_context p' br)) bbody bcontext br br') brs' brs0) + (brs' = brs0) ×
+          eq_branches (compare_term_upto_univ_rel Σ R isTermIrrel Conv) (marks_of_context Γ) p brs'0 brs0
         ).
-      { induction X in e1, brs' |- *.
+      { induction X in e1, brs', X1 |- *.
         - destruct p0 as [p2 p3].
           dependent destruction e1. destruct e1 as [h1 h2].
+          inv X1. destruct X as (Xbrctx & ? & Xbrbod).
+          assert (wfTermRel_ctx Σ (Γ ,,, PCUICCases.inst_case_branch_context p hd)).
+          { apply All_local_rel_app; tas. admit. (* apply wfTermRel_ctx_rel_inst_case_branch_context; assumption. *) }      
+          rewrite -marks_of_context_app in h2.
           eapply p2 in h2 as hh ; eauto.
-          destruct hh as [? [? ?]].
-          eapply (red1_eq_context_upto_l (Re:=Re) (Rle:=Rle) (Δ := Γ ,,, inst_case_branch_context p' y)) in r; cycle -1.
+          destruct hh as [? [[? | eq] ?]].
+          2: { subst. rewrite p3 in h1. eexists; split; [|constructor; tea; split; tea]. now right.
+            rewrite marks_of_context_app !mark_inst_case_branch_context p3 // in c0 |- *. }
+          eapply (red1_eq_context_upto_l (Δ := Γ ,,, inst_case_branch_context p' y)) in r0; cycle -1.
           { eapply eq_context_upto_cat; tea. reflexivity. 
-            rewrite /inst_case_branch_context /inst_case_context.
-            eapply eq_context_upto_subst_context; tc.
-            eapply eq_context_upto_univ_subst_instance'. 7,8:tea. all:tc.
-            apply e. apply All2_rev, e. }
-          all:tc.
-          destruct r as [v' [redv' eqv']].
+            replace (_ ,,, _) with (marks_of_context Γ ,,, []) by rewrite app_context_nil_l //.
+            assert (marks_subslet Σ (marks_of_context Γ) (List.rev (pparams p)) (marks_of_context [])) by admit.
+            assert (marks_subslet Σ (marks_of_context Γ) (List.rev (pparams p')) (marks_of_context [])) by admit.
+            etransitivity.
+            { eapply subst2_eq_context with (Γ' := []); tas; tc. 
+            2: admit. repeat (split; tea). now apply All2_rev, e. }
+            eapply subst_eq_context with (Γ' := []); tea.
+            eapply eq_context_upto_univ_subst_instance'.
+            7,8:tea. all:tc. apply e. }
+          all:tea; tc.
+          2: { eexists. eapply eq_term_isTermRel_1; tea. rewrite marks_of_context_app; tea. }
+          2: { rewrite marks_of_context_app; tea. }
+          destruct r0 as [v' [redv' eqv']].
           eexists. split.
-          + constructor.
+          + left. constructor.
             instantiate (1 := {| bcontext := bcontext y; bbody := v' |}). cbn. split ; eauto.
           + constructor. all: eauto.
             split ; eauto. cbn. transitivity (bcontext hd) ; eauto.
-            now rewrite p3. simpl. now transitivity x.
+            now rewrite p3. simpl. rewrite !marks_of_context_app !mark_inst_case_branch_context p3 in c0, eqv' |- *. now transitivity x0.
         - dependent destruction e1.
-          destruct (IHX _ e2) as [? [? ?]].
+          destruct (IHX _ e2) as [? [[? | eq] ?]].
+          { now inv X1. }
+          2: { subst x. eexists; split; [now right|now constructor]. }
           eexists. split.
-          + eapply OnOne2_tl. eassumption.
+          + left. eapply OnOne2_tl. eassumption.
           + constructor. all: eauto.
       }
-      destruct h as [brs0 [? ?]].
+      destruct h as [brs0 [[? | eq] ?]].
+      2: { subst brs0. eexists; split; [ now right | now constructor]. }
       eexists. split.
-      * eapply case_red_brs; tea.
-      * constructor. all: eauto.    
-      
-  - dependent destruction e.
+      * left. eapply case_red_brs; tea.
+      * constructor. all: eauto.
+
+  - depelim e. 2: { solve_irrelevant. 3: econstructor 19. all: eauto. }
+    inv hu.
+    edestruct IHh as [? [[? | ?] ?]]. 8: eassumption. all: eauto; cbnr.
+    2: { eexists; split; [ now right | subst x; now constructor]. }
+    eexists; split.
+    + constructor. now econstructor 19.
+    + now constructor.
+
+  - depelim e. 2: { solve_irrelevant. 3: econstructor 20. all: eauto. }
+    inv hu.
+    edestruct IHh as [? [[? | ?] ?]]. 8: eassumption. all: eauto; cbnr.
+    2: { eexists; split; [ now right | subst x; now constructor]. }
+    eexists; split.
+    + constructor. now econstructor 20.
+    + now constructor.
+
+  - depelim e. 2: { solve_irrelevant. 3: econstructor 21. all: eauto. }
+    inv hu.
+    edestruct IHh as [? [[? | ?] ?]]. 8: eassumption. all: eauto; cbnr.
+    2: { eexists; split; [ now right | subst x; now constructor]. }
+    eexists; split.
+    + constructor. now econstructor 21.
+    + now constructor.
+  
+  - depelim e. 2: { solve_irrelevant. 3: econstructor 22. all: eauto. }
+    inv hu.
+    edestruct IHh as [? [[? | ?] ?]]. 8: eassumption. all: eauto; cbnr.
+    2: { eexists; split; [ now right | subst x; now constructor]. }
+    eexists; split.
+    + constructor. now econstructor 22.
+    + now constructor.
+
+  - depelim e. 2: { solve_irrelevant. 3: econstructor 23. all: eauto. }
+    inv hu.
+    assert (wfTermRel_ctx Σ (Γ ,, vass na M1)).
+    { constructor; tas. split; tas. exact tt. }
+    edestruct IHh as [? [[? | ?] ?]]. 8: eassumption. all: eauto; cbnr.
+    2: { subst x. eexists; split; [ now right | now constructor]. }
+    eapply red1_eq_context_upto_l in r as hh; revgoals .
+    { constructor; [eapply eq_context_refl with (compare_term := (fun pb' => compare_term_upto_univ_rel Σ R isTermIrrel pb')); tc|constructor; tea].
+      rewrite app_context_nil_l; apply e2. }
+    all: tas; tc.
+    { eexists. eapply eq_term_isTermRel_1; tea. }
+    destruct hh as (? & ? & ?).
+    eexists; split.
+    + constructor. now econstructor 23.
+    + constructor => //.
+      etransitivity; tea.
+      eapply eq_term_upto_univ_leq; [ .. | eassumption]; auto.
+
+  - depelim e. 2: { solve_irrelevant. 3: econstructor 24. all: eauto. now eapply OnOne2_prod_inv in X as []. }
+    assert (All (wfTermRel Σ (marks_of_context Γ)) l) by inv hu. clear hu.
     assert (h : ∑ args,
-               OnOne2 (red1 Σ Γ) args' args *
-               All2 (eq_term_upto_univ Σ' Re Re) l' args
+               (OnOne2 (red1 Σ Γ) args' args + (args' = args)) *
+               All2 (compare_term_upto_univ_rel Σ R isTermIrrel Conv (marks_of_context Γ)) l' args
            ).
-    { induction X in a, args' |- *.
+    { induction X in a, args', X0 |- *; inv X0.
       - destruct p as [p1 p2].
         dependent destruction a.
-        eapply p2 in e as hh ; eauto.
-        destruct hh as [? [? ?]].
+        destruct X.
+        eapply p2 in c as hh ; eauto.
+        destruct hh as [? [[? | ?] ?]].
+        2: { subst y. eexists; split; [ now right | now constructor]. }
         eexists. split.
-        + constructor. eassumption.
+        + left. constructor. eassumption.
         + constructor. all: eauto.
         + tc.
       - dependent destruction a.
-        destruct (IHX _ a) as [? [? ?]].
+        destruct (IHX _ a) as [? [[? | ?] ?]]; eauto.
+        2: { subst x. eexists; split; [ now right | now constructor]. }
         eexists. split.
-        + eapply OnOne2_tl. eassumption.
+        + left. eapply OnOne2_tl. eassumption.
         + constructor. all: eauto.
     }
-    destruct h as [? [? ?]].
+    destruct h as [? [[? | ?] ?]].
+    2: { subst x. eexists; split; [ now right | now constructor]. }
     eexists. split.
-    + eapply evar_red. eassumption.
+    + left. eapply evar_red. eassumption.
     + constructor. all: eauto.
-  - dependent destruction e.
+  - depelim e. 2: { solve_irrelevant. 3: econstructor 25. all: eauto. eapply OnOne2_prod_inv in X as [X X']. eapply OnOne2_prod_inv in X as [X _]. eapply OnOne2_prod; auto; now split. }
+    inv hu.
     assert (h : ∑ mfix,
-               OnOne2 (fun d0 d1 =>
+               (OnOne2 (fun d0 d1 =>
                    red1 Σ Γ d0.(dtype) d1.(dtype) ×
                    (d0.(dname), d0.(dbody), d0.(rarg)) =
                    (d1.(dname), d1.(dbody), d1.(rarg))
-                 ) mfix' mfix *
-               eq_mfix (eq_term_upto_univ Σ' Re Re) mfix1 mfix
+                 ) mfix' mfix + (mfix' = mfix)) *
+               eq_mfix (compare_term_upto_univ_rel Σ R isTermIrrel Conv) (marks_of_context Γ) mfix1 mfix
            ).
-    { induction X in e, mfix' |- *.
+    { unfold eq_mfix in e |- *.
+      assert (marks_of_context (fix_context mfix0) = marks_of_context (fix_context mfix1))
+      as <- by eapply mfix_eqdname_marks_fix_context, X.
+      revert e X0; generalize (marks_of_context (fix_context mfix0)) => mfixctx e X0.
+      clear H.
+      induction X in e, mfix', X0 |- *; inv X0.
       - destruct p as [[p1 p2] p3].
         dependent destruction e.
         destruct p as (hann & hrarg & hty & hbod).
+        destruct X. noconf p3.
         eapply p2 in hty as hh ; eauto.
-        destruct hh as [? [? ?]].
+        destruct hh as [? [[? | ?] ?]].
+        2: { subst x. eexists; split; [ now right | constructor; tas]. repeat (split; tas); congruence. }
         eexists. split.
-        + constructor.
+        + left. constructor.
           instantiate (1 := mkdef _ _ _ _ _).
           simpl. eauto.
         + constructor. all: eauto.
-          simpl. inversion p3.
-          repeat split ; eauto.
+          simpl.
+          repeat split ; congruence.
         + tc.
       - dependent destruction e. destruct p as (hann & hrarg & hty & hbod).
-        destruct (IHX _ e) as [? [? ?]].
+        destruct (IHX _ e) as [? [[? | ?] ?]].
+        { apply X2. }
+        2: { subst x. eexists; split; [ now right | constructor; tas]. repeat (split; tas); congruence. }
         eexists. split.
-        + eapply OnOne2_tl. eassumption.
+        + left. eapply OnOne2_tl. eassumption.
         + constructor. all: eauto.
     }
-    destruct h as [? [? ?]].
+    destruct h as [? [[? | ?] ?]].
+    2: { subst x. eexists; split; [ now right | now constructor]. }
     eexists. split.
-    + eapply fix_red_ty. eassumption.
+    + left. eapply fix_red_ty. eassumption.
     + constructor. all: eauto.
-  - dependent destruction e.
+  - depelim e. 2: { solve_irrelevant. 3: econstructor 26. all: eauto. eapply OnOne2_prod_inv in X as [X X']. eapply OnOne2_prod_inv in X as [X _]. eapply OnOne2_prod; auto; now split. }
+    inv hu.
+    assert (marks_of_context (fix_context mfix0) = marks_of_context (fix_context mfix1)).
+    { rewrite /marks_of_context /fix_context !map_rev !map_mapi /= !mapi_cst_map. f_equal.
+      clear -X; induction X as [???[]|].
+      - simpl. f_equal. now noconf e.
+      - simpl. f_equal. apply IHX. }
+    apply wfTermRel_mfix_wfTermRel_ctx_rel in X0 as hΓ'.
+    eapply All_local_rel_app in hΓ; [clear hΓ'|apply hΓ']. 
     assert (h : ∑ mfix,
-               OnOne2 (fun x y =>
+               (OnOne2 (fun x y =>
+                   wfTermRel Σ (marks_of_context (Γ ,,, fix_context mfix0)) (dbody x) ×
                    red1 Σ (Γ ,,, fix_context mfix0) x.(dbody) y.(dbody) ×
                    (dname x, dtype x, rarg x) = (dname y, dtype y, rarg y)
-                 ) mfix' mfix *
-               eq_mfix (eq_term_upto_univ Σ' Re Re) mfix1 mfix
+                 ) mfix' mfix + (mfix' = mfix)) *
+               eq_mfix (compare_term_upto_univ_rel Σ R isTermIrrel Conv) (marks_of_context Γ) mfix1 mfix
            ).
-    { revert mfix' e.
+    { revert mfix' e X0. unfold eq_mfix. rewrite -H0.
       refine (OnOne2_ind_l _ (fun L x y => (red1 Σ (Γ ,,, fix_context L) (dbody x) (dbody y)
-        × (forall Rle napp (u' : term),
-           RelationClasses.Reflexive Re ->
-           RelationClasses.Reflexive Rle ->
-           RelationClasses.Transitive Re ->
-           RelationClasses.Transitive Rle ->
-           SubstUnivPreserving Re ->
-           SubstUnivPreserving Rle ->
-           (forall u u'0 : Universe.t, Re u u'0 -> Rle u u'0) ->
-           eq_term_upto_univ_napp Σ' Re Rle napp (dbody x) u' ->
+        × (forall pb napp (u' : term),
+           RelationClasses.Reflexive (R pb) ->
+           RelationClasses.Transitive (R pb) ->
+           SubstUnivPreserving (R pb) ->
+           RelationClasses.subrelation (R Conv) (R pb) ->
+           _ -> wfTermRel_ctx Σ (Γ,,, fix_context mfix0) ->
+           forall relu, isTermRel Σ (marks_of_context (Γ,,, fix_context L)) (dbody x) relu ->
+           compare_term_upto_univ_napp_rel Σ R isTermIrrel pb napp (marks_of_context (Γ ,,, fix_context L)) (dbody x) u' ->
            ∑ v' : term,
-             red1 Σ (Γ ,,, fix_context L) u' v'
-                  × eq_term_upto_univ_napp Σ' Re Rle napp (dbody y) v' ))
+             red01 Σ (Γ ,,, fix_context L) u' v'
+                  × compare_term_upto_univ_napp_rel Σ R isTermIrrel pb napp (marks_of_context (Γ ,,, fix_context L)) (dbody y) v' ))
        × (dname x, dtype x, rarg x) = (dname y, dtype y, rarg y)) (fun L mfix0 mfix1 o => forall mfix',
-       eq_mfix (eq_term_upto_univ Σ' Re Re) mfix0 mfix' -> ∑ mfix : list (def term),
+       All2 (fun d d' => _ * (_ × _ × compare_term_upto_univ_rel Σ R isTermIrrel Conv (marks_of_context Γ ,,, marks_of_context (fix_context L)) _ _)) mfix0 mfix' ->
+       wfTermRel_mfix isTermRel Σ (marks_of_context Γ) (marks_of_context (fix_context L)) mfix0 -> ∑ mfix,
   ( OnOne2
-      (fun x y : def term =>
+      (fun x y =>
+       wfTermRel Σ (marks_of_context (Γ ,,, fix_context L)) (dbody x) ×
        red1 Σ (Γ ,,, fix_context L) (dbody x) (dbody y)
-       × (dname x, dtype x, rarg x) = (dname y, dtype y, rarg y)) mfix' mfix ) *
-  ( eq_mfix (eq_term_upto_univ Σ' Re Re) mfix1 mfix )) _ _ _ _ X).
-      - clear X. intros L x y l [[p1 p2] p3] mfix' h.
+       × (dname x, dtype x, rarg x) = (dname y, dtype y, rarg y)) mfix' mfix + (mfix' = mfix)) *
+  ( All2 (fun d d' => _ * (_ × _ × compare_term_upto_univ_rel Σ R isTermIrrel Conv (marks_of_context Γ ,,, marks_of_context (fix_context L)) _ _)) mfix1 mfix )) _ _ _ _ X).
+      - clear X. intros L x y l [[p1 p2] p3] mfix' h hu.
         dependent destruction h. destruct p as (hann & hrarg & hty & hbod).
+        depelim hu. destruct p as (hubod & huty).
+        rewrite -marks_of_context_app in hbod, hubod.
         eapply p2 in hbod as hh ; eauto.
-        destruct hh as [? [? ?]].
+        destruct hh as [? [[? | ?] ?]].
+        2: { subst x0. eexists; split; [ now right | constructor; tas]. repeat (split; tas); try congruence. rewrite -marks_of_context_app //. }
         eexists. split.
-        + constructor. constructor.
+        + left. constructor. constructor.
+          { eexists. eapply eq_term_isTermRel_1, hubod. eassumption. }
           instantiate (1 := mkdef _ _ _ _ _).
-          simpl. eauto. reflexivity.
+          simpl. eauto.
         + constructor; auto.
           inversion p3.
           simpl. repeat split ; eauto.
-      - clear X. intros L x l l' h ih mfix' ha.
+          rewrite -marks_of_context_app //.
+        + tc.
+      - clear X. intros L x l l' h ih mfix' ha hu.
         dependent destruction ha. destruct p as (hann & hrarg & hty & hbod).
-        destruct (ih _ ha) as [? [? ?]].
+        depelim hu. destruct p as (hubod & huty).
+        destruct (ih _ ha) as [? [[? | ?] ?]].
+        1: apply hu.
+        2: { subst x0. eexists; split; [ now right | constructor; tas]. repeat (split; tas); congruence. }
         eexists. split.
-        + eapply OnOne2_tl. eauto.
+        + left. eapply OnOne2_tl. eauto.
         + constructor. constructor. all: eauto.
     }
-    destruct h as [mfix [? ?]].
+    destruct h as [mfix [[? | ?] ?]].
+    2: { subst mfix'. eexists; split; [ now right | constructor; tas]. }
     assert (h : ∑ mfix,
       OnOne2 (fun x y =>
                   red1 Σ (Γ ,,, fix_context mfix') x.(dbody) y.(dbody) ×
                   (dname x, dtype x, rarg x) = (dname y, dtype y, rarg y)
                ) mfix' mfix ×
-      eq_mfix (eq_term_upto_univ Σ' Re Re) mfix1 mfix
+      eq_mfix (compare_term_upto_univ_rel Σ R isTermIrrel Conv) (marks_of_context Γ) mfix1 mfix
     ).
     { clear X.
-      assert (hc : eq_context_upto Σ'
-                     Re Rle
+      assert (hc : eq_context_upto Σ
+                     R isTermIrrel pb []
                      (Γ ,,, fix_context mfix0)
                      (Γ ,,, fix_context mfix')
              ).
       { eapply eq_context_upto_cat.
         - eapply eq_context_upto_refl; assumption.
-        - clear -he hle tRe tRle hR e. induction e.
+        - rewrite app_context_nil_l.
+          unfold fix_context, mapi; simpl.
+          revert e.
+          change (marks_of_context Γ) with (marks_of_context Γ ,,, []) at 2.
+          change 0 with #|@nil relevance| at 4 6.
+          generalize (@nil relevance).
+          remember (fix_context mfix0) as fixctx in X0; clear Heqfixctx.
+          clear -he hle tRe tRle hR X0 cf.
+          intros mΓ e. induction e in mΓ, X0 |- *.
           + constructor.
           + destruct r as (? & ? & ? & ?).
-            eapply All2_eq_context_upto.
-            eapply All2_rev.
-            eapply All2_mapi.
-            constructor.
-            * intros i. split; [split|]; cbn.
-              -- assumption.
-              -- cbn. constructor.
-              -- cbn. eapply eq_term_upto_univ_lift.
-                 eapply eq_term_upto_univ_impl; eauto.
-                 all:typeclasses eauto.
-            * eapply All2_impl ; eauto.
-              intros ? ? (? & ? & ? & ?) i. split; [split|].
-              -- assumption.
-              -- cbn. constructor.
-              -- cbn. eapply eq_term_upto_univ_lift.
-                 eapply eq_term_upto_univ_impl; eauto.
-                 typeclasses eauto.
+            inv X0. destruct X as [_ X].
+            simpl.
+            apply eq_context_upto_cat.
+            { do 2 constructor; tas.
+              simpl.
+              eapply weakening_compare_term_pb_0; eauto.
+              { eapply isTermRel_is_open_term, X. }
+              { eapply isTermRel_is_open_term, eq_term_isTermRel_1, X. eassumption. }
+              eapply compare_term_upto_univ_impl; eauto. all: tc. intros ??? => //. }
+            simpl.
+            change (S #|mΓ|) with (#|mΓ,, binder_relevance (dname x)|).
+            change (binder_relevance (dname x) :: marks_of_context Γ,,, mΓ) with (marks_of_context Γ,,, mΓ,, binder_relevance (dname x)).
+            apply IHe, X1.
       }
       clear e.
       eapply OnOne2_impl_exist_and_All ; try eassumption.
       clear o e0.
-      intros x x' y [r e] (? & ? & ? & ?).
+      intros x x' y [hu [r e]] (? & ? & ? & ?).
       inversion e. clear e.
       eapply red1_eq_context_upto_l in r as [? [? ?]].
       7: eassumption. all: tea.
@@ -1261,151 +1672,190 @@ Proof.
       intuition eauto.
       - now simpl.
       - etransitivity ; eauto.
-      - rewrite H1. eauto.
-      - eapply eq_term_upto_univ_trans; tea.
+      - rewrite H3. eauto.
+      - rewrite marks_of_context_app H0 in c1.
+        eapply compare_term_upto_univ_trans; tea.
+        tc.
     }
     destruct h as [? [? ?]].
     eexists. split.
-    +  eapply fix_red_body. eassumption.
+    + left. eapply fix_red_body. eassumption.
     + constructor. all: eauto.
-  - dependent destruction e.
+  - depelim e. 2: { solve_irrelevant. 3: econstructor 27. all: eauto. eapply OnOne2_prod_inv in X as [X X']. eapply OnOne2_prod_inv in X as [X _]. eapply OnOne2_prod; auto; now split. }
+    inv hu.
     assert (h : ∑ mfix,
-               OnOne2 (fun d0 d1 =>
+               (OnOne2 (fun d0 d1 =>
                    red1 Σ Γ d0.(dtype) d1.(dtype) ×
                    (d0.(dname), d0.(dbody), d0.(rarg)) =
                    (d1.(dname), d1.(dbody), d1.(rarg))
-                 ) mfix' mfix *
-               eq_mfix (eq_term_upto_univ Σ' Re Re) mfix1 mfix
+                 ) mfix' mfix + (mfix' = mfix)) *
+               eq_mfix (compare_term_upto_univ_rel Σ R isTermIrrel Conv) (marks_of_context Γ) mfix1 mfix
            ).
-    { induction X in e, mfix' |- *.
+    { unfold eq_mfix in e |- *.
+      assert (marks_of_context (fix_context mfix0) = marks_of_context (fix_context mfix1))
+      as <- by eapply mfix_eqdname_marks_fix_context, X.
+      revert e X0; generalize (marks_of_context (fix_context mfix0)) => mfixctx e X0.
+      clear H.
+      induction X in e, mfix', X0 |- *; inv X0.
       - destruct p as [[p1 p2] p3].
         dependent destruction e.
         destruct p as (hann & hrarg & hty & hbod).
+        destruct X. noconf p3.
         eapply p2 in hty as hh ; eauto.
-        destruct hh as [? [? ?]].
+        destruct hh as [? [[? | ?] ?]].
+        2: { subst x. eexists; split; [ now right | constructor; tas]. repeat (split; tas); congruence. }
         eexists. split.
-        + constructor.
+        + left. constructor.
           instantiate (1 := mkdef _ _ _ _ _).
           simpl. eauto.
         + constructor. all: eauto.
-          simpl. inversion p3.
-          repeat split ; eauto.
+          simpl.
+          repeat split ; congruence.
         + tc.
       - dependent destruction e. destruct p as (hann & hrarg & hty & hbod).
-        destruct (IHX _ e) as [? [? ?]].
+        destruct (IHX _ e) as [? [[? | ?] ?]].
+        { apply X2. }
+        2: { subst x. eexists; split; [ now right | constructor; tas]. repeat (split; tas); congruence. }
         eexists. split.
-        + eapply OnOne2_tl. eassumption.
+        + left. eapply OnOne2_tl. eassumption.
         + constructor. all: eauto.
     }
-    destruct h as [? [? ?]].
+    destruct h as [? [[? | ?] ?]].
+    2: { subst x. eexists; split; [ now right | now constructor]. }
     eexists. split.
-    + eapply cofix_red_ty. eassumption.
+    + left. eapply cofix_red_ty. eassumption.
     + constructor. all: eauto.
-  - dependent destruction e.
+  - depelim e. 2: { solve_irrelevant. 3: econstructor 28. all: eauto. eapply OnOne2_prod_inv in X as [X X']. eapply OnOne2_prod_inv in X as [X _]. eapply OnOne2_prod; auto; now split. }
+    inv hu.
+    assert (marks_of_context (fix_context mfix0) = marks_of_context (fix_context mfix1)).
+    { rewrite /marks_of_context /fix_context !map_rev !map_mapi /= !mapi_cst_map. f_equal.
+      clear -X; induction X as [???[]|].
+      - simpl. f_equal. now noconf e.
+      - simpl. f_equal. apply IHX. }
+    apply wfTermRel_mfix_wfTermRel_ctx_rel in X0 as hΓ'.
+    eapply All_local_rel_app in hΓ; [clear hΓ'|apply hΓ']. 
     assert (h : ∑ mfix,
-               OnOne2 (fun x y =>
+               (OnOne2 (fun x y =>
+                   wfTermRel Σ (marks_of_context (Γ ,,, fix_context mfix0)) (dbody x) ×
                    red1 Σ (Γ ,,, fix_context mfix0) x.(dbody) y.(dbody) ×
                    (dname x, dtype x, rarg x) = (dname y, dtype y, rarg y)
-                 ) mfix' mfix *
-               eq_mfix (eq_term_upto_univ Σ' Re Re) mfix1 mfix
+                 ) mfix' mfix + (mfix' = mfix)) *
+               eq_mfix (compare_term_upto_univ_rel Σ R isTermIrrel Conv) (marks_of_context Γ) mfix1 mfix
            ).
-    { revert mfix' e.
+    { revert mfix' e X0. unfold eq_mfix. rewrite -H0.
       refine (OnOne2_ind_l _ (fun L x y => (red1 Σ (Γ ,,, fix_context L) (dbody x) (dbody y)
-        × (forall Rle napp (u' : term),
-            RelationClasses.Reflexive Re ->
-            RelationClasses.Reflexive Rle ->
-            RelationClasses.Transitive Re ->
-            RelationClasses.Transitive Rle ->
-            SubstUnivPreserving Re ->
-            SubstUnivPreserving Rle ->
-           (forall u u'0 : Universe.t, Re u u'0 -> Rle u u'0) ->
-           eq_term_upto_univ_napp Σ' Re Rle napp (dbody x) u' ->
+        × (forall pb napp (u' : term),
+           RelationClasses.Reflexive (R pb) ->
+           RelationClasses.Transitive (R pb) ->
+           SubstUnivPreserving (R pb) ->
+           RelationClasses.subrelation (R Conv) (R pb) ->
+           _ -> wfTermRel_ctx Σ (Γ,,, fix_context mfix0) ->
+           forall relu, isTermRel Σ (marks_of_context (Γ,,, fix_context L)) (dbody x) relu ->
+           compare_term_upto_univ_napp_rel Σ R isTermIrrel pb napp (marks_of_context (Γ ,,, fix_context L)) (dbody x) u' ->
            ∑ v' : term,
-             red1 Σ (Γ ,,, fix_context L) u' v'
-               × eq_term_upto_univ_napp Σ' Re Rle napp (dbody y) v'))
+             red01 Σ (Γ ,,, fix_context L) u' v'
+                  × compare_term_upto_univ_napp_rel Σ R isTermIrrel pb napp (marks_of_context (Γ ,,, fix_context L)) (dbody y) v' ))
        × (dname x, dtype x, rarg x) = (dname y, dtype y, rarg y)) (fun L mfix0 mfix1 o => forall mfix',
-      eq_mfix (eq_term_upto_univ Σ' Re Re) mfix0 mfix' -> ∑ mfix : list (def term),
+       All2 (fun d d' => _ * (_ × _ × compare_term_upto_univ_rel Σ R isTermIrrel Conv (marks_of_context Γ ,,, marks_of_context (fix_context L)) _ _)) mfix0 mfix' ->
+       wfTermRel_mfix isTermRel Σ (marks_of_context Γ) (marks_of_context (fix_context L)) mfix0 -> ∑ mfix,
   ( OnOne2
-      (fun x y : def term =>
+      (fun x y =>
+       wfTermRel Σ (marks_of_context (Γ ,,, fix_context L)) (dbody x) ×
        red1 Σ (Γ ,,, fix_context L) (dbody x) (dbody y)
-       × (dname x, dtype x, rarg x) = (dname y, dtype y, rarg y)) mfix' mfix ) *
-  ( eq_mfix (eq_term_upto_univ Σ' Re Re) mfix1 mfix )) _ _ _ _ X).
-      - clear X. intros L x y l [[p1 p2] p3] mfix' h.
+       × (dname x, dtype x, rarg x) = (dname y, dtype y, rarg y)) mfix' mfix + (mfix' = mfix)) *
+  ( All2 (fun d d' => _ * (_ × _ × compare_term_upto_univ_rel Σ R isTermIrrel Conv (marks_of_context Γ ,,, marks_of_context (fix_context L)) _ _)) mfix1 mfix )) _ _ _ _ X).
+      - clear X. intros L x y l [[p1 p2] p3] mfix' h hu.
         dependent destruction h. destruct p as (hann & hrarg & hty & hbod).
+        depelim hu. destruct p as (hubod & huty).
+        rewrite -marks_of_context_app in hbod, hubod.
         eapply p2 in hbod as hh ; eauto.
-        destruct hh as [? [? ?]].
-        noconf p3. hnf in H. noconf H.
-        eexists. split; simpl.
-        + constructor.
+        destruct hh as [? [[? | ?] ?]].
+        2: { subst x0. eexists; split; [ now right | constructor; tas]. repeat (split; tas); try congruence. rewrite -marks_of_context_app //. }
+        eexists. split.
+        + left. constructor. constructor.
+          { eexists. eapply eq_term_isTermRel_1, hubod. eassumption. }
           instantiate (1 := mkdef _ _ _ _ _).
           simpl. eauto.
-        + constructor. all: eauto.
-          simpl. repeat split ; eauto; congruence.
-      - clear X. intros L x l l' h ih mfix' ha.
+        + constructor; auto.
+          inversion p3.
+          simpl. repeat split ; eauto.
+          rewrite -marks_of_context_app //.
+        + tc.
+      - clear X. intros L x l l' h ih mfix' ha hu.
         dependent destruction ha. destruct p as (hann & hrarg & hty & hbod).
-        destruct (ih _ ha) as [? [? ?]].
+        depelim hu. destruct p as (hubod & huty).
+        destruct (ih _ ha) as [? [[? | ?] ?]].
+        1: apply hu.
+        2: { subst x0. eexists; split; [ now right | constructor; tas]. repeat (split; tas); congruence. }
         eexists. split.
-        + eapply OnOne2_tl. eauto.
-        + constructor. all: eauto.
+        + left. eapply OnOne2_tl. eauto.
+        + constructor. constructor. all: eauto.
     }
-    destruct h as [mfix [? ?]].
+    destruct h as [mfix [[? | ?] ?]].
+    2: { subst mfix'. eexists; split; [ now right | constructor; tas]. }
     assert (h : ∑ mfix,
       OnOne2 (fun x y =>
                   red1 Σ (Γ ,,, fix_context mfix') x.(dbody) y.(dbody) ×
                   (dname x, dtype x, rarg x) = (dname y, dtype y, rarg y)
                ) mfix' mfix ×
-      eq_mfix (eq_term_upto_univ Σ' Re Re) mfix1 mfix
+      eq_mfix (compare_term_upto_univ_rel Σ R isTermIrrel Conv) (marks_of_context Γ) mfix1 mfix
     ).
     { clear X.
-      assert (hc : eq_context_upto Σ'
-                     Re Rle
+      assert (hc : eq_context_upto Σ
+                     R isTermIrrel pb []
                      (Γ ,,, fix_context mfix0)
                      (Γ ,,, fix_context mfix')
              ).
       { eapply eq_context_upto_cat.
         - eapply eq_context_upto_refl; assumption.
-        - clear -he he' hle hle' hR e. induction e.
+        - rewrite app_context_nil_l.
+          unfold fix_context, mapi; simpl.
+          revert e.
+          change (marks_of_context Γ) with (marks_of_context Γ ,,, []) at 2.
+          change 0 with #|@nil relevance| at 4 6.
+          generalize (@nil relevance).
+          remember (fix_context mfix0) as fixctx in X0; clear Heqfixctx.
+          clear -he hle tRe tRle hR X0 cf.
+          intros mΓ e. induction e in mΓ, X0 |- *.
           + constructor.
           + destruct r as (? & ? & ? & ?).
-            eapply All2_eq_context_upto.
-            eapply All2_rev.
-            eapply All2_mapi.
-            constructor.
-            * intros i. split; [split|].
-              -- assumption.
-              -- cbn. constructor.
-              -- cbn. eapply eq_term_upto_univ_lift.
-                 eapply eq_term_upto_univ_impl; eauto.
-                 all:typeclasses eauto.
-            * eapply All2_impl ; eauto.
-              intros ? ? (? & ? & ? & ?) i. split; [split|].
-              -- assumption.
-              -- cbn. constructor.
-              -- cbn. eapply eq_term_upto_univ_lift.
-                 eapply eq_term_upto_univ_impl; eauto.
-                 all:typeclasses eauto.
+            inv X0. destruct X as [_ X].
+            simpl.
+            apply eq_context_upto_cat.
+            { do 2 constructor; tas.
+              simpl.
+              eapply weakening_compare_term_pb_0; eauto.
+              { eapply isTermRel_is_open_term, X. }
+              { eapply isTermRel_is_open_term, eq_term_isTermRel_1, X. eassumption. }
+              eapply compare_term_upto_univ_impl; eauto. all: tc. intros ??? => //. }
+            simpl.
+            change (S #|mΓ|) with (#|mΓ,, binder_relevance (dname x)|).
+            change (binder_relevance (dname x) :: marks_of_context Γ,,, mΓ) with (marks_of_context Γ,,, mΓ,, binder_relevance (dname x)).
+            apply IHe, X1.
       }
       clear e.
       eapply OnOne2_impl_exist_and_All ; try eassumption.
       clear o e0.
-      intros x x' y [r e] (? & ? & ? & ?).
+      intros x x' y [hu [r e]] (? & ? & ? & ?).
       inversion e. clear e.
       eapply red1_eq_context_upto_l in r as [? [? ?]].
       7: eassumption. all: tea.
-      eexists.
+      eexists. constructor.
       instantiate (1 := mkdef _ _ _ _ _). simpl.
       intuition eauto.
-      - congruence.
+      intuition eauto.
+      - now simpl.
       - etransitivity ; eauto.
-      - rewrite H1. eauto.
-      - eapply eq_term_upto_univ_trans ; tea.
+      - rewrite H3. eauto.
+      - rewrite marks_of_context_app H0 in c1.
+        eapply compare_term_upto_univ_trans; tea.
+        tc.
     }
     destruct h as [? [? ?]].
     eexists. split.
-    +  eapply cofix_red_body. eassumption.
+    + left. eapply cofix_red_body. eassumption.
     + constructor. all: eauto.
-Qed.
-
+Admitted.
 
 Lemma Forall2_flip {A} (R : A -> A -> Prop) (x y : list A) : 
   Forall2 (flip R) y x -> Forall2 R x y.
@@ -1421,112 +1871,161 @@ Proof.
   apply Forall2_flip.
 Qed.
 
-Lemma eq_context_upto_flip {Σ Re Rle Γ Δ}
-  `{!RelationClasses.Reflexive Re}
-  `{!RelationClasses.Symmetric Re}
-  `{!RelationClasses.Transitive Re}
-  `{!RelationClasses.Reflexive Rle}
-  `{!RelationClasses.Transitive Rle}
-  `{!RelationClasses.subrelation Re Rle} :
-  eq_context_upto Σ Re Rle Γ Δ ->
-  eq_context_upto Σ Re (flip Rle) Δ Γ.
+Lemma symmetric_flip {A} (R : Relation_Definitions.relation A) :
+  RelationClasses.Symmetric R -> RelationClasses.Symmetric (flip R).
 Proof.
+  intros H x y r.
+  unfold flip. symmetry. apply r.
+Qed.
+
+Lemma subrelation_flip {A} (R R' : Relation_Definitions.relation A) :
+  RelationClasses.subrelation R R' -> RelationClasses.subrelation (flip R) (flip R').
+Proof.
+  intros H x y. unfold flip. auto.
+Qed.
+
+Lemma eq_context_upto_flip {Σ R pb Γ0 Γ Δ}
+  `{!RelationClasses.Reflexive (R Conv)}
+  `{!RelationClasses.Symmetric (R Conv)}
+  `{!RelationClasses.Transitive (R Conv)}
+  `{!RelationClasses.Reflexive (R pb)}
+  `{!RelationClasses.Transitive (R pb)}
+  `{!RelationClasses.subrelation (R Conv) (R pb)} :
+  eq_context_upto Σ R isTermIrrel pb Γ0 Γ Δ ->
+  eq_context_upto Σ (fun pb => flip (R pb)) isTermIrrel pb Γ0 Δ Γ.
+Proof.
+  assert (RelationClasses.Symmetric (flip (R Conv))) by now apply symmetric_flip.
+  assert (RelationClasses.subrelation (R Conv) (flip (R Conv))) by apply H0.
+  assert (forall x y, R Conv x y -> flip (R Conv) y x) by now unfold flip.
+  assert (RelationClasses.subrelation (R Conv) (flip (R pb))). { (transitivity (flip (R Conv)); tc). apply subrelation_flip, H4. }
   induction 1; constructor; auto; depelim p; constructor; auto.
   - now symmetry.
-  - now eapply eq_term_upto_univ_napp_flip; try typeclasses eauto.
+  - eapply compare_term_upto_univ_napp_rel_flip; cycle -1.
+    now rewrite -(@compare_decls_eq_marks (fun pb => compare_term_upto_univ_rel _ _ _ pb) _ _ _ _ X) //.
+    all: tc; auto.
   - now symmetry.
-  - now eapply eq_term_upto_univ_napp_flip; try typeclasses eauto.
-  - now eapply eq_term_upto_univ_napp_flip; try typeclasses eauto.
+  - eapply compare_term_upto_univ_napp_rel_flip; cycle -1.
+    now rewrite -(@compare_decls_eq_marks (fun pb => compare_term_upto_univ_rel _ _ _ pb) _ _ _ _ X).
+    all: tc; auto.
+  - eapply compare_term_upto_univ_napp_rel_flip; cycle -1.
+    now rewrite -(@compare_decls_eq_marks (fun pb => compare_term_upto_univ_rel _ _ _ pb) _ _ _ _ X).
+    all: tc; auto.
 Qed.
 
-Lemma red1_eq_context_upto_r {Σ Σ' Re Rle Γ Δ u v} :
-  RelationClasses.Equivalence Re ->
-  RelationClasses.PreOrder Rle ->
-  SubstUnivPreserving Re ->
-  SubstUnivPreserving Rle ->
-  RelationClasses.subrelation Re Rle ->
+Lemma red1_eq_context_upto_r {cf: checker_flags} {Σ R pb Γ Δ u v} :
+  RelationClasses.Equivalence (R Conv) ->
+  RelationClasses.PreOrder (R pb) ->
+  SubstUnivPreserving (R Conv) ->
+  SubstUnivPreserving (R pb) ->
+  RelationClasses.subrelation (R Conv) (R pb) ->
+  wfTermRel_ctx Σ Γ ->
+  wfTermRel Σ (marks_of_context Γ) u ->
   red1 Σ Γ u v ->
-  eq_context_upto Σ' Re Rle Δ Γ ->
+  eq_context_upto Σ R isTermIrrel pb [] Δ Γ ->
   ∑ v', red1 Σ Δ u v' *
-        eq_term_upto_univ Σ' Re Re v' v.
+        compare_term_upto_univ_rel Σ R isTermIrrel Conv (marks_of_context Γ) v' v.
 Proof.
   intros.
-  destruct (@red1_eq_context_upto_l Σ Σ' (flip Rle) Re Γ Δ u v); auto; try typeclasses eauto.
+  destruct (@red1_eq_context_upto_l cf Σ (fun pb => flip (R pb)) pb Γ Δ u v); auto; try typeclasses eauto.
   - intros x; red; reflexivity.
   - intros s u1 u2 Ru. red. apply R_universe_instance_flip in Ru. now apply H2.
-  - intros x y rxy; red. now symmetry in rxy.
+  - intros x; red; reflexivity.
+  - intros s u1 u2 Ru. red. apply R_universe_instance_flip in Ru. now apply H1.
+  - now apply subrelation_flip.
   - now apply eq_context_upto_flip.
   - exists x. intuition auto.
-    now eapply eq_term_upto_univ_sym.
+    eapply compare_term_upto_univ_sym; tc.
+    eapply compare_term_upto_univ_impl; cycle -1.
+    eassumption.
+    all: tc; simpl; auto.
+    all: intros ???; now symmetry.
 Qed.
 
-Lemma red1_eq_term_upto_univ_r {Σ Σ' Re Rle napp Γ u v u'} :
-  RelationClasses.Reflexive Re ->
-  RelationClasses.Reflexive Rle ->
-  RelationClasses.Symmetric Re ->
-  RelationClasses.Transitive Re ->
-  RelationClasses.Transitive Rle ->
-  SubstUnivPreserving Re ->
-  SubstUnivPreserving Rle ->
-  RelationClasses.subrelation Re Rle ->
-  eq_term_upto_univ_napp Σ' Re Rle napp u' u ->
+Lemma red1_eq_term_upto_univ_r {cf: checker_flags} {Σ : global_env_ext} {R pb napp Γ u v u'} :
+  RelationClasses.Reflexive (R Conv) ->
+  RelationClasses.Reflexive (R pb) ->
+  RelationClasses.Symmetric (R Conv) ->
+  RelationClasses.Transitive (R Conv) ->
+  RelationClasses.Transitive (R pb) ->
+  SubstUnivPreserving (R Conv) ->
+  SubstUnivPreserving (R pb) ->
+  RelationClasses.subrelation (R Conv) (R pb) ->
+  on_global_env (fun _ _ _ _ _ => unit) (lift_relation isTermRelOpt (fun _ _ _ _ => unit) (fun _ _ _ _ => unit)) Σ ->
+  wfTermRel_ctx Σ Γ -> wfTermRel Σ (marks_of_context Γ) u ->
+  compare_term_upto_univ_napp_rel Σ R isTermIrrel pb napp (marks_of_context Γ) u' u ->
   red1 Σ Γ u v ->
-  ∑ v', red1 Σ Γ u' v' ×
-        eq_term_upto_univ_napp Σ' Re Rle napp v' v.
+  ∑ v', red01 Σ Γ u' v' ×
+        compare_term_upto_univ_napp_rel Σ R isTermIrrel pb napp (marks_of_context Γ) v' v.
 Proof.
-  intros he he' hse hte htle sre srle hR h uv.
-  destruct (@red1_eq_term_upto_univ_l Σ Σ' Re (flip Rle) napp Γ u v u'); auto.
+  intros he he' hse hte htle sre srle hR hΣ hΓ hu h uv.
+  destruct (@red1_eq_term_upto_univ_l cf Σ (fun pb => flip (R pb)) pb napp Γ u v u'); auto.
+  - now eapply flip_Transitive.
   - now eapply flip_Transitive.
   - red. intros s u1 u2 ru.
     apply R_universe_instance_flip in ru.
+    now apply sre.
+  - red. intros s u1 u2 ru.
+    apply R_universe_instance_flip in ru.
     now apply srle.
-  - intros x y X. symmetry in X. apply hR in X. apply X.
-  - eapply eq_term_upto_univ_napp_flip; eauto.
+  - now apply subrelation_flip.
+  - eapply compare_term_upto_univ_napp_rel_flip; eauto.
+    now apply symmetric_flip.
   - exists x. intuition auto.
-    eapply (@eq_term_upto_univ_napp_flip Σ' Re (flip Rle) Rle); eauto.
+    eapply (@compare_term_upto_univ_napp_rel_flip Σ (fun pb => flip (R pb)) R); eauto.
     + now eapply flip_Transitive.
+    + now eapply flip_Transitive.
+    + unfold flip. intros ? ? H. symmetry in H. eauto.
     + unfold flip. intros ? ? H. symmetry in H. eauto.
 Qed.
 
 Section RedEq.
-  Context (Σ : global_env_ext).
-  Context {Re Rle : Universe.t -> Universe.t -> Prop}
-          {refl : RelationClasses.Reflexive Re}
-          {refl': RelationClasses.Reflexive Rle}
-          {pres : SubstUnivPreserving Re}
-          {pres' : SubstUnivPreserving Rle}
-          {sym : RelationClasses.Symmetric Re}
-          {trre : RelationClasses.Transitive Re}
-          {trle : RelationClasses.Transitive Rle}.
-  Context (inclre : RelationClasses.subrelation Re Rle).
+  Context {cf : checker_flags}.
+  Context (Σ : global_env_ext) (hΣ : on_global_env (fun _ _ _ _ _ => unit) (lift_relation isTermRelOpt (fun _ _ _ _ => unit) (fun _ _ _ _ => unit)) Σ).
+  Context {R : conv_pb -> Universe.t -> Universe.t -> Prop}
+          {pb : conv_pb}
+          {refl : RelationClasses.Reflexive (R Conv)}
+          {refl': RelationClasses.Reflexive (R pb)}
+          {pres : SubstUnivPreserving (R Conv)}
+          {pres' : SubstUnivPreserving (R pb)}
+          {sym : RelationClasses.Symmetric (R Conv)}
+          {trre : RelationClasses.Transitive (R Conv)}
+          {trle : RelationClasses.Transitive (R pb)}.
+  Context (inclre : RelationClasses.subrelation (R Conv) (R pb)).
 
   Lemma red_eq_term_upto_univ_r {Γ T V U} :
-    eq_term_upto_univ Σ Re Rle T U -> red Σ Γ U V ->
-    ∑ T', red Σ Γ T T' * eq_term_upto_univ Σ Re Rle T' V.
-  Proof using inclre pres pres' refl refl' sym trle trre.
-    intros eq r.
-    induction r in T, eq |- *.
-    - eapply red1_eq_term_upto_univ_r in eq as [v' [r' eq']]; eauto.
+    wfTermRel_ctx Σ Γ -> wfTermRel Σ (marks_of_context Γ) T ->
+    compare_term_upto_univ_rel Σ R isTermIrrel pb (marks_of_context Γ) T U -> red Σ Γ U V ->
+    ∑ T', red Σ Γ T T' * compare_term_upto_univ_rel Σ R isTermIrrel pb (marks_of_context Γ) T' V.
+  Proof using cf hΣ inclre pres pres' refl refl' sym trle trre.
+    intros hΓ (rel & h) eq r.
+    eapply eq_term_isTermRel_1 in h; tea.
+    induction r in T, eq, rel, h |- *.
+    - eapply red1_eq_term_upto_univ_r in eq as [v' [[r' | r'] eq']]; eauto.
+      subst v'. now eexists.
     - exists T; split; eauto.
-    - case: (IHr1 _ eq) => T' [r' eq'].
-      case: (IHr2 _ eq') => T'' [r'' eq''].
+    - case: (IHr1 _ _ eq h) => T' [r' eq'].
+      eapply red_relevance in h; tea.
+      case: (IHr2 _ _ eq' h) => T'' [r'' eq''].
       exists T''. split=>//.
       now transitivity T'.
   Qed.
 
   Lemma red_eq_term_upto_univ_l {Γ u v u'} :
-    eq_term_upto_univ Σ Re Rle u u' ->
+    wfTermRel_ctx Σ Γ -> wfTermRel Σ (marks_of_context Γ) u ->
+    compare_term_upto_univ_rel Σ R isTermIrrel pb (marks_of_context Γ) u u' ->
     red Σ Γ u v ->
     ∑ v',
     red Σ Γ u' v' *
-    eq_term_upto_univ Σ Re Rle v v'.
-  Proof using inclre pres pres' refl refl' trle trre.
-    intros eq r.
-    induction r in u', eq |- *.
-    - eapply red1_eq_term_upto_univ_l in eq as [v' [r' eq']]; eauto.
+    compare_term_upto_univ_rel Σ R isTermIrrel pb (marks_of_context Γ) v v'.
+  Proof using cf hΣ inclre pres pres' refl refl' trle trre.
+    intros hΓ (rel & h) eq r.
+    induction r in u', eq, rel, h |- *.
+    - eapply red1_eq_term_upto_univ_l in eq as [v' [[r' | r'] eq']]; eauto.
+      subst v'. now eexists.
     - exists u'. split; auto.
-    - case: (IHr1 _ eq) => T' [r' eq'].
-      case: (IHr2 _ eq') => T'' [r'' eq''].
+    - case: (IHr1 _ _ h eq) => T' [r' eq'].
+      eapply red_relevance in h; tea.
+      case: (IHr2 _ _ h eq') => T'' [r'' eq''].
       exists T''. split=>//.
       now transitivity T'.
   Qed.
@@ -2046,6 +2545,7 @@ Section PredRed.
       apply red_trans with (tApp (tLambda na t0 b1) a1).
       eapply (@red_app Σ); auto with pcuic.
       apply red1_red. constructor.
+      admit.
 
     - (* Zeta *)
       eapply red_trans with (tLetIn na d0 t0 b1).
@@ -2093,6 +2593,7 @@ Section PredRed.
       transitivity (tCase ci (set_pparams p0 pparams1) (mkApps (tConstruct ci.(ci_ind) c u) args1) brs1).
       { eapply red_case_pars. solve_all. }
       eapply red1_red. constructor => //.
+      admit.
 
     - move: H H0.
       move => unf isc.
@@ -2160,7 +2661,7 @@ Section PredRed.
       eapply (All2_impl X3); unfold on_Trel; intuition auto; repeat inv_on_free_vars_xpredT; eauto with fvs.
     - eapply red_prod; eauto with fvs.
     - eapply red_evar; eauto with fvs. solve_all.
-  Qed.
+  Admitted.
 
   Lemma pred1_red_r_gen P Γ Γ' Δ Δ' : forall M N,
     on_free_vars (closedP #|Γ ,,, Δ| P) M ->
@@ -3481,7 +3982,7 @@ Section RedConfluence.
     eapply context_pres_let_bodies_red1.
     eapply eq_context_upto_names_upto_names_gen in Hctx.
     eapply All2_fold_impl; tea => /= _ _ ? ? [] /=;
-    rewrite /pres_let_bodies /= //; intros; congruence.
+    rewrite /pres_let_bodies /= //; intros; split; congruence.
   Qed.
 
   Lemma clos_rt_red1_eq_context_upto_names Γ Γ' t u :
@@ -3698,6 +4199,8 @@ Section RedConfluence.
 
 End RedConfluence.
 
+(* Now unprovable *)
+(*
 (** Currently provable, but not if we add eta / sprop *)
 Lemma eq_term_upto_univ_napp_on_free_vars {cf:checker_flags} {Σ : global_env} {P eq leq napp} {t u} :
     eq_term_upto_univ_napp Σ eq leq napp t u ->
@@ -3728,6 +4231,7 @@ Proof.
     apply/andP; split; eauto.
     len in b2. eapply b2. eauto.
 Qed.
+*)
 
 Arguments red1_ctx _ _ _ : clear implicits.
 

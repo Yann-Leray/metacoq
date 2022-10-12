@@ -812,6 +812,12 @@ Proof.
   intros H; induction 1; constructor; try inv H; intuition.
 Qed.
 
+Lemma OnOne2_All_mix_both {A} {P : A -> A -> Type} {Q R : A -> Type} {l l'} :
+  All Q l -> All R l' -> OnOne2 P l l' -> OnOne2 (fun x y => (P x y × Q x × R y)%type) l l'.
+Proof.
+  intros H H'; induction 1; constructor; try inv H; try inv H'; intuition.
+Qed.
+
 Lemma OnOne2_app {A} (P : A -> A -> Type) l tl tl' : OnOne2 P tl tl' -> OnOne2 P (l ++ tl) (l ++ tl').
 Proof. induction l; simpl; try constructor; auto. Qed.
 

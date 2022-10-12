@@ -2053,7 +2053,7 @@ Proof.
       rewrite firstn_skipn. constructor => //.
       { rewrite on_free_vars_mkApps /= //. }
       { rewrite on_free_vars_mkApps /= //. }
-      eapply eq_term_upto_univ_mkApps.
+      eapply compare_term_upto_univ_mkApps.
       2:reflexivity.
       constructor. eapply R_global_instance_sym; tc.
       rewrite eqargs.

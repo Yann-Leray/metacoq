@@ -1,7 +1,7 @@
 (* Distributed under the terms of the MIT license. *)
 From Coq Require Import RelationClasses ssrbool.
 From MetaCoq.Template Require Import config utils.
-From MetaCoq.PCUIC Require Import PCUICAst PCUICInduction
+From MetaCoq.PCUIC Require Import PCUICAst PCUICRelevance PCUICInduction
      PCUICReflect PCUICEquality PCUICLiftSubst PCUICCases.
 
 Import MCMonadNotation.
@@ -169,12 +169,12 @@ Definition dlet_ty na b B t (p : pos B) : pos (tLetIn na b B t) :=
 Definition dlet_in na b B t (p : pos t) : pos (tLetIn na b B t) :=
   exist (let_in :: proj1_sig p) (proj2_sig p).
 
-Lemma eq_context_upto_context_choice_term Σ Re Rle Γ Γ' c :
-  eq_context_upto Σ Re Rle Γ Γ' ->
-  rel_option (eq_term_upto_univ Σ Re (match c.2 with
-                                      | choose_decl_body => Re
-                                      | choose_decl_type => Rle
-                                      end) )
+(* Lemma compare_context_upto_context_choice_term Σ R isTermIrrel pb Γ0 Γ Γ' c :
+  eq_context_upto Σ R isTermIrrel pb Γ0 Γ Γ' ->
+  rel_option (compare_term_upto_univ_rel Σ R isTermIrrel (match c.2 with
+                                      | choose_decl_body => Conv
+                                      | choose_decl_type => pb
+                                      end) Γ0)
              (context_choice_term Γ c)
              (context_choice_term Γ' c).
 Proof.
@@ -189,23 +189,23 @@ Proof.
     constructor; auto.
   - rewrite H, H0.
     constructor.
-Qed.
+Qed. *)
 
 Lemma eq_term_upto_valid_pos :
-  forall {Σ u v p Re Rle napp},
+  forall {Σ u v p R pb napp Γ},
     validpos u p ->
-    eq_term_upto_univ_napp Σ Re Rle napp u v ->
+    compare_term_upto_univ_napp_rel Σ R NoTermIrrel pb napp Γ u v ->
     validpos v p.
 Proof.
-  intros Σ u v p Re Rle napp vp e.
-  induction p as [| c p ih ] in u, v, Re, Rle, napp, vp, e |- *.
+  intros Σ u v p R pb napp Γ vp e.
+  induction p as [| c p ih ] in u, v, pb, napp, vp, e, Γ |- *.
   - reflexivity.
   - destruct c, u. all: try discriminate.
     all: try solve [
-      dependent destruction e ; simpl ;
+      dependent destruction e; auto 1; simpl ;
       eapply ih ; eauto
     ].
-    + dependent destruction e. simpl in *.
+    + dependent destruction e; auto 1. simpl in *.
       destruct (nth_error (pparams p0) n) as [par|] eqn:enth. 2: discriminate.
       destruct e.
       induction a in n, par, enth, ih, vp |- *. 1: rewrite enth. 1: assumption.
@@ -213,14 +213,14 @@ Proof.
       * simpl in *. apply some_inj in enth. subst.
         intuition eauto.
       * simpl in *. eapply IHa. all: eauto.
-    + dependent destruction e. simpl in *.
+    + dependent destruction e; auto 1. simpl in *.
       eapply ih; eauto. apply e.
-    + dependent destruction e. simpl in *.
+    + dependent destruction e; auto 1. simpl in *.
       destruct nth_error eqn:nth; [|congruence].
       eapply All2_nth_error_Some in e1; eauto.
       destruct e1 as (?&->&_&eq).
       eauto.
-    + dependent destruction e. simpl in *.
+    + dependent destruction e; auto 1. simpl in *.
       destruct (nth_error mfix n) as [[na ty bo ra]|] eqn:E. 2: discriminate.
       induction e in n, na, ty, bo, ra, E, ih, vp |- *.
       1:{ rewrite E. assumption. }
@@ -228,7 +228,7 @@ Proof.
       * simpl in *. apply some_inj in E. subst.
         destruct y as [na' ty' bo' ra']. simpl in *. intuition eauto.
       * simpl in *. eapply IHe. all: eauto.
-    + dependent destruction e. simpl in *.
+    + dependent destruction e; auto 1. simpl in *.
       destruct (nth_error mfix n) as [[na ty bo ra]|] eqn:E. 2: discriminate.
       induction e in n, na, ty, bo, ra, E, ih, vp |- *.
       1:{ rewrite E. assumption. }
@@ -236,7 +236,7 @@ Proof.
       * simpl in *. apply some_inj in E. subst.
         destruct y as [na' ty' bo' ra']. simpl in *. intuition eauto.
       * simpl in *. eapply IHe. all: eauto.
-    + dependent destruction e. simpl in *.
+    + dependent destruction e; auto 1. simpl in *.
       destruct (nth_error mfix n) as [[na ty bo ra]|] eqn:E. 2: discriminate.
       induction e in n, na, ty, bo, ra, E, ih, vp |- *.
       1:{ rewrite E. assumption. }
@@ -244,7 +244,7 @@ Proof.
       * simpl in *. apply some_inj in E. subst.
         destruct y as [na' ty' bo' ra']. simpl in *. intuition eauto.
       * simpl in *. eapply IHe. all: eauto.
-    + dependent destruction e. simpl in *.
+    + dependent destruction e; auto 1. simpl in *.
       destruct (nth_error mfix n) as [[na ty bo ra]|] eqn:E. 2: discriminate.
       induction e in n, na, ty, bo, ra, E, ih, vp |- *.
       1:{ rewrite E. assumption. }
@@ -254,7 +254,7 @@ Proof.
       * simpl in *. eapply IHe. all: eauto.
 Qed.
 
-Lemma eq_term_valid_pos :
+(* Lemma eq_term_valid_pos :
   forall `{cf : checker_flags} {Σ G u v p},
     validpos u p ->
     eq_term Σ G u v ->
@@ -262,7 +262,7 @@ Lemma eq_term_valid_pos :
 Proof.
   intros cf Σ G u v p vp e.
   eapply eq_term_upto_valid_pos. all: eauto.
-Qed.
+Qed. *)
 
 Inductive positionR : position -> position -> Prop :=
 | positionR_app_lr p q : positionR (app_r :: p) (app_l :: q)
@@ -1719,4 +1719,209 @@ Proof.
   rewrite IHπ. bool_congr. len.
   rewrite closedn_fill_hole. 
   rewrite Nat.add_assoc (Nat.add_comm #|stack_context π| k). ring.
+Qed.
+
+Definition mfix_hole_rels : mfix_hole -> list relevance := fun '(mfix1, m, mfix2) =>
+  map (binder_relevance ∘ dname) mfix1 ++ match m with def_hole_type na _ _ => na.(binder_relevance) | def_hole_body na _ _ => na.(binder_relevance) end :: map (binder_relevance ∘ dname) mfix2.
+
+Definition mfix_hole_wfTermRel : global_env -> mark_context -> mfix_hole -> Type := fun Σ Γ mfix =>
+  let mfix_marks_ctx := List.rev (mfix_hole_rels mfix) in
+  let '(mfix1, m, mfix2) := mfix in
+  wfTermRel_mfix isTermRel Σ Γ mfix_marks_ctx mfix1 ×
+  match m with def_hole_type na tm _ => isTermRel Σ (Γ ,,, mfix_marks_ctx) tm na.(binder_relevance) | def_hole_body na ty _ => na.(binder_relevance) = Relevant × isTermRel Σ Γ ty Relevant end ×
+  wfTermRel_mfix isTermRel Σ Γ mfix_marks_ctx mfix2.
+
+Definition pred_hole_params_rel : predicate_hole -> mark_context := fun p =>
+  match p with
+  | pred_hole_params pp1 pp2 _ _ _ => List.repeat Relevant (#|pp1| + S #|pp2|)
+  | pred_hole_return pp _ _ => List.repeat Relevant #|pp|
+  end.
+
+Definition pred_hole_wfTermRel : global_env -> mark_context -> predicate_hole -> Type := fun Σ Γ p =>
+  let params_marks_ctx := pred_hole_params_rel p in
+  match p with
+  | pred_hole_params pp1 pp2 pu pc pr =>
+      All (wfTermRel Σ Γ) pp1 × All (wfTermRel Σ Γ) pp2 ×
+      wfTermRel_ctx_weak isTermRel Σ params_marks_ctx pc ×
+      isTermRelevant Σ (Γ ,,, marks_of_context pc) pr
+  | pred_hole_return pp pu pc => All (wfTermRel Σ Γ) pp × wfTermRel_ctx_weak isTermRel Σ params_marks_ctx pc
+  end.
+
+Definition pred_hole_wfTermRel_branch (Σ : global_env) (Γ : mark_context) (p: predicate_hole) (br : branch term) :=
+  wfTermRel_ctx_weak isTermRel Σ (pred_hole_params_rel p) br.(bcontext) ×
+  ∑ r, isTermRel Σ (Γ ,,, marks_of_context br.(bcontext)) br.(bbody) r.
+
+Definition branches_hole_wfTermRel : global_env -> mark_context -> predicate term -> branches_hole -> Type := fun Σ Γ p '(brs1, branch_hole_body bc, brs2) =>
+  All (wfTermRel_branch isTermRel Σ Γ p) brs1 ×
+  wfTermRel_ctx_weak isTermRel Σ (List.repeat Relevant #|p.(pparams)|) bc ×
+  All (wfTermRel_branch isTermRel Σ Γ p) brs2.
+
+Inductive isStackEntryRelevant (Σ : global_env) (Γ : mark_context) : stack_entry -> Type :=
+  | relevant_App_l v : wfTermRel Σ Γ v -> isStackEntryRelevant Σ Γ (App_l v)
+  | relevant_App_r u : isTermRelevant Σ Γ u -> isStackEntryRelevant Σ Γ (App_r u)
+  | relevant_Fix_app mfix idx args def :
+      wfTermRel_mfix isTermRel Σ Γ (marks_of_context (fix_context mfix)) mfix ->
+      All (wfTermRel Σ Γ) args ->
+      nth_error mfix idx = Some def -> def.(dname).(binder_relevance) = Relevant ->
+      isStackEntryRelevant Σ Γ (Fix_app mfix idx args)
+  | relevant_Fix mfix idx :
+      mfix_hole_wfTermRel Σ Γ mfix ->
+      nth_error (mfix_hole_rels mfix) idx = Some Relevant ->
+      isStackEntryRelevant Σ Γ (Fix mfix idx)
+  | relevant_CoFix_app mfix idx args def :
+      wfTermRel_mfix isTermRel Σ Γ (marks_of_context (fix_context mfix)) mfix ->
+      All (wfTermRel Σ Γ) args ->
+      nth_error mfix idx = Some def -> def.(dname).(binder_relevance) = Relevant ->
+      isStackEntryRelevant Σ Γ (CoFix_app mfix idx args)
+  | relevant_CoFix mfix idx :
+      mfix_hole_wfTermRel Σ Γ mfix ->
+      nth_error (mfix_hole_rels mfix) idx = Some Relevant ->
+      isStackEntryRelevant Σ Γ (CoFix mfix idx)
+  | relevant_Case_pred ci p c brs :
+      pred_hole_wfTermRel Σ Γ p ->
+      All (pred_hole_wfTermRel_branch Σ Γ p) brs ->
+      isTermRelevant Σ Γ c -> ci.(ci_relevance) = Relevant ->
+      isStackEntryRelevant Σ Γ (Case_pred ci p c brs)
+  | relevant_Case_discr ci p brs :
+      wfTermRel_pred isTermRel Σ Γ p ->
+      All (wfTermRel_branch isTermRel Σ Γ p) brs ->
+      ci.(ci_relevance) = Relevant ->
+      isStackEntryRelevant Σ Γ (Case_discr ci p brs)
+  | relevant_Case_branch ci p c brs :
+      wfTermRel_pred isTermRel Σ Γ p ->
+      branches_hole_wfTermRel Σ Γ p brs ->
+      isTermRelevant Σ Γ c -> ci.(ci_relevance) = Relevant ->
+      isStackEntryRelevant Σ Γ (Case_branch ci p c brs)
+  | relevant_Proj p mdecl idecl cdecl pdecl : declared_projection Σ p mdecl idecl cdecl pdecl -> pdecl.(proj_relevance) = Relevant -> isStackEntryRelevant Σ Γ (Proj p)
+  | relevant_Prod_l na B : isTermRelevant Σ (Γ ,, na.(binder_relevance)) B -> isStackEntryRelevant Σ Γ (Prod_l na B)
+  | relevant_Prod_r na A : isTermRelevant Σ Γ A -> isStackEntryRelevant Σ Γ (Prod_r na A)
+  | relevant_Lambda_ty na b : isTermRelevant Σ (Γ ,, na.(binder_relevance)) b -> isStackEntryRelevant Σ Γ (Lambda_ty na b)
+  | relevant_Lambda_bd na A : isTermRelevant Σ Γ A -> isStackEntryRelevant Σ Γ (Lambda_bd na A)
+  | relevant_LetIn_bd na B u : na.(binder_relevance) = Relevant -> isTermRelevant Σ Γ B -> isTermRelevant Σ (Γ ,, na.(binder_relevance)) u -> isStackEntryRelevant Σ Γ (LetIn_bd na B u)
+  | relevant_LetIn_ty na b u : isTermRel Σ Γ b na.(binder_relevance) -> isTermRelevant Σ (Γ ,, na.(binder_relevance)) u -> isStackEntryRelevant Σ Γ (LetIn_ty na b u)
+  | relevant_LetIn_in na b B : isTermRel Σ Γ b na.(binder_relevance) -> isTermRelevant Σ Γ B -> isStackEntryRelevant Σ Γ (LetIn_in na b B).
+
+Inductive isStackRelevant (Σ : global_env) (Γ : mark_context) : stack -> Type :=
+  | relevant_Nil : isStackRelevant Σ Γ []
+  | relevant_Cons se stack  : isStackRelevant Σ Γ stack -> isStackEntryRelevant Σ (Γ ,,, marks_of_context (stack_context stack)) se -> isStackRelevant Σ Γ (se :: stack).
+
+Lemma isStackRelevant_isTermRelevant_fill Σ Γ se t :
+  isStackEntryRelevant Σ Γ se -> isTermRelevant Σ (Γ ,,, marks_of_context (stack_entry_context se)) t ->
+  isTermRelevant Σ Γ (fill_hole t se).
+Proof.
+  destruct se.
+  all: intros Hctx Ht; cbn -[marks_of_context app_context] in *; auto.
+  all: inv Hctx.
+  all: repeat match goal with H : ∑ r, isTermRel _ _ _ _ |- _ => destruct H end.
+  all: try solve [ econstructor; eauto ].
+  - rewrite -H0; pcuic.
+  - destruct mfix as [[? ?] ?] => /=; cbn in H. unfold mfix_hole_wfTermRel, mfix_hole_rels in X.
+    pose (d' := match d with def_hole_type dname dbody rarg => {| dname := dname; dtype := t; dbody := dbody; rarg := rarg |}
+                            | def_hole_body dname dtype rarg => {| dname := dname; dtype := dtype; dbody := t; rarg := rarg |} end); fold d'.
+    replace (map (fun x : def term => binder_relevance (dname x)) m ++ _ :: map (fun x : def term => binder_relevance (dname x)) m0) with (map (fun x : def term => binder_relevance (dname x)) ((m ++ d' :: m0))) in H, X.
+    2: { rewrite map_app /=. do 2 f_equal. destruct d => //. }
+    replace (List.rev (map (fun x : def term => binder_relevance (dname x)) (m ++ d' :: m0))) with (marks_of_context (fix_context (m ++ d' :: m0))) in X.
+    2: { rewrite /marks_of_context /fix_context map_rev map_mapi /= mapi_cst_map //. }
+    rewrite nth_error_map in H.
+    destruct (nth_error (m ++ d' :: m0) idx) eqn:Heq => //.
+    inversion H.
+    constructor; eauto.
+    destruct X as (X & X' & X'').
+    apply All_app_inv; [|constructor]; eauto.
+    destruct d; split; auto.
+    all: destruct X'; cbn; auto.
+    rewrite -e /mfix_hole_context in Ht.
+    rewrite fix_context_fix_context_alt map_app /d' //.
+  - rewrite -H0; pcuic.
+  - destruct mfix as [[? ?] ?] => /=; cbn in H. unfold mfix_hole_wfTermRel, mfix_hole_rels in X.
+    pose (d' := match d with def_hole_type dname dbody rarg => {| dname := dname; dtype := t; dbody := dbody; rarg := rarg |}
+                            | def_hole_body dname dtype rarg => {| dname := dname; dtype := dtype; dbody := t; rarg := rarg |} end); fold d'.
+    replace (map (fun x : def term => binder_relevance (dname x)) m ++ _ :: map (fun x : def term => binder_relevance (dname x)) m0) with (map (fun x : def term => binder_relevance (dname x)) ((m ++ d' :: m0))) in H, X.
+    2: { rewrite map_app /=. do 2 f_equal. destruct d => //. }
+    replace (List.rev (map (fun x : def term => binder_relevance (dname x)) (m ++ d' :: m0))) with (marks_of_context (fix_context (m ++ d' :: m0))) in X.
+    2: { rewrite /marks_of_context /fix_context map_rev map_mapi /= mapi_cst_map //. }
+    rewrite nth_error_map in H.
+    destruct (nth_error (m ++ d' :: m0) idx) eqn:Heq => //.
+    inversion H.
+    constructor; eauto.
+    destruct X as (X & X' & X'').
+    apply All_app_inv; [|constructor]; eauto.
+    destruct d; split; auto.
+    all: destruct X'; cbn; auto.
+    rewrite -e /mfix_hole_context in Ht.
+    rewrite fix_context_fix_context_alt map_app /d' //.
+  - rewrite -H. econstructor; cbn; eauto.
+    + destruct p; [destruct X as (?&?&?&?)|destruct X]; repeat split; cbn; auto.
+    * apply All_app_inv; [|constructor]; cbn; eauto.
+    * cbn in w; now len.
+    * rewrite mark_inst_case_predicate_context //.
+    + apply All_impl with (1 := X0) => br Hbr; clear X0.
+      destruct br as (bc & bb); unfold wfTermRel_branch, pred_hole_wfTermRel_branch in *; cbn in *.
+      destruct Hbr as (Hc & Hb); split.
+      * unfold pred_hole_params_rel in Hc; destruct p; cbn; now len.
+      * rewrite mark_inst_case_branch_context //.
+  - rewrite -H. econstructor; cbn; eauto.
+  - rewrite -H. econstructor; cbn; eauto.
+    destruct brs as ((brs1 & []) & brs2).
+    destruct X0 as (X0 & X0' & X0'').
+    cbn.
+    apply All_app_inv; [|constructor]; auto.
+    split => //.
+    now eexists.
+  - rewrite -H0. econstructor; tea.
+  - econstructor => //.
+    now rewrite -H in Ht.
+Qed.
+
+Lemma isStackRelevant_isTermRelevant_zip Σ Γ stack t :
+  isStackRelevant Σ Γ stack -> isTermRelevant Σ (Γ ,,, marks_of_context (stack_context stack)) t ->
+  isTermRelevant Σ Γ (zip (t, stack)).
+Proof.
+  induction stack in Γ, t |- *.
+  1: trivial.
+  intros Hctx Ht; cbn -[marks_of_context app_context] in *.
+  inv Hctx; apply IHstack; auto.
+  apply isStackRelevant_isTermRelevant_fill; tas.
+  rewrite -app_context_assoc -marks_of_context_app //.
+Qed.
+
+Lemma isStackEntryRelevant_wfTermRel_ctx Σ Γ stack a :
+  isStackEntryRelevant Σ (Γ,,, marks_of_context (stack_context stack)) a ->
+  PCUICEnvTyping.All_local_rel
+    (PCUICEnvTyping.lift_term_rel_type
+      (fun Σ0 : global_env => PCUICEnvTyping.ctx_shifted (isTermRelOpt Σ0) Γ)
+      (fun (Σ0 : global_env) (Δ : mark_context) (t : term) =>
+        isTermRel Σ0 (Γ,,, Δ) t Relevant) Σ) (stack_context stack)
+    (stack_entry_context a).
+Proof.
+  destruct a.
+  all: intros Hctx; cbn -[marks_of_context app_context] in *; auto.
+  all: inv Hctx.
+  all: repeat match goal with H : ∑ r, isTermRel _ _ _ _ |- _ => destruct H end.
+  all: try solve [ repeat econstructor; eauto ].
+  - destruct mfix as [[? ?] ?] => /=; cbn in H.
+    destruct d => //=; try constructor.
+    unfold mfix_hole_wfTermRel, mfix_hole_rels in X.
+    rewrite /fix_context_alt.
+    admit.
+  - admit.
+  - destruct p; try constructor; cbn.
+    destruct X as (_&?).
+     admit.
+  - destruct brs as ((brs1 & []) & brs2).
+    destruct X0 as (X0 & X0' & X0'').
+    cbn.
+    admit.
+Admitted.
+
+Lemma isStackRelevant_wfTermRel_ctx Σ Γ stack :
+  isStackRelevant Σ Γ stack -> wfTermRel_ctx_rel' Σ Γ (stack_context stack).
+Proof.
+  induction stack in Γ |- *.
+  1: constructor.
+  cbn.
+  intro H; inv H.
+  apply IHstack in X.
+  apply PCUICEnvTyping.All_local_rel_app => //.
+  apply isStackEntryRelevant_wfTermRel_ctx => //.
 Qed.

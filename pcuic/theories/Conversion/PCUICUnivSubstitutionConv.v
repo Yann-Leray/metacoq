@@ -5,7 +5,7 @@ From MetaCoq.PCUIC Require Import PCUICAst PCUICOnOne PCUICAstUtils PCUICInducti
      PCUICLiftSubst PCUICEquality PCUICUnivSubst
      PCUICCases PCUICRelevance PCUICRelevanceTerm PCUICCumulativity PCUICTyping
      PCUICReduction PCUICWeakeningEnv
-     PCUICClosed PCUICPosition PCUICGuardCondition.
+     PCUICClosed PCUICPosition PCUICGuardCondition PCUICRelevanceTerm.
 
 Require Import Equations.Prop.DepElim.
 From Equations Require Import Equations.
@@ -146,13 +146,13 @@ Proof.
   - exact (IHu u1 u2 H).
 Qed.
 
-Lemma subst_equal_inst_global_inst Σ Re Rle gr napp :
-  RelationClasses.Reflexive Re ->
-  SubstUnivPreserving Re ->
-  RelationClasses.subrelation Re Rle ->
-  forall u u1 u2, R_universe_instance Re u1 u2 ->
-             R_global_instance Σ Re Rle gr napp (subst_instance u1 u)
-                                    (subst_instance u2 u).
+Lemma subst_equal_inst_global_inst Σ R pb gr napp :
+  RelationClasses.Reflexive (R Conv) ->
+  SubstUnivPreserving (R Conv) ->
+  RelationClasses.subrelation (R Conv) (R pb) ->
+  forall u u1 u2, R_universe_instance (R Conv) u1 u2 ->
+    R_global_instance Σ R pb gr napp (subst_instance u1 u)
+                                     (subst_instance u2 u).
 Proof.
   intros reflRe hRe subr u u1 u2 Ru1u2.
   unfold R_global_instance, R_opt_variance.
@@ -167,20 +167,20 @@ Proof.
       now rewrite !subst_instance_univ_make in HH.
 Qed.
 
-Lemma eq_term_upto_univ_subst_instance Σ Re Rle napp :
-  RelationClasses.Reflexive Re ->
-  SubstUnivPreserving Re ->
-  RelationClasses.subrelation Re Rle ->
+Lemma eq_term_upto_univ_subst_instance Σ R isTermIrrel pb napp Γ :
+  RelationClasses.Reflexive (R Conv) ->
+  SubstUnivPreserving (R Conv) ->
+  RelationClasses.subrelation (R Conv) (R pb) ->
   forall t u1 u2,
-    R_universe_instance Re u1 u2 ->
-    eq_term_upto_univ_napp Σ Re Rle napp (subst_instance u1 t)
-                            (subst_instance u2 t).
+    R_universe_instance (R Conv) u1 u2 ->
+    compare_term_upto_univ_napp_rel Σ R isTermIrrel pb napp Γ
+            (subst_instance u1 t) (subst_instance u2 t).
 Proof.
   intros ref hRe subr t.
-  induction t in napp, Re, Rle, ref, hRe, subr |- * using term_forall_list_ind; intros u1 u2 hu.
+  induction t in napp, R, pb, ref, hRe, subr, Γ |- * using term_forall_list_ind; intros u1 u2 hu.
   all: cbn; try constructor; eauto using subst_equal_inst_inst.
   all: try eapply All2_map, All_All2; tea; cbn; intros; rdest; eauto.
-  all: try (eapply X0 || eapply IHt || eapply IHt1 || eapply IHt2 || eapply e || eapply e0); try typeclasses eauto; auto.
+  all: try (eapply X0 || eapply IHt || eapply IHt1 || eapply IHt2 || eapply c || eapply c0); try typeclasses eauto; auto.
   all: eauto using subst_equal_inst_global_inst.
   - rewrite /eq_predicate /=. intuition auto.
     * solve_all. eapply All_All2; tea; cbn; intros; rdest; eauto.
@@ -190,7 +190,7 @@ Proof.
     * eapply X => //.
   - rewrite /eq_branch /id /=. split.
     * reflexivity.
-    * apply e => //.
+    * apply c => //.
 Qed.
 
 #[global]
@@ -777,23 +777,21 @@ Proof.
   apply satisfies_subst_instance_ctr; aa.
 Qed.
 
-Global Instance leq_universe_subst_instance {cf : checker_flags} : SubstUnivPreserved leq_universe.
+Global Instance compare_universe_subst_instance {cf : checker_flags} pb : SubstUnivPreserved (compare_universe pb).
 Proof.
-  intros φ φ' u HH [| | exprs] [| | exprs'] Hle; cbnr; trivial.
-  unfold_univ_rel eqn:H.
-  rewrite !subst_instance_univ0_val'; tas.
-  apply Hle.
-  eapply satisfies_subst_instance; tea.
+  intros φ φ' u HH [| | exprs] [| | exprs'] H; destruct pb; cbnr; trivial.
+  all: cbn in H.
+  all: unfold_univ_rel eqn:e.
+  all: rewrite !subst_instance_univ0_val'; tas.
+  all: apply H.
+  all: eapply satisfies_subst_instance; tea.
 Qed.
 
 Global Instance eq_universe_subst_instance {cf : checker_flags} : SubstUnivPreserved eq_universe.
-Proof.
-  intros φ φ' u HH [| | exprs] [| | exprs'] Hle; cbnr; trivial.
-  unfold_univ_rel eqn:H.
-  rewrite !subst_instance_univ0_val'; tas.
-  apply Hle.
-  eapply satisfies_subst_instance; tea.
-Qed.
+Proof. change eq_universe with (compare_universe Conv); tc. Qed.
+
+Global Instance leq_universe_subst_instance {cf : checker_flags} : SubstUnivPreserved leq_universe.
+Proof. change leq_universe with (compare_universe Cumul); tc. Qed.
 
 Lemma precompose_subst_instance Rle u i i' :
   precompose (R_universe_instance Rle) (subst_instance u) i i'
@@ -831,10 +829,9 @@ Proof.
   now rewrite subst_instance_univ_make' subst_instance_level_expr_make.
 Qed.
 
-Lemma precompose_subst_instance_global Σ Re Rle gr napp u i i' :
-  precompose (R_global_instance Σ Re Rle gr napp) (subst_instance u) i i'
-  <~> R_global_instance Σ (precompose Re (subst_instance_univ u))
-    (precompose Rle (subst_instance_univ u)) gr napp i i'.
+Lemma precompose_subst_instance_global Σ R pb gr napp u i i' :
+  precompose (R_global_instance Σ R pb gr napp) (subst_instance u) i i'
+  <~> R_global_instance Σ (fun pb' => precompose (R pb') (subst_instance_univ u)) pb gr napp i i'.
 Proof.
   unfold R_global_instance, R_opt_variance, subst_instance.
   destruct global_variance as [v|]; eauto using precompose_subst_instance.
@@ -855,61 +852,101 @@ Lemma isTermRel_subst_instance Σ Γ u t rel :
   isTermRel Σ Γ t rel -> isTermRel Σ Γ t@[u] rel.
 Proof.
   intro h.
-  induction t using term_forall_list_ind in Γ, h |- *; depelim h.
+  induction t using term_forall_list_ind in Γ, rel, h |- *; depelim h.
   all: try solve [ try rewrite H; econstructor => //; eauto ].
-  - cbn. erewrite map_dname. econstructor. rewrite nth_error_map e => //.
-  - cbn. erewrite map_dname. econstructor. rewrite nth_error_map e => //.
+  - cbn. econstructor => //; eauto.
+    + destruct X as (X & X' & X'').
+      destruct w as (Y & Y' & Y'').
+      repeat split; cbn.
+      * solve_all. destruct b; eexists; eauto.
+      * len. apply Y'.
+      * rewrite !mark_inst_case_predicate_context /= in Y'' |- *.
+        eauto.
+    + solve_all.
+      destruct b as (X & rel & X').
+      split; cbn.
+      * len. apply X.
+      * eexists; rewrite !mark_inst_case_branch_context /= in X' |- *; eauto. 
+  - cbn. erewrite map_dname. econstructor. 1: rewrite nth_error_map e => //.
+    rewrite mark_fix_context. unfold wfTermRel_mfix in *. solve_all.
+  - cbn. erewrite map_dname. econstructor. 1: rewrite nth_error_map e => //.
+    rewrite mark_fix_context. unfold wfTermRel_mfix in *. solve_all.
+Qed.
+
+Lemma isTermRel_subst_instance' Σ Γ u t rel :
+  isTermRel Σ (marks_of_context Γ) t rel -> isTermRel Σ (marks_of_context Γ@[u]) t@[u] rel.
+Proof.
+  rewrite marks_of_context_univ_subst.
+  apply isTermRel_subst_instance.
 Qed.
 
 Lemma isTermRelOpt_subst_instance Σ Γ u t relopt :
   isTermRelOpt Σ (marks_of_context Γ) t relopt -> isTermRelOpt Σ (marks_of_context Γ@[u]) t@[u] relopt.
 Proof.
-  rewrite marks_of_context_univ_subst.
   destruct relopt => //.
-  apply isTermRel_subst_instance.
+  apply isTermRel_subst_instance'.
 Qed.
 
-Definition precompose_subst_instance_global__1 Σ Re Rle gr napp u i i'
-  := fst (precompose_subst_instance_global Σ Re Rle gr napp u i i').
+Definition precompose_subst_instance_global__1 Σ R pb gr napp u i i'
+  := fst (precompose_subst_instance_global Σ R pb gr napp u i i').
 
-Definition precompose_subst_instance_global__2 Σ Re Rle gr napp u i i'
-  := snd (precompose_subst_instance_global Σ Re Rle gr napp u i i').
+Definition precompose_subst_instance_global__2 Σ R pb gr napp u i i'
+  := snd (precompose_subst_instance_global Σ R pb gr napp u i i').
 
-Global Instance eq_term_upto_univ_subst_preserved {cf : checker_flags} Σ
-  (Re Rle : ConstraintSet.t -> Universe.t -> Universe.t -> Prop) napp
-  {he: SubstUnivPreserved Re} {hle: SubstUnivPreserved Rle}
-  : SubstUnivPreserved (fun φ => eq_term_upto_univ_napp Σ (Re φ) (Rle φ) napp).
+Lemma fix_context_subst_instance0 u mfix :
+  subst_instance u (fix_context mfix)
+  = fix_context (subst_instance u mfix).
+Proof.
+  rewrite /subst_instance /= /subst_instance /subst_instance_context /map_context /fix_context.
+  rewrite map_rev. f_equal.
+  rewrite map_mapi mapi_map. eapply mapi_ext.
+  intros n x. unfold map_decl, vass; cbn. f_equal.
+  apply subst_instance_lift.
+Qed.
+
+Global Instance compare_term_upto_univ_subst_preserved {cf : checker_flags} Σ pb
+  (R : conv_pb -> ConstraintSet.t -> Universe.t -> Universe.t -> Prop) isTermIrrel napp Γ
+  {he: SubstUnivPreserved (R Conv)} {hle: SubstUnivPreserved (R pb)} {hirrel : forall Γ (t : term) u, isTermIrrel Σ Γ t -> isTermIrrel Σ Γ t@[u]}
+  : SubstUnivPreserved (fun φ => compare_term_upto_univ_napp_rel Σ (fun pb' => R pb' φ) isTermIrrel pb napp Γ).
 Proof.
   intros φ φ' u HH t t'.
   specialize (he _ _ _ HH).
   specialize (hle _ _ _ HH).
   clear HH. cbn in he.
-  induction t in napp, t', Rle, hle |- * using term_forall_list_ind;
-    inversion 1; subst; cbn; constructor;
-      eauto using precompose_subst_instance__2, R_universe_instance_impl'.
+  induction t in napp, t', pb, hle, Γ |- * using term_forall_list_ind.
+  all: intro _X; inv _X; [ cbn ; constructor | now constructor]; eauto.
+  all: eauto using precompose_subst_instance__2, R_universe_instance_impl'.
   all: try (apply All2_map; eapply All2_impl'; tea;
     eapply All_impl; eauto; cbn; intros; aa).
-  - inv X.
-    eapply precompose_subst_instance_global__2.
+  - eapply precompose_subst_instance_global__2.
     eapply R_global_instance_impl_same_napp; eauto.
-  - inv X.
-    eapply precompose_subst_instance_global__2.
+    all: eassumption.
+  - eapply precompose_subst_instance_global__2.
     eapply R_global_instance_impl_same_napp; eauto.
-  - destruct X2 as [? [? [? ?]]].
+    all: eassumption.
+  - destruct X1 as [? [? [? ?]]].
     repeat split; simpl; eauto; solve_all.
     * eapply precompose_subst_instance.
       eapply R_universe_instance_impl; eauto.
-  - destruct X6; split => //. apply e => //.
+    * rewrite mark_inst_case_predicate_context in c.
+      rewrite mark_inst_case_predicate_context. apply c0 => //.
+  - destruct X5; split => //.
+    rewrite mark_inst_case_branch_context in c0.
+    rewrite mark_inst_case_branch_context. apply c => //.
+  - rewrite -fix_context_subst_instance0 marks_of_context_univ_subst.
+    apply c2 => //.
+  - rewrite -fix_context_subst_instance0 marks_of_context_univ_subst.
+    apply c2 => //.
 Qed.
 
-Lemma leq_term_subst_instance {cf : checker_flags} Σ : SubstUnivPreserved (leq_term Σ).
-Proof. apply eq_term_upto_univ_subst_preserved; cbn; apply _. Qed.
+Lemma compare_term_subst_instance {cf : checker_flags} pb Σ Γ : SubstUnivPreserved (fun φ => compare_term pb Σ φ Γ).
+Proof. apply compare_term_upto_univ_subst_preserved; cbn; tc. intros; now apply isTermRel_subst_instance. Qed.
 
-Lemma eq_term_subst_instance {cf : checker_flags} Σ : SubstUnivPreserved (eq_term Σ).
-Proof. apply eq_term_upto_univ_subst_preserved; cbn; exact _. Qed.
+Lemma leq_term_subst_instance {cf : checker_flags} Σ Γ : SubstUnivPreserved (fun φ => leq_term Σ φ Γ).
+Proof. apply compare_term_subst_instance. Qed.
 
-Lemma compare_term_subst_instance {cf : checker_flags} pb Σ : SubstUnivPreserved (compare_term pb Σ).
-Proof. apply eq_term_upto_univ_subst_preserved; cbn; try destruct pb; exact _. Qed.
+Lemma eq_term_subst_instance {cf : checker_flags} Σ Γ : SubstUnivPreserved (fun φ => eq_term Σ φ Γ).
+Proof. apply compare_term_subst_instance. Qed.
 
 (** Now routine lemmas ... *)
 
@@ -1373,9 +1410,9 @@ Lemma red1_subst_instance Σ Γ u s t :
        (subst_instance u s) (subst_instance u t).
 Proof.
   intros X0. pose proof I as X.
-  intros. induction X0 using red1_ind_all.
+  induction X0 using red1_ind_all.
   all: try (cbn; econstructor; eauto; fail).
-  - cbn. rewrite subst_instance_subst. econstructor.
+  - cbn. rewrite subst_instance_subst. econstructor. now apply isTermRel_subst_instance'.
   - cbn. rewrite subst_instance_subst. econstructor.
   - cbn. rewrite subst_instance_lift. econstructor.
     unfold subst_instance.
@@ -1387,6 +1424,7 @@ Proof.
     rewrite iota_red_subst_instance.
     change (bcontext br) with (bcotext (map_branch (subst_instance u) br)). 
     eapply red_iota; eauto with pcuic.
+    * eapply isTermRel_subst_instance' in X0; apply X0.
     * rewrite nth_error_map H //.
     * simpl. now len.
   - cbn. rewrite !subst_instance_mkApps. cbn.
@@ -1464,18 +1502,27 @@ Proof.
     now rewrite <- (fix_context_subst_instance u mfix0).
 Qed.
 
-Lemma subst_instance_ws_cumul_pb {cf : checker_flags} (Σ : global_env_ext) Γ u A B univs :
+Lemma subst_instance_ws_cumul_pb {cf : checker_flags} pb (Σ : global_env_ext) Γ u A B univs :
 valid_constraints (global_ext_constraints (Σ.1, univs))
                   (subst_instance_cstrs u Σ) ->
-  Σ ;;; Γ |- A = B ->
-  (Σ.1,univs) ;;; subst_instance u Γ |- subst_instance u A = subst_instance u B.
+  Σ ;;; Γ |- A <=[pb] B ->
+  (Σ.1,univs) ;;; subst_instance u Γ |- subst_instance u A <=[pb] subst_instance u B.
 Proof.
   intros HH X0. induction X0.
   - econstructor.
-    eapply eq_term_subst_instance; tea.
+    rewrite marks_of_context_univ_subst.
+    eapply compare_term_subst_instance; tea.
   - econstructor 2. 1: eapply red1_subst_instance; cbn; eauto. eauto.
   - econstructor 3. 1: eauto. eapply red1_subst_instance; cbn; eauto.
 Qed.
+
+Lemma conv_subst_instance {cf : checker_flags} (Σ : global_env_ext) Γ u A B univs :
+  valid_constraints (global_ext_constraints (Σ.1, univs))
+                    (subst_instance_cstrs u Σ) ->
+  Σ ;;; Γ |- A = B ->
+  (Σ.1,univs) ;;; subst_instance u Γ
+                   |- subst_instance u A = subst_instance u B.
+Proof. apply subst_instance_ws_cumul_pb. Qed.
 
 Lemma cumul_subst_instance {cf : checker_flags} (Σ : global_env_ext) Γ u A B univs :
   valid_constraints (global_ext_constraints (Σ.1, univs))
@@ -1483,13 +1530,7 @@ Lemma cumul_subst_instance {cf : checker_flags} (Σ : global_env_ext) Γ u A B u
   Σ ;;; Γ |- A <= B ->
   (Σ.1,univs) ;;; subst_instance u Γ
                    |- subst_instance u A <= subst_instance u B.
-Proof.
-  intros HH X0. induction X0.
-  - econstructor.
-    eapply leq_term_subst_instance; tea.
-  - econstructor 2. 1: eapply red1_subst_instance; cbn; eauto. eauto.
-  - econstructor 3. 1: eauto. eapply red1_subst_instance; cbn; eauto.
-Qed.
+Proof. apply subst_instance_ws_cumul_pb. Qed.
 
 Lemma is_allowed_elimination_subst_instance {cf : checker_flags} (Σ : global_env_ext) univs inst u al :
   valid_constraints (global_ext_constraints (Σ.1, univs))
@@ -1505,16 +1546,17 @@ Proof.
   rewrite subst_instance_univ0_val'; auto.
 Qed.
 
-Global Instance compare_decl_subst_instance {cf : checker_flags} pb Σ : SubstUnivPreserved (compare_decl pb Σ).
+Global Instance compare_decl_subst_instance {cf : checker_flags} pb Σ Γ : SubstUnivPreserved (fun φ => compare_decl pb Σ φ Γ).
 Proof.
   intros φ1 φ2 u HH ? ? [] => /=; constructor; auto;
    eapply compare_term_subst_instance; tea.
 Qed.
 
-Global Instance compare_context_subst_instance {cf : checker_flags} pb Σ : SubstUnivPreserved (compare_context pb Σ).
+Global Instance compare_context_subst_instance {cf : checker_flags} pb Σ Γ0 : SubstUnivPreserved (fun φ => compare_context pb Σ φ Γ0).
 Proof.
   intros φ φ' u HH Γ Γ' X. eapply All2_fold_map, All2_fold_impl; tea.
-  intros. eapply compare_decl_subst_instance; eassumption.
+  intros. eapply compare_decl_subst_instance. 1: eassumption.
+  rewrite marks_of_context_univ_subst //.
 Qed.
 
 Lemma subst_instance_destArity Γ A u :
@@ -1621,7 +1663,7 @@ Proof.
 Qed.
 
 Lemma All_local_env_over_subst_instance {cf : checker_flags} Σ Γ (wfΓ : wf_local Σ Γ) :
-  All_local_env_over typing
+  All_local_env_over isTermRelOpt typing
                      (fun Σ0 Γ0 (_ : wf_local Σ0 Γ0) t T (_ : Σ0;;; Γ0 |- t : T) =>
        forall u univs, wf_ext_wk Σ0 ->
                   consistent_instance_ext (Σ0.1, univs) Σ0.2 u ->

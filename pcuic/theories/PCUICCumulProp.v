@@ -175,7 +175,7 @@ Lemma eq_term_prop_impl Σ Re Rle t u :
 Proof using Type.
   intros n eq.
   intros.
-  eapply PCUICEquality.eq_term_upto_univ_impl in eq. eauto.
+  eapply PCUICEquality.compare_term_upto_univ_impl in eq. eauto.
   all:auto. 
 Qed.
 
@@ -791,7 +791,7 @@ Proof using Type.
     try solve [constructor; try unfold eq_mfix; eauto; solve_all].
   - cbn. constructor. 
     destruct s; split; reflexivity.
-  - constructor. eapply PCUICEquality.eq_term_upto_univ_impl in IHT1; eauto.
+  - constructor. eapply PCUICEquality.compare_term_upto_univ_impl in IHT1; eauto.
     all:try typeclasses eauto.
     apply IHT2.
   - constructor. now eapply cumul_prop_subst_instance_instance.
@@ -912,8 +912,8 @@ Proof using Type.
   exists (mkApps f nf), (mkApps f' nf'); split.
   - eapply closed_red_mkApps; auto.
   - eapply closed_red_mkApps; auto.
-  - eapply eq_term_upto_univ_mkApps.
-    eapply eq_term_upto_univ_impl.
+  - eapply compare_term_upto_univ_mkApps.
+    eapply compare_term_upto_univ_impl.
     5:eapply eq. all:auto. 4:lia.
     all:now eapply subrelation_eq_universe_eq_prop.
 Qed.
@@ -979,7 +979,7 @@ Lemma eq_term_upto_univ_napp_leq {Σ : global_env_ext} {n x y} :
   eq_term_napp Σ n x y -> 
   leq_term_napp Σ n x y.
 Proof using Type.
-  eapply eq_term_upto_univ_impl; auto; typeclasses eauto.
+  eapply compare_term_upto_univ_impl; auto; typeclasses eauto.
 Qed.
 
 Lemma cumul_prop_is_open {Σ Γ T U} : 

@@ -1423,7 +1423,7 @@ Proof.
   ].
   1,6,7: try solve [ constructor; try unfold eq_mfix in X0; solve_all ].
   all: try solve [ constructor; now eapply trans_R_global_instance ].
-  - eapply (TermEquality.eq_term_upto_univ_mkApps _ _ _ _ _ [_] _ [_]); simpl; eauto.
+  - eapply (TermEquality.compare_term_upto_univ_mkApps _ _ _ _ _ [_] _ [_]); simpl; eauto.
   - destruct X1 as [Hpars [Huinst [Hctx Hret]]]. unfold eq_branches, eq_branch in X3.
     destruct X as [IHpars [IHctx IHret]].
     constructor; cbn; auto. solve_all.

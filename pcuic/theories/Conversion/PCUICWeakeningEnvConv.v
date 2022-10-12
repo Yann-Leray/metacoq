@@ -1,9 +1,7 @@
 (* Distributed under the terms of the MIT license. *)
 From MetaCoq.Template Require Import config utils.
-From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils
-  PCUICWeakeningEnv PCUICEquality PCUICReduction PCUICCumulativity PCUICCumulativitySpec
-  (* PCUICContextSubst *) (* PCUICUnivSubst *) (* PCUICCases *) (* PCUICTyping *)
-  (* PCUICGuardCondition *) (* PCUICGlobalEnv *).
+From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICRelevance PCUICRelevanceTerm
+  PCUICWeakeningEnv PCUICEquality PCUICReduction PCUICCumulativity PCUICCumulativitySpec.
 From Equations Require Import Equations.
 
 Require Import ssreflect.
@@ -11,37 +9,34 @@ Require Import ssreflect.
 Set Default Goal Selector "!".
 Implicit Types (cf : checker_flags).
 
-Lemma compare_term_subset {cf} pb Σ φ φ' t t'
+Lemma compare_term_subset {cf} pb Σ φ φ' Γ t t'
   : ConstraintSet.Subset φ φ'
-    -> compare_term pb Σ φ t t' -> compare_term pb Σ φ' t t'.
+    -> compare_term pb Σ φ Γ t t' -> compare_term pb Σ φ' Γ t t'.
 Proof.
-  intro H. apply eq_term_upto_univ_impl; auto.
-  all: change eq_universe with (compare_universe Conv).
-  all: change leq_universe with (compare_universe Cumul).
-  3: destruct pb.
-  4: transitivity (compare_universe Cumul φ).
-  4: tc.
+  intro H. apply compare_term_upto_univ_impl; auto.
+  2: transitivity (compare_universe Conv φ').
+  3: tc.
   all: intros ??; now eapply cmp_universe_subset.
 Qed.
 
-Lemma eq_term_subset {cf} Σ φ φ' t t'
-  : ConstraintSet.Subset φ φ' -> eq_term Σ φ t t' -> eq_term Σ φ' t t'.
+Lemma eq_term_subset {cf} Σ φ φ' Γ t t'
+  : ConstraintSet.Subset φ φ' -> eq_term Σ φ Γ t t' -> eq_term Σ φ' Γ t t'.
 Proof. apply compare_term_subset with (pb := Conv). Qed.
 
-Lemma leq_term_subset {cf:checker_flags} Σ ctrs ctrs' t u
-  : ConstraintSet.Subset ctrs ctrs' -> leq_term Σ ctrs t u -> leq_term Σ ctrs' t u.
+Lemma leq_term_subset {cf:checker_flags} Σ ctrs ctrs' Γ t u
+  : ConstraintSet.Subset ctrs ctrs' -> leq_term Σ ctrs Γ t u -> leq_term Σ ctrs' Γ t u.
 Proof. apply compare_term_subset with (pb := Cumul). Qed.
 
-Lemma compare_decl_subset {cf} pb Σ φ φ' d d'
+Lemma compare_decl_subset {cf} pb Σ φ φ' Γ d d'
   : ConstraintSet.Subset φ φ'
-    -> compare_decl pb Σ φ d d' -> compare_decl pb Σ φ' d d'.
+    -> compare_decl pb Σ φ Γ d d' -> compare_decl pb Σ φ' Γ d d'.
 Proof.
   intros Hφ []; constructor; eauto using compare_term_subset.
 Qed.
 
-Lemma compare_context_subset {cf} pb Σ φ φ' Γ Γ'
+Lemma compare_context_subset {cf} pb Σ φ φ' Γ0 Γ Γ'
   : ConstraintSet.Subset φ φ'
-    -> compare_context pb Σ φ Γ Γ' ->  compare_context pb Σ φ' Γ Γ'.
+    -> compare_context pb Σ φ Γ0 Γ Γ' ->  compare_context pb Σ φ' Γ0 Γ Γ'.
 Proof.
   intros Hφ. induction 1; constructor; auto; eapply compare_decl_subset; eassumption.
 Qed.
@@ -68,12 +63,12 @@ Proof using P Pcmp cf.
 Qed.
 
 (** The definition of [R_global_instance] is defined so that it is weakenable. *)
-Lemma R_global_instance_weaken_env Σ Σ' Re Re' Rle Rle' gr napp :
+Lemma R_global_instance_weaken_env Σ Σ' R R' pb pb' gr napp :
   wf Σ' -> extends Σ Σ' ->
-  RelationClasses.subrelation Re Re' ->
-  RelationClasses.subrelation Rle Rle' ->
-  RelationClasses.subrelation Re Rle' ->
-  subrelation (R_global_instance Σ Re Rle gr napp) (R_global_instance Σ' Re' Rle' gr napp).
+  RelationClasses.subrelation (R Conv) (R' Conv) ->
+  RelationClasses.subrelation (R Conv) (R' pb') ->
+  RelationClasses.subrelation (R pb) (R' pb') ->
+  subrelation (R_global_instance Σ R pb gr napp) (R_global_instance Σ' R' pb' gr napp).
 Proof using P Pcmp cf.
   intros wfΣ ext he hle hele t t'.
   rewrite /R_global_instance /R_opt_variance.
@@ -89,24 +84,25 @@ Proof using P Pcmp cf.
 Qed.
 
 #[global]
-Instance eq_term_upto_univ_weaken_env Σ Σ' Re Re' Rle Rle' napp :
+Instance compare_term_upto_univ_weaken_env Σ Σ' R R' pb pb' napp Γ :
   wf Σ' -> extends Σ Σ' ->
-  RelationClasses.subrelation Re Re' ->
-  RelationClasses.subrelation Rle Rle' ->
-  RelationClasses.subrelation Re Rle' ->
-  CRelationClasses.subrelation (eq_term_upto_univ_napp Σ Re Rle napp)
-    (eq_term_upto_univ_napp Σ' Re' Rle' napp).
+  RelationClasses.subrelation (R Conv) (R' Conv) ->
+  RelationClasses.subrelation (R Conv) (R' pb') ->
+  RelationClasses.subrelation (R pb) (R' pb') ->
+  CRelationClasses.subrelation (compare_term_upto_univ_napp_rel Σ R isTermIrrel pb napp Γ)
+    (compare_term_upto_univ_napp_rel Σ' R' isTermIrrel pb' napp Γ).
 Proof using P Pcmp cf.
   intros wfΣ ext he hele hle t t'.
-  induction t in napp, t', Rle, Rle', hle, hele |- * using PCUICInduction.term_forall_list_ind;
+  epose proof (fun Γ t => extends_isTermRel _ _ Γ t Irrelevant wfΣ ext) as Hirr.
+  induction t in napp, t', pb, pb', hle, hele, Γ |- * using PCUICInduction.term_forall_list_ind;
     try (inversion 1; subst; constructor;
          eauto using R_universe_instance_impl'; fail).
-  - inversion 1; subst; constructor.
+  - inversion 1; subst; constructor; auto.
     eapply All2_impl'; tea.
     eapply All_impl; eauto.
-  - inversion 1; subst; constructor.
+  - inversion 1; subst; constructor; auto.
     eapply R_global_instance_weaken_env. 6:eauto. all:eauto.
-  - inversion 1; subst; constructor.
+  - inversion 1; subst; constructor; auto.
     eapply R_global_instance_weaken_env. 6:eauto. all:eauto.
   - inversion 1; subst; destruct X as [? [? ?]]; constructor; eauto.
     * destruct X2 as [? [? ?]].
@@ -115,11 +111,11 @@ Proof using P Pcmp cf.
     * eapply All2_impl'; tea.
       eapply All_impl; eauto.
       cbn. intros x [? ?] y [? ?]. split; eauto.
-  - inversion 1; subst; constructor.
+  - inversion 1; subst; constructor; auto.
     eapply All2_impl'; tea.
     eapply All_impl; eauto.
     cbn. intros x [? ?] y (? & ? & ? & ?). repeat split; eauto.
-  - inversion 1; subst; constructor.
+  - inversion 1; subst; constructor; auto.
     eapply All2_impl'; tea.
     eapply All_impl; eauto.
     cbn. intros x [? ?] y (? & ? & ? & ?). repeat split; eauto.
@@ -131,8 +127,8 @@ Lemma weakening_env_red1 Σ Σ' Γ M N :
   red1 Σ Γ M N ->
   red1 Σ' Γ M N.
 Proof using P Pcmp cf.
-  induction 3 using red1_ind_all;
-    try solve [econstructor; eauto with extends; solve_all].
+  induction 3 using red1_ind_all.
+  all: solve [econstructor; eauto with extends; solve_all].
 Qed.
 
 Lemma weakening_env_cumul_gen pb Σ Σ' φ Γ M N :
@@ -145,7 +141,7 @@ Proof using P Pcmp.
   induction 1; simpl.
   - econstructor. eapply compare_term_subset.
     + now eapply global_ext_constraints_app.
-    + simpl in *. eapply eq_term_upto_univ_weaken_env in c; simpl; eauto.
+    + simpl in *. eapply compare_term_upto_univ_weaken_env in c; simpl; eauto.
       all:typeclasses eauto.
   - econstructor 2; eauto. eapply weakening_env_red1; eauto.
   - econstructor 3; eauto. eapply weakening_env_red1; eauto.

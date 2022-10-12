@@ -2,7 +2,7 @@
 From Coq Require Import Morphisms.
 From MetaCoq.Template Require Import config utils.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICCases PCUICInduction
-  PCUICLiftSubst PCUICUnivSubst PCUICTyping PCUICCumulativity 
+  PCUICLiftSubst PCUICUnivSubst PCUICTyping PCUICCumulativity PCUICRelevanceTerm
   PCUICClosed
   PCUICSigmaCalculus PCUICRenameDef PCUICRenameTerm PCUICRenameTyp PCUICOnFreeVars
   PCUICClosedConv PCUICClosedTyp PCUICWeakeningConv.
@@ -27,28 +27,30 @@ Lemma weakening_wf_local {cf: checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ
 Proof.
   intros wfΓ' wfΓ''.
   pose proof (env_prop_wf_local typing_rename_prop _ wfΣ _ wfΓ') as [_ X]. simpl in X.
-  eapply All_local_env_app_inv in X as [XΓ XΓ'].
+  eapply All_local_app_rel in X as [XΓ XΓ'].
   apply wf_local_app => //.
   rewrite /lift_context.
   apply All_local_env_fold.
   eapply (All_local_env_impl_ind XΓ').
-  intros Δ t [T|] IH; simpl.
-  - intros Hf. rewrite -/(lift_context #|Γ''| 0 Δ).
+  intros Δ j IH Hj; simpl.
+  eapply (lift_typing_impl_map _ id) with (4 := Hj); eauto.
+  { intros. destruct relopt => //.
+    rewrite -/(lift_context #|Γ''| 0 Δ).
+    rewrite Nat.add_0_r !lift_rename.
+    eapply rename_isTermRel; tea.
+    1: eapply urenaming_umarks_renaming, weakening_renaming.
+    eapply isTermRel_is_open_term, X.
+  }
+  {
+    intros t T Hf.
+    rewrite -/(lift_context #|Γ''| 0 Δ).
     rewrite Nat.add_0_r. rewrite !lift_rename. 
     eapply (Hf xpredT).
     split.
     + apply wf_local_app; auto.
       apply (All_local_env_fold (fun Δ => lift_typing typing Σ (Γ ,,, Γ'' ,,, Δ))) in IH. apply IH.
     + apply weakening_renaming.
-  - intros Hty.
-    apply (infer_typing_sort_impl (P := fun Σ Γ T s => forall P Δ f, renaming _ Σ Δ Γ _ -> Σ;;; Δ |- rename f T : rename f s)) with id Hty => //; intros Hs.
-    rewrite -/(lift_context #|Γ''| 0 Δ).
-    rewrite Nat.add_0_r !lift_rename. 
-    eapply (Hs xpredT).
-    split.
-    + apply wf_local_app; auto.
-      apply (All_local_env_fold (fun Δ => lift_typing typing Σ (Γ ,,, Γ'' ,,, Δ))) in IH. apply IH.
-    + apply weakening_renaming.
+  }
 Qed.
 
 Lemma weakening_wf_local_eq {cf: checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ Γ' Γ'' n} :
@@ -176,36 +178,6 @@ Proof.
 Qed.
 
 
-Corollary All_mfix_wf {cf:checker_flags} Σ Γ mfix :
-  wf Σ.1 -> wf_local Σ Γ ->
-  All (on_def_type (lift_typing typing Σ) Γ) mfix ->
-  wf_local Σ (Γ ,,, fix_context mfix).
-Proof.
-  move=> wfΣ wf a; move: wf.
-  change (fix_context mfix) with (fix_context_gen #|@nil context_decl| mfix).
-  change Γ with (Γ ,,, []).
-  generalize (@nil context_decl) as Δ.
-  rewrite /fix_context_gen.
-  intros Δ wfΔ.
-  eapply All_local_env_app. split; auto.
-  induction a in Δ, wfΔ |- *; simpl; auto.
-  + constructor.
-  + simpl.
-    eapply All_local_env_app. split; auto.
-    * repeat constructor.
-      apply infer_typing_sort_impl with id p => //; intros Hs.
-      eapply (weakening Σ Γ Δ _ (tSort _)); auto.
-    * specialize (IHa (Δ ,,, [vass (dname x) (lift0 #|Δ| (dtype x))])).
-      rewrite app_length in IHa. simpl in IHa.
-      forward IHa.
-      ** simpl; constructor; auto.
-         apply infer_typing_sort_impl with id p => //; intros Hs.
-         eapply (weakening Σ Γ Δ _ (tSort _)); auto.
-      ** eapply All_local_env_impl; eauto.
-        simpl; intros.
-        rewrite app_context_assoc. apply X.
-Qed.
-
 Lemma isTypeRelOpt_lift {cf:checker_flags} {Σ : global_env_ext} {n Γ ty relopt} 
   (isdecl : n <= #|Γ|):
   wf Σ -> wf_local Σ Γ ->
@@ -215,7 +187,7 @@ Proof.
   intros wfΣ wfΓ wfty. rewrite <- (firstn_skipn n Γ) in wfΓ |- *.
   assert (n = #|firstn n Γ|).
   { rewrite firstn_length_le; auto with arith. }
-  apply infer_typing_sort_impl with id wfty => //; intros Hs.
+  apply on_sortrel_impl with id wfty => // Hs.
   rewrite {3}H.
   eapply (weakening_typing (Γ := skipn n Γ) (Γ' := []) (Γ'' := firstn n Γ) (T := tSort _)); 
     eauto with wf.
@@ -235,7 +207,35 @@ Lemma isTypeRel_weaken {cf:checker_flags} {Σ : global_env_ext} {Γ Δ ty rel} :
   isTypeRel Σ Δ ty rel ->
   isTypeRel Σ (Γ ,,, Δ) ty rel.
 Proof.
-  intros wfΣ wfΓ [s [hrel hty]].
-  exists s; split => //.
+  intros wfΣ wfΓ H.
+  apply on_sortrel_impl_id with H => Hs.
   now eapply weaken_ctx.
+Qed.
+
+Corollary All_mfix_wf {cf:checker_flags} Σ Γ mfix :
+  wf Σ.1 -> wf_local Σ Γ ->
+  All (fun d => isTypeRel Σ Γ (dtype d) (binder_relevance (dname d))) mfix ->
+  wf_local Σ (Γ ,,, fix_context mfix).
+Proof.
+  move=> wfΣ wf a; move: wf.
+  change (fix_context mfix) with (fix_context_gen #|@nil context_decl| mfix).
+  change Γ with (Γ ,,, []).
+  generalize (@nil context_decl) as Δ.
+  rewrite /fix_context_gen.
+  intros Δ wfΔ.
+  eapply All_local_env_app. split; auto.
+  induction a in Δ, wfΔ |- *; simpl; auto.
+  + constructor.
+  + simpl.
+    assert (isTypeRel Σ (Γ ,,, Δ) (lift0 #|Δ| (dtype x)) (binder_relevance (dname x))).
+    { apply isTypeRelOpt_lift; tas. 1: len; lia. rewrite skipn_all_app //. }
+    eapply All_local_env_app. split; auto.
+    * constructor; [constructor|tas].
+    * specialize (IHa (Δ ,,, [vass (dname x) (lift0 #|Δ| (dtype x))])).
+      rewrite app_length in IHa. simpl in IHa.
+      forward IHa.
+      ** simpl; constructor; auto.
+      ** eapply All_local_env_impl; eauto.
+        simpl; intros.
+        rewrite app_context_assoc //.
 Qed.

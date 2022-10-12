@@ -212,7 +212,7 @@ Proof.
       intros (hnth & ? & ? & ? & (? & ?) & ? & ?) []. split => //.
       rewrite lift_inst_case_branch_context //. 
       { rewrite test_context_k_closed_on_free_vars_ctx.
-        eapply alpha_eq_on_free_vars. symmetry; tea.  
+        eapply alpha_eq_on_free_vars_ctx. symmetry; tea.  
         rewrite -closedn_ctx_on_free_vars.
         rewrite (wf_predicate_length_pars H0).
         rewrite (declared_minductive_ind_npars isdecl).
@@ -359,7 +359,7 @@ Proof.
   intros decl wfp a.
   rewrite (PCUICCasesContexts.inst_case_branch_context_eq a).
   rewrite subst_inst_case_context_wf.  rewrite test_context_k_closed_on_free_vars_ctx.
-  eapply alpha_eq_on_free_vars. symmetry; eassumption.
+  eapply alpha_eq_on_free_vars_ctx. symmetry; eassumption.
   rewrite (wf_predicate_length_pars wfp).
   rewrite (PCUICTyping.declared_minductive_ind_npars decl).  rewrite -closedn_ctx_on_free_vars.
   eapply PCUICClosedTyp.closed_cstr_branch_context; tea.

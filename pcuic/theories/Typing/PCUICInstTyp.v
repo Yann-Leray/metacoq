@@ -2,7 +2,7 @@
 From Coq Require Import Morphisms.
 From MetaCoq.Template Require Import config utils.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICTactics PCUICCases PCUICInduction
-  PCUICLiftSubst PCUICUnivSubst
+  PCUICLiftSubst PCUICUnivSubst PCUICRelevance
   PCUICTyping PCUICReduction PCUICCumulativity 
   PCUICEquality PCUICGlobalEnv PCUICClosed PCUICClosedConv PCUICClosedTyp PCUICEquality PCUICWeakeningEnvConv PCUICWeakeningEnvTyp
   PCUICSigmaCalculus PCUICRenameDef PCUICRenameConv PCUICWeakeningConv PCUICWeakeningTyp PCUICInstDef PCUICInstConv
@@ -33,7 +33,7 @@ Definition well_subst_closed_subst {cf} (Σ:global_env_ext) (wfΣ : wf Σ) Γ σ
   Σ ;;; Δ ⊢ σ : Γ ->
   closed_subst Γ σ Δ.
 Proof.
-  intros hΔ [typed_σ hσ]. repeat split; tea. 
+  intros hΔ (typed_σ & markσ & hσ). repeat split; tea. 
   intros x decl hnth. specialize (typed_σ x decl hnth) as htype. 
   pose proof (typing_wf_local htype). pose (wf_local_closed_context X).  
   apply closedn_on_free_vars. eapply subject_closed; eauto.
@@ -370,7 +370,8 @@ Proof.
 
   - intros Σ wfΣ Γ wfΓ. auto.
     induction 1; constructor; tas.
-    all: apply infer_typing_sort_impl with id tu => //; auto.
+    + apply on_sortrel_impl_id with tu => //.
+    + apply on_triplefull_impl_id with tu => //.
   - intros Σ wfΣ Γ wfΓ n decl e X Δ σ hΔ hσ. simpl.
     eapply hσ. assumption.
   - intros Σ wfΣ Γ wfΓ l X H0 Δ σ hΔ hσ. simpl.
@@ -380,37 +381,26 @@ Proof.
     econstructor.
     + apply e.
     + eapply ihA ; auto.
-    + eapply ihB.
-      * econstructor ; auto.
-        eexists. split; [apply e|]. eapply ihA ; auto.
-      * eapply well_subst_Up. 2: assumption.
-        econstructor ; auto.
-        eexists. split; [apply e|]. eapply ihA. all: auto.
-  - intros Σ wfΣ Γ wfΓ na A t s1 bty e X hA ihA ht iht Δ σ hΔ hσ.
+    + assert (wf_local Σ (Δ ,, vass na A.[σ])).
+      { econstructor => //. split => //. eexists. split; [apply e|]. eapply ihA ; auto. }
+      eapply ihB => //.
+      eapply well_subst_Up => //.
+  - intros Σ wfΣ Γ wfΓ na A t bty X hA ht iht Δ σ hΔ hσ.
     autorewrite with sigma.
-    econstructor.
-    + apply e.
-    + eapply ihA ; auto.
-    + eapply iht.
-      * econstructor ; auto.
-        eexists. split; [apply e|]. eapply ihA ; auto.
-      * eapply well_subst_Up. 2: assumption.
-        constructor. 1: assumption.
-        eexists. split; [apply e|]. eapply ihA. all: auto.
-  - intros Σ wfΣ Γ wfΓ na b B t s1 A e X hB ihB hb ihb ht iht Δ σ hΔ hσ.
+    eassert (on_decl (lift_typing typing Σ) Δ (vass na A.[σ])).
+    { eapply on_sortrel_impl with _ hA => //. now intros []. }
+    apply type_Lambda' => //.
+    assert (wf_local Σ (Δ ,, vass na A.[σ])) by econstructor => //.
+    eapply iht => //.
+    eapply well_subst_Up => //.
+  - intros Σ wfΣ Γ wfΓ na b B t A X hb ht iht Δ σ hΔ hσ.
     autorewrite with sigma.
-    econstructor.
-    + apply e.
-    + eapply ihB. all: auto.
-    + eapply ihb. all: auto.
-    + eapply iht.
-      * econstructor. all: auto.
-        -- eexists. split; [apply e|]. eapply ihB. all: auto.
-        -- simpl. eapply ihb. all: auto.
-      * eapply well_subst_Up'; try assumption.
-        constructor; auto.
-        ** exists s1. split; [apply e|]. apply ihB; auto.
-        ** apply ihb; auto.
+    eassert (on_decl (lift_typing typing Σ) Δ (vdef na b.[σ] B.[σ])).
+    { eapply on_triplefull_impl with _ hb => //. 1: intros; eapply inst_isTermRel; tea; apply hσ. all: now intros []. }
+    apply type_LetIn' => //.
+    assert (wf_local Σ (Δ,, vdef na b.[σ] B.[σ])) by econstructor => //.
+    eapply iht => //.
+    eapply well_subst_Up' => //.
   - intros Σ wfΣ Γ wfΓ t na A B s u X hty ihty ht iht hu ihu Δ σ hΔ hσ.
     autorewrite with sigma.
     econstructor.
@@ -455,10 +445,9 @@ Proof.
         apply All_local_env_app_inv in IHpredctx as [].
         eapply IHpret.
         ++ eapply wf_local_app_inst; eauto.
-           apply a2.
         ++ relativize #|pcontext p|; [eapply well_subst_app_up|] => //; rewrite /predctx; len.
            2:{ rewrite case_predicate_context_length //. }
-           eapply wf_local_app_inst; eauto. apply a2.
+           eapply wf_local_app_inst; eauto.
       + simpl. unfold id.
         specialize (IHc _ _ HΔ Hf).
         now rewrite inst_mkApps map_app in IHc.
@@ -501,7 +490,7 @@ Proof.
         assert (wf_local Σ (Δ,,, brctx'.1)).
         { rewrite /brctx'. cbn.
           apply All_local_env_app_inv in Hbrctx as [].
-          eapply wf_local_app_inst; tea. apply a0. }
+          eapply wf_local_app_inst; tea. }
         split => //. split.
         ++ eapply IHbr => //.
           rewrite /brctx' /brctxty; cbn.
@@ -533,45 +522,47 @@ Proof.
       rewrite Upn_comp; cbn; try now repeat len.
       rewrite subst_consn_lt /=; cbn; len; try lia.
       now rewrite map_rev.
-  - intros Σ wfΣ Γ wfΓ mfix n decl types hguard hnth htypes hmfix ihmfix wffix Δ σ hΔ hσ.
+  - intros Σ wfΣ Γ wfΓ mfix n decl types hguard hnth htypes hmfix wffix Δ σ hΔ hσ.
     simpl. eapply meta_conv; [econstructor;eauto|].
     * now eapply fix_guard_inst.
     * now rewrite nth_error_map hnth.
-    * solve_all.
-      apply infer_typing_sort_impl with id a => //; intros [_ IH].
-      now apply IH.
-    * solve_all. cbn. destruct b as [? b0].
-      len. rewrite /types in b0. len in b0.
-      pose proof (inst_fix_context mfix σ).
-      setoid_rewrite <-up_Upn at 1 in H. rewrite H.
-      eapply All_local_env_app_inv in htypes as [].
-      eapply meta_conv; [eapply b0; eauto|].
-      + eapply wf_local_app_inst; eauto. eapply a1.
-      + rewrite -(fix_context_length mfix).
-        eapply well_subst_app_up => //.
-        eapply wf_local_app_inst; eauto. apply a1.
-      + rewrite lift0_inst. now sigma.
+    * rewrite inst_fix_context_up.
+      solve_all.
+      apply All_local_app_rel in htypes as (hΓ & htypes).
+      eapply wf_local_app_inst in htypes as hΓσ; tea.
+      eapply well_subst_app_up in hσ as hσ'; tea.
+      split; [apply fst in X| apply snd in X].
+      + rewrite {2}/inst_context fold_context_k_length -!(fix_context_length mfix) -/types /map_def /=.
+        replace (lift0 #|types| (dtype x).[σ]) with ((lift0 #|types| (dtype x)).[up #|types| σ]) by now sigma.
+        eapply on_triplefull_impl with _ X => //.
+        { intros; eapply inst_isTermRel; tea.
+          rewrite !marks_of_context_app /inst_context mark_fold_context_k.
+          replace #|types| with #|marks_of_context types| by len.
+          apply mark_subst_app_up. apply hσ. }
+        all: now intros [].
+      + apply on_sortrel_impl with id X => //; now intros [].
     * now apply inst_wf_fixpoint.
     * reflexivity.
 
-  - intros Σ wfΣ Γ wfΓ mfix n decl types hguard hnth htypes hmfix ihmfix wffix Δ σ hΔ hσ.
+  - intros Σ wfΣ Γ wfΓ mfix n decl types hguard hnth htypes hmfix wffix Δ σ hΔ hσ.
     simpl. eapply meta_conv; [econstructor;eauto|].
     * now eapply cofix_guard_inst.
     * now rewrite nth_error_map hnth.
-    * solve_all.
-      apply infer_typing_sort_impl with id a => //; intros [_ IH].
-      now apply IH.
-    * solve_all. cbn. destruct b as [? b0].
-      len. rewrite /types in b0. len in b0.
-      pose proof (inst_fix_context mfix σ).
-      setoid_rewrite <-up_Upn at 1 in H. rewrite H.
-      eapply All_local_env_app_inv in htypes as [].
-      eapply meta_conv; [eapply b0; eauto|].
-      + eapply wf_local_app_inst; eauto. eapply a1.
-      + rewrite -(fix_context_length mfix).
-        eapply well_subst_app_up => //.
-        eapply wf_local_app_inst; eauto. apply a1.
-      + rewrite lift0_inst. now sigma.
+    * rewrite inst_fix_context_up.
+      solve_all.
+      apply All_local_app_rel in htypes as (hΓ & htypes).
+      eapply wf_local_app_inst in htypes as hΓσ; tea.
+      eapply well_subst_app_up in hσ as hσ'; tea.
+      split; [apply fst in X| apply snd in X].
+      + rewrite {2}/inst_context fold_context_k_length -!(fix_context_length mfix) -/types /map_def /=.
+        replace (lift0 #|types| (dtype x).[σ]) with ((lift0 #|types| (dtype x)).[up #|types| σ]) by now sigma.
+        eapply on_triplefull_impl with _ X => //.
+        { intros; eapply inst_isTermRel; tea.
+          rewrite !marks_of_context_app /inst_context mark_fold_context_k.
+          replace #|types| with #|marks_of_context types| by len.
+          apply mark_subst_app_up. apply hσ. }
+        all: now intros [].
+      + apply on_sortrel_impl with id X => //; now intros [].
     * now apply inst_wf_cofixpoint.
     * reflexivity.
 

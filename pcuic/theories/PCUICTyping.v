@@ -1,6 +1,6 @@
 (* Distributed under the terms of the MIT license. *)
 From MetaCoq.Template Require Import config utils.
-From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils
+From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICRelevance PCUICInduction
   PCUICLiftSubst PCUICUnivSubst PCUICEquality PCUICUtils PCUICPosition PCUICGlobalEnv.
 From MetaCoq.PCUIC Require Export PCUICCumulativitySpec.
 From MetaCoq.PCUIC Require Export PCUICCases.
@@ -40,6 +40,9 @@ Definition type_of_constructor mdecl (cdecl : constructor_body) (c : inductive *
 (** ** Typing relation *)
 
 Include PCUICEnvTyping.
+Notation lift_typing := (lift_typing0 isTermRelOpt).
+Notation lift_typing2 := (lift_typing02 isTermRelOpt).
+Notation lift_sorting := (lift_sorting0 isTermRelOpt).
 
 (* AXIOM Postulate existence of a guard condition checker *)
 
@@ -330,6 +333,8 @@ Definition unlift_opt_pred (P : global_env_ext -> context -> option term -> term
 Module PCUICTypingDef <: EnvironmentTyping.Typing PCUICTerm PCUICEnvironment PCUICTermUtils PCUICEnvTyping PCUICConversion PCUICConversionParSpec.
 
   Definition typing := @typing.
+  Definition isTermRel := isTermRel.
+  Definition isTermRelOpt := isTermRelOpt.
 
 End PCUICTypingDef.
 
@@ -619,7 +624,7 @@ Lemma typing_ind_env_app_size `{cf : checker_flags} :
         (PΓ : global_env_ext -> context -> Type),
 
    (forall Σ (wfΣ : wf Σ.1)  (Γ : context) (wfΓ : wf_local Σ Γ),
-        All_local_env_over typing Pdecl Σ Γ wfΓ -> PΓ Σ Γ) ->
+        All_local_env_over isTermRelOpt typing Pdecl Σ Γ wfΓ -> PΓ Σ Γ) ->
 
    (forall Σ (wfΣ : wf Σ.1) (Γ : context) (wfΓ : wf_local Σ Γ) (n : nat) decl,
        nth_error Γ n = Some decl ->
@@ -1021,7 +1026,7 @@ Lemma typing_ind_env `{cf : checker_flags} :
          (PΓ : global_env_ext -> context -> Type),
 
     (forall Σ (wfΣ : wf Σ.1)  (Γ : context) (wfΓ : wf_local Σ Γ),
-         All_local_env_over typing Pdecl Σ Γ wfΓ -> PΓ Σ Γ) ->
+         All_local_env_over isTermRelOpt typing Pdecl Σ Γ wfΓ -> PΓ Σ Γ) ->
 
     (forall Σ (wfΣ : wf Σ.1) (Γ : context) (wfΓ : wf_local Σ Γ) (n : nat) decl,
         nth_error Γ n = Some decl ->
@@ -1307,10 +1312,10 @@ Section All_local_env.
     end H.
 
   Lemma nth_error_All_local_env_over {P Σ Γ n decl} (eq : nth_error Γ n = Some decl) {wfΓ : wf_local Σ Γ} :
-    All_local_env_over typing P Σ Γ wfΓ ->
+    All_local_env_over isTermRelOpt typing P Σ Γ wfΓ ->
     let Γ' := skipn (S n) Γ in
     let p := lookup_wf_local_decl wfΓ n eq in
-    (All_local_env_over typing P Σ Γ' (projT1 p) * on_wf_local_decl P (projT1 p) (projT2 p))%type.
+    (All_local_env_over isTermRelOpt typing P Σ Γ' (projT1 p) * on_wf_local_decl P (projT1 p) (projT2 p))%type.
   Proof.
     induction 1 in n, decl, eq |- *. simpl.
     - destruct n; simpl; elimtype False; discriminate eq.

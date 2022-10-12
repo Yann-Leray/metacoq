@@ -1359,7 +1359,7 @@ Proof.
   eapply invert_red_mkApps_tRel in redr as [args'' [-> conv']]; eauto.
   eapply All2_trans. apply _.
   now eapply red_terms_ws_cumul_pb_terms.
-  eapply eq_term_upto_univ_mkApps_l_inv in leq as [u'' [l' [[eqrel eqargs] eq']]].
+  eapply compare_term_upto_univ_mkApps_l_inv in leq as [u'' [l' [[eqrel eqargs] eq']]].
   depelim eqrel. eapply mkApps_eq_inj in eq' as [_ ->] => //.
   etransitivity; [|symmetry; eapply red_terms_ws_cumul_pb_terms]; eauto.
   eapply closed_red_terms_open_right in conv.

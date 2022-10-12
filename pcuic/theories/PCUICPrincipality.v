@@ -382,28 +382,28 @@ Lemma eq_term_leq_term {cf:checker_flags} {Σ : global_env_ext} {x y} :
   eq_term Σ Σ x y ->
   leq_term Σ Σ x y.
 Proof.
-  eapply eq_term_upto_univ_impl; auto; typeclasses eauto.
+  eapply compare_term_upto_univ_impl; auto; typeclasses eauto.
 Qed.
 
 Lemma eq_term_empty_leq_term {cf:checker_flags} {Σ : global_env_ext} {x y} :
   eq_term empty_global_env Σ x y ->
   leq_term empty_global_env Σ x y.
 Proof.
-  eapply eq_term_upto_univ_impl; auto; typeclasses eauto.
+  eapply compare_term_upto_univ_impl; auto; typeclasses eauto.
 Qed.
 
 Lemma eq_term_empty_eq_term {cf:checker_flags} {Σ : global_env_ext} {x y} :
   eq_term empty_global_env Σ x y ->
   eq_term Σ Σ x y.
 Proof.
-  eapply eq_term_upto_univ_empty_impl; auto; typeclasses eauto.
+  eapply compare_term_upto_univ_empty_impl; auto; typeclasses eauto.
 Qed.
 
 Lemma leq_term_empty_leq_term {cf:checker_flags} {Σ : global_env_ext} {x y} :
   leq_term empty_global_env Σ x y ->
   leq_term Σ Σ x y.
 Proof.
-  eapply eq_term_upto_univ_empty_impl; auto; typeclasses eauto.
+  eapply compare_term_upto_univ_empty_impl; auto; typeclasses eauto.
 Qed.
 
 Lemma eq_context_empty_eq_context {cf:checker_flags} {Σ : global_env_ext} {x y} :
@@ -426,7 +426,7 @@ Lemma eq_term_upto_univ_napp_leq {cf:checker_flags} {Σ : global_env_ext} {n x y
   eq_term_napp Σ n x y -> 
   leq_term_napp Σ n x y.
 Proof.
-  eapply eq_term_upto_univ_impl; auto; typeclasses eauto.
+  eapply compare_term_upto_univ_impl; auto; typeclasses eauto.
 Qed.
 
 Lemma R_global_instance_empty_universe_instance Re Rle ref napp u u' :
@@ -542,7 +542,7 @@ Proof.
     
   - eapply inversion_App in X6 as (na' & A' & B' & hf & ha & cum); auto.
     unfold leq_term in X1.
-    eapply eq_term_upto_univ_empty_impl in X7_1.
+    eapply compare_term_upto_univ_empty_impl in X7_1.
     specialize (X3 _ _ hf X7_1). all:try typeclasses eauto.
     specialize (X5 _ _ ha (eq_term_empty_leq_term X7_2)).
     eapply leq_term_empty_leq_term in X7_1.

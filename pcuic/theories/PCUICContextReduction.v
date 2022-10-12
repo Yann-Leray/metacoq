@@ -1,10 +1,10 @@
 (* Distributed under the terms of the MIT license. *)
 From Coq Require Import CRelationClasses.
 From MetaCoq.Template Require Import config utils.
-From MetaCoq.PCUIC Require Import PCUICAst PCUICOnOne PCUICAstUtils PCUICTactics
+From MetaCoq.PCUIC Require Import PCUICAst PCUICOnOne PCUICAstUtils PCUICRelevance PCUICTactics
      PCUICLiftSubst PCUICEquality PCUICUnivSubst PCUICInduction 
      PCUICReduction PCUICCases PCUICWeakeningConv PCUICWeakeningTyp
-     PCUICTyping PCUICOnFreeVars PCUICSubstitution
+     PCUICTyping PCUICOnFreeVars PCUICClosedTyp PCUICSubstitution
      PCUICRenameDef PCUICRenameConv PCUICInstDef PCUICInstConv.
 
 Require Import ssreflect ssrbool.
@@ -23,9 +23,10 @@ Section CtxReduction.
     red Σ Γ M M' -> red Σ (Γ ,, vass na M') N N' ->
     red Σ Γ (tProd na M N) (tProd na M' N').
   Proof using Type.
-    intros. eapply (transitivity (y := tProd na M' N)).
-    * now eapply (red_ctx_congr (tCtxProd_l _ tCtxHole _)).
-    * now eapply (red_ctx_congr (tCtxProd_r _ _ tCtxHole)).
+    intros.
+    apply red_trans with (tProd na M' N).
+    * eapply (red_ctx_congr (tCtxProd_l _ tCtxHole _)); tas.
+    * eapply (red_ctx_congr (tCtxProd_r _ _ tCtxHole)); tas.
   Qed.
 
   Lemma red_decls_refl Γ Δ d : red_decls Σ Γ Δ d d.
@@ -83,14 +84,14 @@ Section CtxReduction.
     induction r using red1_ind_all; intros P onΓ ont Δ onΔ Hctx;
       try inv_on_free_vars;
       try solve [eapply red_step; repeat (constructor; eauto)].
+    - eapply red1_red; repeat (constructor; eauto). rewrite -!(red_context_relevance Hctx) // in X.
     - red in Hctx.
       destruct nth_error eqn:hnth => //; simpl in H; noconf H.
       eapply All2_fold_nth_r in Hctx; eauto.
       destruct Hctx as [x' [? ?]].
       destruct p as [cr rd]. destruct c => //; simpl in *.
       depelim rd => //. noconf H.
-      eapply red_step.
-      * constructor. rewrite e => //.
+      assert (Σ;;; Δ |- lift0 (S i) b ⇝* lift0 (S i) body).
       * rewrite -(firstn_skipn (S i) Δ).
         eapply weakening_red_0; auto.
         + rewrite firstn_length_le //.
@@ -102,6 +103,10 @@ Section CtxReduction.
           rewrite firstn_length_le //.
           eapply (nth_error_on_free_vars_ctx _ 0) in onΔ; tea.
           now move/andP: onΔ=> [] /=.
+      * eapply red_step; tea.
+        constructor; tea.
+        rewrite e => //.
+    - repeat (econstructor; eauto). rewrite -!(red_context_relevance Hctx) // in X.
     - repeat econstructor; eassumption.
     - repeat econstructor; eassumption.
     - repeat econstructor; eassumption.
@@ -120,14 +125,14 @@ Section CtxReduction.
     - eapply red_case_pars; eauto; pcuic.
       solve_all. eapply OnOne2_All_mix_left in X; tea.
       eapply OnOne2_All2; tea => /=; intuition eauto.
-    - eapply red_case_p. eapply IHr; tea.
+    - eapply red_case_p; tea. eapply IHr; tea.
       3:now apply red_context_app_same.
       all:apply on_inst_case_context; tea.
     - eapply red_case_c; eauto. 
-    - eapply red_case_brs.
+    - eapply red_case_brs; tea.
       unfold on_Trel; pcuic.
       eapply forallb_All in p4.
-      eapply OnOne2_All_mix_left in X; tea.
+      eapply OnOne2_All_mix_left with (1 := p4) in X.
       eapply OnOne2_All2; eauto.
       simpl. intuition eauto. rtoProp.
       eapply b1; revgoals; tea.
@@ -145,14 +150,14 @@ Section CtxReduction.
     - eapply red_evar. simpl in ont.
       solve_all. eapply OnOne2_All_mix_left in X; tea.
       eapply OnOne2_All2; simpl; eauto. simpl. intuition eauto.
-    - eapply red_fix_one_ty.
-      eapply OnOne2_All_mix_left in X; tea.
+    - eapply red_fix_one_ty; tea.
+      eapply OnOne2_All_mix_left with (1 := ont) in X.
       eapply OnOne2_impl ; eauto.
       intros [? ? ? ?] [? ? ? ?] [[r ih] e]. simpl in *.
       inversion e. subst. clear e.
       intuition eauto. move/andP: H0 => [] /=. eauto.
-    - eapply red_fix_one_body.
-      eapply OnOne2_All_mix_left in X; tea.
+    - eapply red_fix_one_body; tea.
+      eapply OnOne2_All_mix_left with (1 := ont) in X.
       eapply OnOne2_impl ; eauto.
       intros [? ? ? ?] [? ? ? ?] [[r ih] e]. simpl in *.
       inversion e. subst. clear e.
@@ -161,14 +166,14 @@ Section CtxReduction.
       * relativize #|mfix0|; [erewrite on_ctx_free_vars_extend, onΓ, on_free_vars_fix_context|now len] => //.
       * relativize #|mfix0|; [erewrite on_ctx_free_vars_extend, onΔ, on_free_vars_fix_context|now len] => //.
       * now eapply red_context_app_same.
-    - eapply red_cofix_one_ty.
-      eapply OnOne2_All_mix_left in X; tea.
+    - eapply red_cofix_one_ty; tea.
+      eapply OnOne2_All_mix_left with (1 := ont) in X.
       eapply OnOne2_impl ; eauto.
       intros [? ? ? ?] [? ? ? ?] [[r ih] e]. simpl in *.
       inversion e. subst. clear e.
       move/andP: H0 => []; intuition eauto.
-    - eapply red_cofix_one_body.
-      eapply OnOne2_All_mix_left in X; tea.
+    - eapply red_cofix_one_body; tea.
+      eapply OnOne2_All_mix_left with (1 := ont) in X.
       eapply OnOne2_impl ; eauto.
       intros [? ? ? ?] [? ? ? ?] [[r ih] e]. simpl in *.
       inversion e. subst. clear e.
@@ -259,13 +264,13 @@ Section CtxReduction.
     rewrite /on_free_vars_decl /test_decl /=.
     case: p; intros; eauto using red_on_free_vars.
     - move/andP: ond => [] /=; eauto using red_on_free_vars.
-      intros _ ond. eapply red_on_free_vars. 3:tea. 2:auto.
+      intros _ ond. eapply red_on_free_vars; tea.
       now rewrite on_ctx_free_vars_app onΔ onΓ.
     - move/andP: ond => [] /=; eauto using red_on_free_vars.
       intros. apply /andP. split.
-      * eapply red_on_free_vars;revgoals;tea.
+      * eapply red_on_free_vars; tea.
         now rewrite on_ctx_free_vars_app onΔ onΓ.
-      * eapply red_on_free_vars;revgoals;tea.
+      * eapply red_on_free_vars; tea.
         now rewrite on_ctx_free_vars_app onΔ onΓ.
   Qed.
 

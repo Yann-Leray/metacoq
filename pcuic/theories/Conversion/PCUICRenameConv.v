@@ -2,7 +2,7 @@
 From Coq Require Import Morphisms.
 From MetaCoq.Template Require Import config utils.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICOnOne PCUICAstUtils PCUICCases PCUICInduction
-  PCUICLiftSubst PCUICUnivSubst PCUICRelevance PCUICCumulativity
+  PCUICLiftSubst PCUICUnivSubst PCUICRelevance PCUICRelevanceTerm PCUICCumulativity
   PCUICReduction PCUICGlobalEnv PCUICClosed PCUICEquality PCUICRenameDef PCUICWeakeningEnvConv
   PCUICSigmaCalculus PCUICClosed PCUICOnFreeVars PCUICGuardCondition
   PCUICWeakeningEnvTyp PCUICClosedConv PCUICClosedTyp PCUICViews
@@ -23,6 +23,80 @@ Set Default Goal Selector "!".
 Section Renaming2.
 
 Context `{cf : checker_flags}.
+
+Lemma eq_term_upto_univ_rename Σ :
+  forall P R pb napp Γ Δ u v f,
+    umarks_renaming P Δ Γ f ->
+    on_free_vars P u -> on_free_vars P v ->
+    compare_term_upto_univ_napp_rel Σ R isTermIrrel pb napp Γ u v ->
+    compare_term_upto_univ_napp_rel Σ R isTermIrrel pb napp Δ (rename f u) (rename f v).
+Proof using Type.
+  intros P R pb napp Γ Δ u v f hur hfvu hfvv h.
+  induction u in v, napp, pb, Γ, Δ, P, f, h, hur, hfvu, hfvv |- * using term_forall_list_ind.
+  all: depelim h.
+  all: try solve [
+    constructor ; eauto using rename_isTermRel
+  ].
+  all: simpl in hfvu, hfvv |- *; rtoProp; try solve [ constructor; eauto ].
+  - constructor; eauto.
+    solve_all.
+  - constructor; eauto.
+    eapply IHu2; tea.
+    eapply umarks_renaming_snoc; tea.
+  - constructor; eauto.
+    eapply IHu2; tea.
+    eapply umarks_renaming_snoc; tea.
+  - constructor; eauto.
+    eapply IHu3; tea.
+    eapply umarks_renaming_snoc; tea.
+  - constructor; eauto.
+    * rewrite /rename_predicate.
+      destruct X as (? & ? & IHret), e as (? & ? & ectx & ?).
+      rewrite (All2_fold_length ectx). red.
+      repeat split; eauto; simpl.
+      + solve_all.
+      + eapply IHret; tea.
+        2: rewrite (All2_fold_length ectx) //.
+        rewrite !mark_inst_case_predicate_context /=.
+        len. rewrite -(All2_fold_length ectx).
+        replace #|pcontext p| with #|marks_of_context (pcontext p)|. 2: by len.
+        eapply umarks_renaming_context => //.
+    * red in X0. unfold eq_branches, eq_branch in *. solve_all.
+      rewrite -(All2_fold_length a1).
+      eapply b0; tea.
+      2: rewrite (All2_fold_length a1) //.
+      rewrite !mark_inst_case_branch_context /=.
+      len.
+      replace #|bcontext x| with #|marks_of_context (bcontext x)|. 2: by len.
+      eapply umarks_renaming_context => //.
+  - simpl. constructor. unfold eq_mfix in *.
+    remember (marks_of_context (fix_context m)) as mfix_marks eqn:em.
+    replace (marks_of_context _) with mfix_marks.
+    2: { rewrite em /fix_context /marks_of_context !map_rev mapi_map !map_mapi //. }
+    apply All2_length in e as eq; rewrite -eq in hfvv |- *. replace #|m| with #|mfix_marks| in hfvu, hfvv |- *.
+    2: { rewrite em map_length List.rev_length mapi_length //. }
+    clear em.
+    solve_all.
+    + unfold test_def in *; rtoProp.
+      eapply a1; tea.
+    + unfold test_def in *; rtoProp.
+      eapply b0; tea.
+      len; eapply umarks_renaming_context => //.
+  - simpl. constructor. unfold eq_mfix in *.
+    remember (marks_of_context (fix_context m)) as mfix_marks eqn:em.
+    replace (marks_of_context _) with mfix_marks.
+    2: { rewrite em /fix_context /marks_of_context !map_rev mapi_map !map_mapi //. }
+    apply All2_length in e as eq; rewrite -eq in hfvv |- *. replace #|m| with #|mfix_marks| in hfvu, hfvv |- *.
+    2: { rewrite em map_length List.rev_length mapi_length //. }
+    clear em.
+    solve_all.
+    + unfold test_def in *; rtoProp.
+      eapply a1; tea.
+    + unfold test_def in *; rtoProp.
+      eapply b0; tea.
+      len; eapply umarks_renaming_context => //.
+Qed.
+
 
 Lemma rename_iota_red :
   forall f p pars args br,
@@ -63,7 +137,7 @@ Proof using cf.
     eassumption
   ].
   all:simpl in hav |- *; try toAll.
-  - rewrite rename_subst10. constructor.
+  - rewrite rename_subst10. constructor. inv_on_free_vars. eapply rename_isTermRel; eauto using urenaming_umarks_renaming.
   - rewrite rename_subst10. constructor.
   - destruct (nth_error Γ i) eqn:hnth; noconf H.
     unfold urenaming in hf.
@@ -87,6 +161,7 @@ Proof using cf.
       rewrite closedn_ctx_on_free_vars.
       now rewrite test_context_k_closed_on_free_vars_ctx in clbctx.
     * constructor.
+      + eapply rename_isTermRel in X; eauto using urenaming_umarks_renaming.
       + rewrite nth_error_map H /= //.
       + simpl. now len.
   - rewrite 2!rename_mkApps. simpl.
@@ -123,11 +198,11 @@ Proof using cf.
     eapply case_red_brs; eauto.
     eapply OnOne2_map. toAll.
     eapply OnOne2_All_mix_left in X; tea. clear hbrs.
-    solve_all.
-    simpl. red. split; auto.
+    apply OnOne2_impl with (1 := X); intros x y [[[h IH] e] [hbr hbr2]%andb_and].
+    red. split; auto.
     rewrite /inst_case_branch_context /=.
-    rewrite -b0 //.
-    eapply b1; tea.
+    rewrite -e //.
+    eapply IH; tea.
     rewrite -rename_inst_case_context_wf //.
     relativize #|bcontext x|; [apply urenaming_context; tea|].
     now len.
@@ -168,17 +243,6 @@ Proof using cf.
     * now len.
 Qed.
 
-Lemma red_on_free_vars {P : nat -> bool} {Σ:global_env_ext} {Γ u v} {wfΣ : wf Σ} :
-  on_ctx_free_vars P Γ ->
-  on_free_vars P u ->
-  red Σ Γ u v ->
-  on_free_vars P v.
-Proof using Type.
-  intros onΓ on r.
-  induction r; auto.
-  now eapply red1_on_free_vars.
-Qed.
-
 Lemma red_rename :
   forall P (Σ : global_env_ext) Γ Δ u v f,
     wf Σ ->
@@ -197,6 +261,30 @@ Proof using Type.
     * eapply IHX1_2. eapply red_on_free_vars; eauto.
 Qed.
 
+Lemma cumul_pb_renameP :
+  forall P pb Σ Γ Δ f A B,
+    wf Σ.1 ->
+    urenaming P Δ Γ f ->
+    on_free_vars P A ->
+    on_free_vars P B ->
+    on_ctx_free_vars P Γ ->
+    Σ ;;; Γ |- A <=[pb] B ->
+    Σ ;;; Δ |- rename f A <=[pb] rename f B.
+Proof using Type.
+  intros P pb Σ Γ Δ f A B hΣ hf hA hB hΓ h.
+  induction h.
+  - eapply cumul_refl. eapply eq_term_upto_univ_rename; tea.
+    apply urenaming_umarks_renaming. len; eassumption.
+  - eapply cumul_red_l.
+    + eapply red1_rename. 4: eassumption. all: tea.
+    + apply IHh.
+      * eapply red1_on_free_vars; tea.
+      * auto.
+  - eapply cumul_red_r.
+    + eapply IHh; eauto. eapply red1_on_free_vars; tea.
+    + eapply red1_rename. 4: eassumption. all: tea.
+Qed.
+
 Lemma conv_renameP :
   forall P Σ Γ Δ f A B,
     wf Σ.1 ->
@@ -206,19 +294,7 @@ Lemma conv_renameP :
     on_ctx_free_vars P Γ ->
     Σ ;;; Γ |- A = B ->
     Σ ;;; Δ |- rename f A = rename f B.
-Proof using Type.
-  intros P Σ Γ Δ f A B hΣ hf hA hB hΓ h.
-  induction h.
-  - eapply cumul_refl. eapply eq_term_upto_univ_rename. assumption.
-  - eapply cumul_red_l.
-    + eapply red1_rename. all: try eassumption.
-    + apply IHh.
-      * eapply red1_on_free_vars; tea.
-      * auto.
-  - eapply cumul_red_r.
-    + eapply IHh; eauto. eapply (red1_on_free_vars); tea.
-    + eapply red1_rename. all: try eassumption.
-Qed.
+Proof using Type. intro; apply cumul_pb_renameP. Qed.
 
 Lemma cumul_renameP :
   forall P Σ Γ Δ f A B,
@@ -229,18 +305,6 @@ Lemma cumul_renameP :
     on_ctx_free_vars P Γ ->
     Σ ;;; Γ |- A <= B ->
     Σ ;;; Δ |- rename f A <= rename f B.
-Proof using Type.
-  intros P Σ Γ Δ f A B hΣ hf hA hB hΓ h.
-  induction h.
-  - eapply cumul_refl. eapply eq_term_upto_univ_rename. assumption.
-  - eapply cumul_red_l.
-    + eapply red1_rename. all: try eassumption.
-    + apply IHh.
-      * eapply red1_on_free_vars; tea.
-      * auto.
-  - eapply cumul_red_r.
-    + eapply IHh; eauto. eapply red1_on_free_vars; tea.
-    + eapply red1_rename. all: try eassumption.
-Qed.
+Proof using Type. intro; apply cumul_pb_renameP. Qed.
 
 End Renaming2.

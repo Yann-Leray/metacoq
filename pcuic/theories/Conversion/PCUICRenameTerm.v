@@ -220,50 +220,6 @@ Section Renaming.
 
 Context `{cf : checker_flags}.
 
-Lemma eq_term_upto_univ_rename Σ :
-  forall Re Rle napp u v f,
-    eq_term_upto_univ_napp Σ Re Rle napp u v ->
-    eq_term_upto_univ_napp Σ Re Rle napp (rename f u) (rename f v).
-Proof using Type.
-  intros Re Rle napp u v f h.
-  induction u in v, napp, Rle, f, h |- * using term_forall_list_ind.
-  all: dependent destruction h.
-  all: try solve [
-    simpl ; constructor ; eauto
-  ].
-  - simpl. constructor.
-    induction X in a, args' |- *.
-    + inversion a. constructor.
-    + inversion a. subst. simpl. constructor.
-      all: eauto.
-  - simpl. constructor. all: eauto.
-    * rewrite /rename_predicate.
-      destruct X; destruct e as [? [? [ectx ?]]].
-      rewrite (All2_fold_length ectx). red.
-      intuition auto; simpl; solve_all.
-    * red in X0. unfold eq_branches, eq_branch in *. solve_all.
-      rewrite -(All2_fold_length a1).
-      now eapply b0.
-  - simpl. constructor. unfold eq_mfix in *.
-    apply All2_length in e as eq. rewrite <- eq.
-    generalize #|m|. intro k.
-    induction X in mfix', e, f, k |- *.
-    + inversion e. constructor.
-    + inversion e. subst.
-      simpl. constructor.
-      * unfold map_def. intuition eauto.
-      * eauto.
-  - simpl. constructor. unfold eq_mfix in *.
-    apply All2_length in e as eq. rewrite <- eq.
-    generalize #|m|. intro k.
-    induction X in mfix', e, f, k |- *.
-    + inversion e. constructor.
-    + inversion e. subst.
-      simpl. constructor.
-      * unfold map_def. intuition eauto.
-      * eauto.
-Qed.
-
 Lemma urenaming_impl :
   forall (P P' : nat -> bool) Γ Δ f,
     (forall i, P' i -> P i) ->
@@ -274,6 +230,17 @@ Proof using Type.
   intros i decl p e.
   specialize (h i decl (hP _ p) e) as [decl' [h1 [h2 h3]]].
   exists decl'. split ; [| split ]; eauto.
+Qed.
+
+Lemma umarks_renaming_impl :
+  forall (P P' : nat -> bool) Γ Δ f,
+    (forall i, P' i -> P i) ->
+    umarks_renaming P Δ Γ f ->
+    umarks_renaming P' Δ Γ f.
+Proof using Type.
+  intros P P' Γ Δ f hP h.
+  intros i decl p e.
+  auto.
 Qed.
 
 Lemma inst_closed σ k t : closedn k t -> t.[⇑^k σ] = t.
@@ -371,8 +338,8 @@ Arguments Nat.sub !_ !_.
 
 Lemma urenaming_vass :
   forall P Γ Δ na A f,
-    urenaming P Γ Δ f ->
-    urenaming (shiftnP 1 P) (Γ ,, vass na (rename f A)) (Δ ,, vass na A) (shiftn 1 f).
+    urenaming P Δ Γ f ->
+    urenaming (shiftnP 1 P) (Δ ,, vass na (rename f A)) (Γ ,, vass na A) (shiftn 1 f).
 Proof using Type.
   intros P Γ Δ na A f h. unfold urenaming in *.
   intros [|i] decl hP e.
@@ -396,11 +363,20 @@ Proof using Type.
       now rewrite -rename_compose h2; sigma.
 Qed.
 
+Lemma urenaming_vass' :
+  forall P n Γ Δ na A f,
+    urenaming (shiftnP n P) Δ Γ f ->
+    urenaming (shiftnP (S n) P) (Δ ,, vass na (rename f A)) (Γ ,, vass na A) (shiftn 1 f).
+Proof.
+  intros P n Γ Δ na A f h.
+  eapply urenaming_impl. 2: eapply urenaming_vass; tea.
+  intros; rewrite -shiftnP_S //.
+Qed.
 
 Lemma urenaming_vdef :
   forall P Γ Δ na b B f,
-    urenaming P Γ Δ f ->
-    urenaming (shiftnP 1 P) (Γ ,, vdef na (rename f b) (rename f B)) (Δ ,, vdef na b B) (shiftn 1 f).
+    urenaming P Δ Γ f ->
+    urenaming (shiftnP 1 P) (Δ ,, vdef na (rename f b) (rename f B)) (Γ ,, vdef na b B) (shiftn 1 f).
 Proof using Type.
   intros P Γ Δ na b B f h. unfold urenaming in *.
   intros [|i] decl hP e.
@@ -422,6 +398,16 @@ Proof using Type.
       destruct (decl_body decl) => /= //; destruct (decl_body decl') => /= //.
       setoid_rewrite shiftn_1_S => [=] h2.
       now rewrite -rename_compose h2; sigma.
+Qed.
+
+Lemma urenaming_vdef' :
+  forall P n Γ Δ na b B f,
+    urenaming (shiftnP n P) Δ Γ f ->
+    urenaming (shiftnP (S n) P) (Δ ,, vdef na (rename f b) (rename f B)) (Γ ,, vdef na b B) (shiftn 1 f).
+Proof.
+  intros P n Γ Δ na b B f h.
+  eapply urenaming_impl. 2: eapply urenaming_vdef; tea.
+  intros; rewrite -shiftnP_S //.
 Qed.
 
 Lemma urenaming_ext :
@@ -446,15 +432,6 @@ Proof using Type.
     now setoid_rewrite <- (hfg _).
 Qed.
 
-Lemma renaming_extP P P' Σ Γ Δ f :
-  P =1 P' ->
-  renaming P Σ Γ Δ f -> renaming P' Σ Γ Δ f.
-Proof using Type.
-  intros hP; rewrite /renaming.
-  intros []; split; eauto.
-  eapply urenaming_ext; eauto. reflexivity.
-Qed.
-
 Lemma urenaming_context :
   forall P Γ Δ Ξ f,
     urenaming P Δ Γ f ->
@@ -477,6 +454,72 @@ Proof using Type.
     3:{eapply urenaming_vass; tea. eapply ih; assumption. }
     * now rewrite shiftnP_add.
     * now rewrite shiftn_add.
+Qed.
+
+Lemma umarks_renaming_ext :
+  forall P P' Γ Δ f g,
+    P =1 P' ->
+    f =1 g ->
+    umarks_renaming P Δ Γ f ->
+    umarks_renaming P' Δ Γ g.
+Proof using Type.
+  intros P P' Γ Δ f g hP hfg h.
+  intros i rel p e.
+  rewrite <-hP in p.
+  specialize (h i rel p e).
+  rewrite -(hfg i) //.
+Qed.
+
+Lemma umarks_renaming_snoc :
+  forall P Γ Δ r f,
+    umarks_renaming P Δ Γ f ->
+    umarks_renaming (shiftnP 1 P) (Δ ,, r) (Γ ,, r) (shiftn 1 f).
+Proof using Type.
+  intros P Γ Δ r f h.
+  intros [|i] rel hP e.
+  - simpl in e. inv e. cbnr.
+  - simpl in e. simpl.
+    replace (i - 0) with i by lia.
+    eapply h => //.
+    unfold shiftnP in hP. simpl in hP. now rewrite Nat.sub_0_r in hP.
+Qed.
+
+Lemma umarks_renaming_snoc' :
+  forall P n Γ Δ r f,
+    umarks_renaming (shiftnP n P) Δ Γ f ->
+    umarks_renaming (shiftnP (S n) P) (Δ ,, r) (Γ ,, r) (shiftn 1 f).
+Proof using Type.
+  intros P n Γ Δ r f h.
+  eapply umarks_renaming_ext.
+  3: now apply umarks_renaming_snoc.
+  { rewrite -shiftnP_S //. } { reflexivity. }
+Qed.
+
+Lemma umarks_renaming_context :
+  forall P Γ Δ Ξ f,
+    umarks_renaming P Δ Γ f ->
+    umarks_renaming (shiftnP #|Ξ| P) (Δ ,,, Ξ) (Γ ,,, Ξ) (shiftn #|Ξ| f).
+Proof using Type.
+  intros P Γ Δ Ξ f h.
+  induction Ξ as [| r Ξ ih] in Γ, Δ, f, h |- *.
+  - simpl. eapply umarks_renaming_ext. 3: eassumption.
+    * now rewrite shiftnP0.
+    * intros []. all: reflexivity.
+  - simpl. eapply umarks_renaming_ext.
+    3:{ eapply umarks_renaming_snoc; tea. eapply ih; eassumption. }
+    * now rewrite shiftnP_add.
+    * now rewrite shiftn_add.
+Qed.
+
+Lemma umarks_renaming_context' :
+  forall P n Γ Δ Ξ f,
+    umarks_renaming (shiftnP n P) Δ Γ f ->
+    umarks_renaming (shiftnP (#|Ξ| + n) P) (Δ ,,, Ξ) (Γ ,,, Ξ) (shiftn #|Ξ| f).
+Proof using Type.
+  intros P n Γ Δ Ξ f h.
+  eapply umarks_renaming_ext.
+  3: now apply umarks_renaming_context.
+  { rewrite -shiftnP_add //. } { reflexivity. }
 Qed.
 
 Definition rename_branch := (map_branch_shift rename shiftn).
@@ -1107,35 +1150,40 @@ Proof.
 Defined.     
 
 
-Lemma rename_relevance_of_term P f Σ Δ Γ t rel :
-  let sP := shiftnP #|Γ| P in
-  urenaming sP Δ Γ f ->
-  is_open_term Γ t ->
-  isTermRel Σ (marks_of_context Γ) t rel ->
-  isTermRel Σ (marks_of_context Δ) (rename f t) rel.
+Lemma rename_isTermRel P f Σ Δ Γ t rel :
+  umarks_renaming P Δ Γ f ->
+  on_free_vars P t ->
+  isTermRel Σ Γ t rel ->
+  isTermRel Σ Δ (rename f t) rel.
 Proof.
-  intros sP Hur wft H.
-  induction t using term_forall_list_ind in f, Γ, Δ, sP, Hur, wft, H |- *; depelim H.
+  intros Hur wft H.
+  induction t using term_forall_list_ind in f, rel, Γ, Δ, P, Hur, wft, H |- *; depelim H.
   all: try solve [ try rewrite H; econstructor => //; eauto ].
-  - constructor.
-    rewrite nth_error_map /option_map in e.
-    rewrite nth_error_map /option_map.
-    destruct nth_error eqn:E => //.
-    eapply Hur in E as (decl & -> & <- & _) => //.
-    clear -wft. unfold shiftnP in *. unfold sP. toProp. rewrite //= orb_false_r in wft. now left.
-  - constructor.
-    cbn in wft; rtoProp.
-    eapply IHt2 with (Δ := Δ,, vass n (rename _ t1)).
-    3: instantiate (1 := Γ,, vass n t1); apply H. 
-    * eapply urenaming_impl. 1: intro; rewrite shiftnP_S; eauto. apply urenaming_vass; eauto. 
-    * eapply on_free_vars_impl; tea. 1: intro; rewrite -shiftnP_S; eauto.
-  - constructor.
-    cbn in wft; rtoProp.
-    eapply IHt3 with (Δ := Δ,, vdef n (rename _ t1) (rename _ t2)).
-    3: instantiate (1 := Γ,, vdef n t1 t2); apply H. 
-    * eapply urenaming_impl. 1: intro; rewrite shiftnP_S; eauto. apply urenaming_vdef; eauto. 
-    * eapply on_free_vars_impl; tea. 1: intro; rewrite -shiftnP_S; eauto.
-  - constructor. eapply IHt1; tea. apply andb_and in wft; now destruct wft.
-  - erewrite map_dname. econstructor. rewrite nth_error_map e => //.
-  - erewrite map_dname. econstructor. rewrite nth_error_map e => //.
+  all: try solve [ cbn; cbn in wft; rtoProp; econstructor; match goal with H : _ |- _ => eapply H end; tea; try now eapply umarks_renaming_snoc ].
+  - cbn. cbn in wft; rtoProp. econstructor => //; eauto.
+    + destruct X as (X & X' & X'').
+      destruct w as (Y & Y' & Y'').
+      repeat split; cbn.
+      * solve_all. destruct b0; eexists; eauto.
+      * len. apply Y'.
+      * rewrite !mark_inst_case_predicate_context /= in Y'' |- *.
+        eapply X''; tea. replace #|pcontext p| with #|marks_of_context (pcontext p)| by now len.
+        now eapply umarks_renaming_context.
+    + solve_all.
+      destruct b1 as (X & rel & X').
+      split; cbn.
+      * len. apply X.
+      * eexists; rewrite !mark_inst_case_branch_context /= in X' |- *.
+        eapply b0; tea. replace #|bcontext x| with #|marks_of_context (bcontext x)| by now len.
+        now eapply umarks_renaming_context.
+  - cbn. cbn in wft; rtoProp. erewrite map_dname. econstructor. 1: rewrite nth_error_map e => //.
+    rewrite mark_fix_context. unfold wfTermRel_mfix in *. solve_all; unfold test_def in *; rtoProp; eauto.
+    eapply b0; tea.
+    replace #|m| with #|marks_of_context (fix_context m)| by now len.
+    now eapply umarks_renaming_context.
+  - cbn. cbn in wft; rtoProp. erewrite map_dname. econstructor. 1: rewrite nth_error_map e => //.
+    rewrite mark_fix_context. unfold wfTermRel_mfix in *. solve_all; unfold test_def in *; rtoProp; eauto.
+    eapply b0; tea.
+    replace #|m| with #|marks_of_context (fix_context m)| by now len.
+    now eapply umarks_renaming_context.
 Qed.

@@ -595,7 +595,7 @@ Section ContextConversion.
       destruct e as [? [? ?]].
       exists x0; split; eauto.
       now transitivity v'.
-      eapply eq_term_upto_univ_trans with v''; auto.
+      eapply compare_term_upto_univ_trans with v''; auto.
   Qed.
 
   Lemma red_eq_context_upto_r {R Re Γ Δ} {u} {v}
@@ -620,7 +620,7 @@ Section ContextConversion.
       destruct e as [? [? ?]].
       exists x0; split; eauto.
       transitivity v'; auto.
-      eapply eq_term_upto_univ_trans with v''; auto; tc.
+      eapply compare_term_upto_univ_trans with v''; auto; tc.
   Qed.
 
   Lemma closed_red_eq_context_upto_l {pb Γ Δ} {u} {v} :
@@ -811,9 +811,9 @@ Section ContextConversion.
      induction 1; constructor; auto.
      eapply compare_decls_impl; eauto.
      intros x y h.
-     eapply eq_term_upto_univ_impl. 5:eauto. all:try tc || auto.
+     eapply compare_term_upto_univ_impl. 5:eauto. all:try tc || auto.
      intros x y h.
-     eapply eq_term_upto_univ_impl. 5:eauto. all:try tc || auto.
+     eapply compare_term_upto_univ_impl. 5:eauto. all:try tc || auto.
      transitivity Re'; auto.
   Qed.
 
@@ -1081,7 +1081,7 @@ Proof.
   - constructor.
   - constructor; tas.
     depelim p; constructor; auto; constructor; tas;
-    eapply eq_term_upto_univ_impl; tea; auto.
+    eapply compare_term_upto_univ_impl; tea; auto.
 Qed.
 
 Lemma eq_context_upto_cumul_context {cf:checker_flags} (Σ : global_env_ext) Re Rle :
@@ -1094,10 +1094,10 @@ Proof.
   - constructor.
   - constructor; tas.
     depelim p; constructor; auto; constructor; tas.
-    eapply eq_term_upto_univ_impl. 5:eauto. all:tea. 
+    eapply compare_term_upto_univ_impl. 5:eauto. all:tea. 
     now transitivity Rle. auto.
-    eapply eq_term_upto_univ_impl; eauto.
-    eapply eq_term_upto_univ_impl. 5:eauto. all:tea. 
+    eapply compare_term_upto_univ_impl; eauto.
+    eapply compare_term_upto_univ_impl. 5:eauto. all:tea. 
     now transitivity Rle. auto.
 Qed.
 
@@ -1112,7 +1112,7 @@ Proof.
   - constructor.
   - constructor; tas.
     depelim p; constructor; auto; constructor.
-    all:eapply eq_term_upto_univ_empty_impl; tea; try typeclasses eauto.
+    all:eapply compare_term_upto_univ_empty_impl; tea; try typeclasses eauto.
 Qed.
 
 Lemma eq_context_upto_univ_conv_context {cf:checker_flags} {Σ : global_env_ext} Γ Δ :

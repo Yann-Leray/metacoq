@@ -2,8 +2,8 @@
 From Coq Require Import Morphisms.
 From MetaCoq.Template Require Import config utils.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICCases PCUICInduction
-  PCUICLiftSubst PCUICTyping PCUICCumulativity PCUICRelevance
-  PCUICClosed PCUICReduction 
+  PCUICLiftSubst PCUICTyping PCUICCumulativity PCUICRelevance PCUICEquality
+  PCUICClosed PCUICReduction PCUICRelevanceTerm
   PCUICSigmaCalculus PCUICRenameDef PCUICRenameTerm PCUICRenameConv PCUICOnFreeVars
   PCUICClosedConv PCUICClosedTyp.
 
@@ -93,15 +93,77 @@ Proof.
       apply rename_ext => k. simpl. now repeat nat_compare_specs.
 Qed.
 
-Lemma weakening_relevance Σ Γ Γ' Γ'' :
-  forall t r, is_open_term (Γ ,,, Γ') t ->
-  isTermRel Σ (marks_of_context (Γ ,,, Γ')) t r ->
-  isTermRel Σ (marks_of_context (Γ ,,, Γ'' ,,, lift_context #|Γ''| 0 Γ')) (lift #|Γ''| #|Γ'| t) r.
+Lemma weakening_mark_renaming P Γ Γ' Γ'' :
+  umarks_renaming P (Γ ,,, Γ'' ,,, Γ') (Γ ,,, Γ') 
+    (lift_renaming #|Γ''| #|Γ'|).
+Proof.
+  intros i d hpi <-.
+  rewrite /lift_renaming.
+  destruct (Nat.leb #|Γ'| i) eqn:leb; [apply Nat.leb_le in leb|eapply Nat.leb_nle in leb].
+  - rewrite -> !nth_error_app_context_ge, ?lift_context_length.
+    + f_equal. lia.
+    + auto.
+    + lia.
+    + lia.
+  - rewrite -> !nth_error_app_context_lt => //; lia.
+Qed.
+
+Lemma weakening_isTermRel Σ Γ Γ' Γ'' :
+  forall t r,
+  isTermRel Σ (Γ ,,, Γ') t r ->
+  isTermRel Σ (Γ ,,, Γ'' ,,, Γ') (lift #|Γ''| #|Γ'| t) r.
 Proof.
   intros.
   rewrite lift_rename.
-  eapply rename_relevance_of_term with (P := xpred0); tea.
-  apply weakening_renaming.
+  eapply rename_isTermRel; tea.
+  1: apply weakening_mark_renaming.
+  eapply isTermRel_is_open_term, X.
+Qed.
+
+Lemma weakening_isTermRel' Σ Γ Γ' Γ'' :
+  forall t r,
+  isTermRel Σ (marks_of_context (Γ ,,, Γ')) t r ->
+  isTermRel Σ (marks_of_context (Γ ,,, Γ'' ,,, lift_context #|Γ''| 0 Γ')) (lift #|Γ''| #|Γ'| t) r.
+Proof.
+  rewrite !marks_of_context_app /lift_context mark_fold_context_k.
+  replace #|Γ'| with #|marks_of_context Γ'| by rewrite /marks_of_context map_length //.
+  replace #|Γ''| with #|marks_of_context Γ''| by rewrite /marks_of_context map_length //.
+  apply weakening_isTermRel.
+Qed.
+
+Corollary weaken_ctx_isTermRel Σ Γ Γ' :
+  forall t r,
+  isTermRel Σ Γ t r ->
+  isTermRel Σ (Γ' ,,, Γ) t r.
+Proof.
+  intros t r X.
+  pose proof X.
+  rewrite -{1}(app_context_nil_l Γ) in X.
+  eapply weakening_isTermRel in X.
+  rewrite app_context_nil_l lift_closed in X.
+  {
+    apply isTermRel_is_open_term in X0.
+    erewrite closedP_on_free_vars, on_free_vars_ext; [eassumption|].
+    apply closedP_shiftnP.
+  }
+  apply X.
+Qed.
+
+Corollary wfTermRel_mfix_wfTermRel_ctx_rel Σ Γ mfix :
+  wfTermRel_mfix isTermRel Σ (marks_of_context Γ) (marks_of_context (fix_context mfix)) mfix ->
+  wfTermRel_ctx_rel Σ Γ (fix_context mfix).
+Proof.
+  intro H.
+  eapply All_impl in H; [|exact (fun x '(p, q) => q)].
+  induction mfix using rev_ind.
+  1: constructor.
+  apply All_app in H as (IH & H); inv H; clear X0.
+  rewrite /fix_context mapi_app rev_app_distr /= -/(fix_context l).
+  constructor.
+  1: now apply IHmfix.
+  constructor => //.
+  replace (#|l| + 0) with #|fix_context l| by now len.
+  eapply weakening_isTermRel' with (Γ' := []); assumption.
 Qed.
 
 (* Variant lookup_decl_spec Γ Δ i : option context_decl -> Type :=
@@ -259,9 +321,27 @@ Proof.
   - reflexivity.
 Qed.
 
-Lemma weakening_red1 `{cf:checker_flags} {Σ} Γ Γ' Γ'' M N :
+Lemma weakening_compare_term_pb {cf} {pb P Σ R napp Γ Γ' Γ'' M N} :
+  on_free_vars P M -> on_free_vars P N ->
+  compare_term_upto_univ_napp_rel Σ R isTermIrrel pb napp (Γ ,,, Γ') M N ->
+  compare_term_upto_univ_napp_rel Σ R isTermIrrel pb napp (Γ ,,, Γ'' ,,, Γ') (lift #|Γ''| #|Γ'| M) (lift #|Γ''| #|Γ'| N).
+Proof.
+  rewrite !lift_rename. intros.
+  eapply eq_term_upto_univ_rename; eauto.
+  eapply weakening_mark_renaming.
+Qed.
+
+Lemma weakening_compare_term_pb_0 {cf} {pb n P Σ R napp Γ Γ' M N} :
+  n = #|Γ'| ->
+  on_free_vars P M -> on_free_vars P N ->
+  compare_term_upto_univ_napp_rel Σ R isTermIrrel pb napp Γ M N ->
+  compare_term_upto_univ_napp_rel Σ R isTermIrrel pb napp (Γ ,,, Γ') (lift0 n M) (lift0 n N).
+Proof. move=> -> onM onN; eapply (weakening_compare_term_pb (Γ':=[])); tea. Qed.
+
+Lemma weakening_red1 `{cf:checker_flags} {Σ : global_env_ext} P Γ Γ' Γ'' M N :
   wf Σ ->
-  on_free_vars xpredT M ->
+  on_free_vars P M ->
+  on_free_vars P N ->
   red1 Σ (Γ ,,, Γ') M N ->
   red1 Σ (Γ ,,, Γ'' ,,, lift_context #|Γ''| 0 Γ') (lift #|Γ''| #|Γ'| M) (lift #|Γ''| #|Γ'| N).
 Proof.
@@ -311,41 +391,45 @@ Proof.
   rewrite mapi_length. reflexivity.
 Qed. *)
 
-Lemma weakening_cumul `{CF:checker_flags} {Σ Γ Γ' Γ'' M N} :
+Lemma weakening_cumul_pb `{CF:checker_flags} {pb Σ P Γ Γ' Γ'' M N} :
   wf Σ.1 ->
-  on_free_vars xpredT M ->
-  on_free_vars xpredT N ->
-  on_ctx_free_vars xpredT (Γ ,,, Γ') ->
-  Σ ;;; Γ ,,, Γ' |- M <= N ->
-  Σ ;;; Γ ,,, Γ'' ,,, lift_context #|Γ''| 0 Γ' |- lift #|Γ''| #|Γ'| M <= lift #|Γ''| #|Γ'| N.
+  on_free_vars P M ->
+  on_free_vars P N ->
+  on_ctx_free_vars P (Γ ,,, Γ') ->
+  Σ ;;; Γ ,,, Γ' |- M <=[pb] N ->
+  Σ ;;; Γ ,,, Γ'' ,,, lift_context #|Γ''| 0 Γ' |- lift #|Γ''| #|Γ'| M <=[pb] lift #|Γ''| #|Γ'| N.
 Proof.
   intros.
   rewrite !lift_rename -rename_context_lift_context.
-  eapply cumul_renameP ; tea.
+  eapply cumul_pb_renameP; tea.
   rewrite rename_context_lift_context.
   now eapply weakening_renaming.
 Qed.
+
+Lemma weakening_cumul `{CF:checker_flags} {Σ P Γ Γ' Γ'' M N} :
+  wf Σ.1 ->
+  on_free_vars P M ->
+  on_free_vars P N ->
+  on_ctx_free_vars P (Γ ,,, Γ') ->
+  Σ ;;; Γ ,,, Γ' |- M <= N ->
+  Σ ;;; Γ ,,, Γ'' ,,, lift_context #|Γ''| 0 Γ' |- lift #|Γ''| #|Γ'| M <= lift #|Γ''| #|Γ'| N.
+Proof. apply weakening_cumul_pb. Qed.
+
+
+
+Lemma weakening_conv `{cf:checker_flags} {Σ P Γ Γ' Γ'' M N} :
+  wf Σ.1 ->
+  on_free_vars P M ->
+  on_free_vars P N ->
+  on_ctx_free_vars P (Γ ,,, Γ') ->  
+  Σ ;;; Γ ,,, Γ' |- M = N ->
+  Σ ;;; Γ ,,, Γ'' ,,, lift_context #|Γ''| 0 Γ' |- lift #|Γ''| #|Γ'| M = lift #|Γ''| #|Γ'| N.
+Proof. apply weakening_cumul_pb. Qed.
 
 (* Lemma destInd_lift n k t : destInd (lift n k t) = destInd t.
 Proof.
   destruct t; simpl; try congruence.
 Qed. *)
-
-Lemma weakening_conv `{cf:checker_flags} :
-  forall Σ Γ Γ' Γ'' M N,
-    wf Σ.1 ->
-    on_free_vars xpredT M ->
-    on_free_vars xpredT N ->
-    on_ctx_free_vars xpredT (Γ ,,, Γ') ->  
-    Σ ;;; Γ ,,, Γ' |- M = N ->
-    Σ ;;; Γ ,,, Γ'' ,,, lift_context #|Γ''| 0 Γ' |- lift #|Γ''| #|Γ'| M = lift #|Γ''| #|Γ'| N.
-Proof.
-  intros.
-  rewrite !lift_rename -rename_context_lift_context.
-  eapply conv_renameP ; tea.
-  rewrite rename_context_lift_context.
-  now eapply weakening_renaming.
-Qed.
 
 Lemma isType_on_free_vars {cf} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ T} : 
   isType Σ Γ T -> on_free_vars xpredT T.

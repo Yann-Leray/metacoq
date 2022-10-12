@@ -30,7 +30,7 @@ Lemma eq_context_upto_empty_impl {cf} {Σ : global_env_ext} ctx ctx' :
 Proof.
   intros; eapply All2_fold_impl; tea.
   intros ???? []; constructor; subst; auto;
-  eapply eq_term_upto_univ_empty_impl; tea; tc.
+  eapply compare_term_upto_univ_empty_impl; tea; tc.
 Qed.
 
 Lemma eq_term_upto_univ_it_mkProd_or_LetIn (Γ Γ' : context) T : 
@@ -109,7 +109,7 @@ Section Alpha.
   Qed.
 
   Lemma decompose_app_upto {Σ Re Rle x y hd tl} :
-    eq_term_upto_univ Σ Re Rle x y ->
+    compare_term_upto_univ Σ R pb x y ->
     decompose_app x = (hd, tl) ->
     ∑ hd' tl', (y = mkApps hd' tl') *
     eq_term_upto_univ_napp Σ Re Rle #|tl| hd hd' *
@@ -120,7 +120,7 @@ Section Alpha.
     pose proof (decompose_app_notApp _ _ _ dapp).
     apply decompose_app_inv in dapp.
     subst x.
-    eapply eq_term_upto_univ_mkApps_l_inv in eq as [u' [l' [[eqh eqtl] ->]]].
+    eapply compare_term_upto_univ_mkApps_l_inv in eq as [u' [l' [[eqh eqtl] ->]]].
     eexists _, _; intuition eauto.
     revert H.
     inv eqh; simpl in *; try discriminate; auto.
@@ -181,7 +181,7 @@ Section Alpha.
     destruct (decompose_app) eqn:eqdec.
     destruct (decompose_app_upto e eqdec) as [hd' [tl' [[[eq eqhd] napp] eqtl]]].
     rewrite eq. rewrite decompose_app_mkApps; auto.
-    eapply (eq_term_upto_univ_empty_impl _ Logic.eq Logic.eq Logic.eq Logic.eq #|l0| 0) in eqhd.
+    eapply (compare_term_upto_univ_empty_impl _ Logic.eq Logic.eq Logic.eq Logic.eq #|l0| 0) in eqhd.
     all:try typeclasses eauto.
     apply upto_names_destInd in eqhd.
     inv eqhd; auto.
@@ -208,7 +208,7 @@ Section Alpha.
     destruct (decompose_app) eqn:eqdec.
     destruct (decompose_app_upto eqt eqdec) as [hd' [tl' [[[eq eqhd] napp] eqtl]]].
     rewrite eq. rewrite decompose_app_mkApps; auto.
-    eapply (eq_term_upto_univ_empty_impl _ Logic.eq Logic.eq Logic.eq Logic.eq #|l0| 0) in eqhd.
+    eapply (compare_term_upto_univ_empty_impl _ Logic.eq Logic.eq Logic.eq Logic.eq #|l0| 0) in eqhd.
     all:try typeclasses eauto.
     apply upto_names_destInd in eqhd.
     inv eqhd; auto.
@@ -428,17 +428,17 @@ Section Alpha.
       rewrite /ptm /ptm'.
       eapply eq_term_upto_univ_it_mkLambda_or_LetIn. tc.
       eapply eq_context_upto_empty_impl; tea.
-      eapply eq_term_upto_univ_empty_impl; tea; tc.
+      eapply compare_term_upto_univ_empty_impl; tea; tc.
     - eapply All2_app.
       * eapply All2_map, All2_refl.
         intros.
-        eapply eq_term_upto_univ_empty_impl; tea; tc.
+        eapply compare_term_upto_univ_empty_impl; tea; tc.
         eapply eq_term_upto_univ_substs. tc.
         reflexivity.
         now eapply All2_rev.
       * constructor. 2:constructor.
-        eapply eq_term_upto_univ_empty_impl; tea; tc.
-        eapply eq_term_upto_univ_mkApps. len.
+        eapply compare_term_upto_univ_empty_impl; tea; tc.
+        eapply compare_term_upto_univ_mkApps. len.
         reflexivity.
         eapply All2_app.
         + eapply All2_map. eapply (All2_impl eqpars).
@@ -526,17 +526,17 @@ Section Alpha.
   Lemma case_branch_type_eq_context_gen_2 {ind mdecl idecl cdecl p n br} {ctx ctx' ret} :
     ctx ≡Γ ctx' ->
     (case_branch_type ind mdecl idecl p br
-      (it_mkLambda_or_LetIn ctx ret) n cdecl).2 ≡'
+      (it_mkLambda_or_LetIn ctx ret) n cdecl).2 ≡α
     (case_branch_type ind mdecl idecl p br
       (it_mkLambda_or_LetIn ctx' ret) n cdecl).2.
   Proof using Type.
     intros eq.
     rewrite /case_branch_type /=.
     rewrite /case_branch_context_gen /=. cbn.
-    eapply eq_term_upto_univ_mkApps.
+    eapply compare_term_upto_univ_mkApps.
     2:{ eapply All2_refl. reflexivity. }
     len. eapply eq_term_upto_univ_lift.
-    eapply eq_term_upto_univ_impl; revgoals.
+    eapply compare_term_upto_univ_impl; revgoals.
     eapply eq_term_upto_univ_it_mkLambda_or_LetIn; tea.
     2:reflexivity. 2:lia. all:tc.
   Qed.
@@ -684,7 +684,7 @@ Section Alpha.
       eapply type_Cumul'.
       + econstructor; cycle 1.
         * eapply iht; trea.
-          eapply eq_term_upto_univ_empty_impl in X; eauto.
+          eapply compare_term_upto_univ_empty_impl in X; eauto.
           all:typeclasses eauto.
         * eapply ihu; trea.
         * eapply ihty. reflexivity. auto.
@@ -885,7 +885,7 @@ Section Alpha.
           destruct r as [Hty (eqann & eqrarg & eqty & eqbod)].
           eapply eq_context_upto_cat.
           + constructor; constructor; auto.
-            eapply eq_term_upto_univ_empty_impl; eauto.
+            eapply compare_term_upto_univ_empty_impl; eauto.
             4:now eapply eq_term_upto_univ_lift. all:tc.
           + apply IHX. }
       assert(#|fix_context mfix| = #|fix_context mfix'|).
@@ -925,7 +925,7 @@ Section Alpha.
           eapply eq_term_upto_univ_cumulSpec.
           rewrite <- H.
           eapply eq_term_upto_univ_lift.
-          eapply eq_term_upto_univ_empty_impl.
+          eapply compare_term_upto_univ_empty_impl.
           4: intuition eauto.
           all: intros ? ? []; reflexivity.
         * revert wffix.
@@ -973,7 +973,7 @@ Section Alpha.
         destruct r as [Hty (eqann & eqrarg & eqty & eqbod)].
         eapply eq_context_upto_cat.
         + constructor; constructor; auto.
-          eapply eq_term_upto_univ_empty_impl; eauto.
+          eapply compare_term_upto_univ_empty_impl; eauto.
           4:now eapply eq_term_upto_univ_lift. all:tc.
         + apply IHX. }
     assert(#|fix_context mfix| = #|fix_context mfix'|).
@@ -1012,7 +1012,7 @@ Section Alpha.
         eapply eq_context_conversion; tea. now symmetry.
         apply eq_term_upto_univ_cumulSpec. rewrite <- H.
         eapply eq_term_upto_univ_lift.
-        eapply eq_term_upto_univ_empty_impl.
+        eapply compare_term_upto_univ_empty_impl.
         4: intuition eauto.
         all: intros ? ? []; reflexivity.
       * revert wffix.
@@ -1039,7 +1039,7 @@ Section Alpha.
 
   Lemma typing_alpha {Σ : global_env_ext} {Γ u v A} {wfΣ : wf Σ.1} :
     Σ ;;; Γ |- u : A ->
-    u ≡' v ->
+    u ≡α v ->
     Σ ;;; Γ |- v : A.
   Proof using Type.
     intros. eapply (env_prop_typing typing_alpha_prop); eauto. reflexivity.
@@ -1051,7 +1051,7 @@ Section Alpha.
     eq_term_upto_univ_napp empty_global_env eq eq n t t' ->
     t ≡α t'.
   Proof using Type.
-    apply eq_term_upto_univ_empty_impl; typeclasses eauto.
+    apply compare_term_upto_univ_empty_impl; typeclasses eauto.
   Qed.
 
   Lemma upto_names_eq_term_refl Σ Re n t t' :
@@ -1060,7 +1060,7 @@ Section Alpha.
     eq_term_upto_univ_napp Σ Re Re n t t'.
   Proof using Type.
     intros.
-    eapply eq_term_upto_univ_empty_impl; tea; tc.
+    eapply compare_term_upto_univ_empty_impl; tea; tc.
     all:intros x y ->; reflexivity.
   Qed.
 
@@ -1079,10 +1079,10 @@ Section Alpha.
     eapply (upto_names_eq_term_refl Σ Re) in X0; tea.
     eapply (upto_names_eq_term_refl Σ Re) in X1; tea.
     symmetry in X0.
-    eapply eq_term_upto_univ_trans; tea.
-    eapply eq_term_upto_univ_impl; tea. reflexivity. reflexivity.
-    eapply eq_term_upto_univ_trans; tea.
-    eapply eq_term_upto_univ_impl; tea. reflexivity. reflexivity.
+    eapply compare_term_upto_univ_trans; tea.
+    eapply compare_term_upto_univ_impl; tea. reflexivity. reflexivity.
+    eapply compare_term_upto_univ_trans; tea.
+    eapply compare_term_upto_univ_impl; tea. reflexivity. reflexivity.
   Qed.
 
   Lemma upto_names_leq_term Σ φ t u t' u'

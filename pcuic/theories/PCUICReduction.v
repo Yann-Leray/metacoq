@@ -1,7 +1,7 @@
 (* Distributed under the terms of the MIT license. *)
 From MetaCoq.Template Require Import config utils.
-From MetaCoq.PCUIC Require Import PCUICAst PCUICOnOne PCUICAstUtils
-     PCUICLiftSubst PCUICUnivSubst PCUICInduction
+From MetaCoq.PCUIC Require Import PCUICAst PCUICOnOne PCUICAstUtils PCUICRelevance
+     PCUICLiftSubst PCUICUnivSubst PCUICInduction PCUICRelevanceTerm
      PCUICCases PCUICClosed PCUICTactics.
 
 Require Import ssreflect.
@@ -19,6 +19,7 @@ Inductive red1 (Σ : global_env) (Γ : context) : term -> term -> Type :=
 (** Reductions *)
 (** Beta *)
 | red_beta na t b a : 
+  isTermRel Σ (marks_of_context Γ) a na.(binder_relevance) ->
   Σ ;;; Γ |- tApp (tLambda na t b) a ⇝ b {0 := a}
 
 (** Let *)
@@ -31,6 +32,7 @@ Inductive red1 (Σ : global_env) (Γ : context) : term -> term -> Type :=
 
 (** Case *)
 | red_iota ci c u args p brs br :
+    isTermRelevant Σ (marks_of_context Γ) (tConstruct ci.(ci_ind) c u) ->
     nth_error brs c = Some br ->
     #|args| = (ci.(ci_npar) + context_assumptions br.(bcontext))%nat ->
     Σ ;;; Γ |- tCase ci p (mkApps (tConstruct ci.(ci_ind) c u) args) brs 
@@ -122,9 +124,9 @@ Definition red1_ctx_rel Σ Γ := (OnOne2_local_env (on_one_decl (fun Δ t t' => 
 
 Lemma red1_ind_all :
   forall (Σ : global_env) (P : context -> term -> term -> Type),
-
        (forall (Γ : context) (na : aname) (t b a : term),
-        P Γ (tApp (tLambda na t b) a) (b {0 := a})) ->
+          isTermRel Σ (marks_of_context Γ) a na.(binder_relevance) ->
+          P Γ (tApp (tLambda na t b) a) (b {0 := a})) ->
 
        (forall (Γ : context) (na : aname) (b t b' : term), P Γ (tLetIn na b t b') (b' {0 := b})) ->
 
@@ -133,6 +135,7 @@ Lemma red1_ind_all :
 
        (forall (Γ : context) (ci : case_info) (c : nat) (u : Instance.t) (args : list term)
           (p : predicate term) (brs : list (branch term)) br,
+          isTermRelevant Σ (marks_of_context Γ) (tConstruct ci.(ci_ind) c u) ->
           nth_error brs c = Some br ->
           #|args| = (ci.(ci_npar) + context_assumptions br.(bcontext))%nat ->
           P Γ (tCase ci p (mkApps (tConstruct ci.(ci_ind) c u) args) brs)
@@ -325,6 +328,12 @@ Derive Signature NoConfusion for red_decls.
 Definition red_context Σ := All2_fold (red_decls Σ).
 Definition red_context_rel Σ Γ :=
   All2_fold (fun Δ Δ' => red_decls Σ (Γ ,,, Δ) (Γ ,,, Δ')).
+
+Lemma red_context_relevance {Σ Γ Δ} : red_context Σ Γ Δ -> marks_of_context Γ = marks_of_context Δ.
+Proof.
+  induction 1; auto.
+  simpl; rewrite IHX; now inv p.
+Qed.
 
 Lemma refl_red Σ Γ t : Σ ;;; Γ |- t ⇝* t.
 Proof.
@@ -1017,6 +1026,43 @@ Section ReductionCongruence.
       - cbn. destruct a. rewrite <- IHl. reflexivity.
     Qed.
 
+    Notation decomp_def := (fun x : def term => (dtype x, (dname x, dbody x, rarg x))).
+    Notation recomp_def := (fun t => {| dname := t.2.1.1; dtype := t.1; dbody := t.2.1.2; rarg := t.2.2 |}).
+    Notation decomp_def' := (fun x : def term => (dbody x, (dname x, dtype x, rarg x))).
+    Notation recomp_def' := (fun t => {| dname := t.2.1.1; dtype := t.2.1.2; dbody := t.1; rarg := t.2.2 |}).
+    
+    Lemma map_recomp_decomp_def :
+      forall l, l = map decomp_def (map recomp_def l).
+    Proof using Type.
+      induction l.
+      - reflexivity.
+      - cbn. destruct a as [? [[]]]. rewrite <- IHl. reflexivity.
+    Qed.
+    
+    Lemma map_recomp_decomp_def' :
+      forall l, l = map decomp_def' (map recomp_def' l).
+    Proof using Type.
+      induction l.
+      - reflexivity.
+      - cbn. destruct a as [?[[]]]. rewrite <- IHl. reflexivity.
+    Qed.
+
+    Lemma map_decomp_recomp_def :
+      forall l, l = map recomp_def (map decomp_def l).
+    Proof using Type.
+      induction l.
+      - reflexivity.
+      - cbn. destruct a. rewrite <- IHl. reflexivity.
+    Qed.
+    
+    Lemma map_decomp_recomp_def' :
+      forall l, l = map recomp_def' (map decomp_def' l).
+    Proof using Type.
+      induction l.
+      - reflexivity.
+      - cbn. destruct a. rewrite <- IHl. reflexivity.
+    Qed.
+
     Lemma map_inj :
       forall A B (f : A -> B) l l',
         (forall x y, f x = f y -> x = y) ->
@@ -1123,7 +1169,17 @@ Section ReductionCongruence.
         + now eapply (red_ctx_congr (tCtxLetIn_b _ _ tCtxHole _)).
         + now eapply (red_ctx_congr (tCtxLetIn_r _ _ _ tCtxHole)).
     Qed.
+  
+    Lemma red_letin' na d t0 t1 b0 b1 :
+      red Σ Γ t0 t1 -> red Σ (Γ ,, vdef na d t1) b0 b1 ->
+      red Σ Γ (tLetIn na d t0 b0) (tLetIn na d t1 b1).
+    Proof using Type.
+      intros; transitivity (tLetIn na d t1 b0).
+      - now eapply (red_ctx_congr (tCtxLetIn_b _ _ tCtxHole _)).
+      - now eapply (red_ctx_congr (tCtxLetIn_r _ _ _ tCtxHole)).
+    Qed.
         
+
     Lemma red_one_param :
       forall ci p c brs pars',
         OnOne2 (red Σ Γ) p.(pparams) pars' ->
@@ -1151,7 +1207,7 @@ Section ReductionCongruence.
           - cbn. f_equal. assumption.
         }
         eapply trans_red.
-        + eapply IHh; tas. symmetry. apply el.
+        + eapply IHh, eq_sym, el.
         + change (set_pparams p l') with (set_pparams (set_pparams p (map g l1)) l').
           econstructor. rewrite (el' l').
           eapply OnOne2_map.
@@ -1288,7 +1344,7 @@ Section ReductionCongruence.
       dependent induction h.
       - apply list_map_swap_eq in H. now subst.
       - etransitivity.
-        + eapply IHh; eauto. rewrite <- map_recomp_decomp. reflexivity.
+        + eapply IHh, eq_sym, map_recomp_decomp.
         + constructor. econstructor; eauto.
           rewrite (map_decomp_recomp brs').
           eapply OnOne2_map.
@@ -1495,6 +1551,39 @@ Section ReductionCongruence.
       rst_induction h; eauto with pcuic.
     Qed.
 
+
+    Lemma map_nottm_redl {Γ'} {l l' : list (term × (aname * term * nat))} :  
+      @redl _ _ (red1_one_term Γ') l l' -> map snd l = map snd l'.
+    Proof using Type.
+      induction 1; auto. rewrite IHX.
+      clear -p .
+      induction p; simpl. 
+      - destruct p as [? ?]. congruence.
+      - now f_equal.
+    Qed.
+
+    Lemma red1_one_term_binder_relevance {Γ'} (l l' : list (term × (aname * term * nat))) :
+      red1_one_term Γ' l l' -> forall n d, nth_error l n = Some d -> ∑ d', nth_error l' n = Some d' × d.2.1.1.(binder_relevance) = d'.2.1.1.(binder_relevance).
+    Proof.
+      induction 1; intros.
+      - destruct n; eexists; cbn; eauto.
+        depelim H. split; cbnr.
+        do 3 f_equal. apply p.
+      - destruct n; cbn; eauto.
+    Qed.
+
+    Lemma redl_binder_relevance {Γ'} (l l' : list (term × (aname * term * nat))) :
+      redl (P := red1_one_term Γ') l l' -> forall n d, nth_error l n = Some d -> ∑ d', nth_error l' n = Some d' × d.2.1.1.(binder_relevance) = d'.2.1.1.(binder_relevance).
+    Proof.
+      intro X.
+      apply map_nottm_redl in X.
+      apply All2_eq_eq, All2_map_inv in X.
+      intros.
+      eapply All2_nth_error_Some in H as (d' & e & ee). 2: eassumption.
+      eexists; split; eauto.
+      do 3 f_equal. apply ee.
+    Qed.
+
     Lemma red_fix_one_ty :
       forall mfix idx mfix',
         OnOne2 (on_Trel_eq (red Σ Γ) dtype (fun x => (dname x, dbody x, rarg x))) mfix mfix' ->
@@ -1507,21 +1596,9 @@ Section ReductionCongruence.
         { eapply map_inj ; eauto.
           intros y z e. destruct y, z. inversion e. now subst.
         } now subst.
-      - set (f := fun x : def term => (dtype x, (dname x, dbody x, rarg x))) in *.
-        set (g := fun '(ty, (na, bo, ra)) => mkdef term na ty bo ra).
-        assert (el :  forall l, l = map f (map g l)).
-        { clear. intros l. induction l.
-          - reflexivity.
-          - cbn. destruct a as [? [[? ?] ?]]. cbn. f_equal. assumption.
-        }
-        assert (el' :  forall l, l = map g (map f l)).
-        { clear. intros l. induction l.
-          - reflexivity.
-          - cbn. destruct a. cbn. f_equal. assumption.
-        }
-        eapply trans_red.
-        + eapply IHh. symmetry. apply el.
-        + constructor. rewrite (el' mfix').
+      - eapply trans_red.
+        + eapply IHh, eq_sym, map_recomp_decomp_def.
+        + constructor. rewrite (map_decomp_recomp_def mfix').
           eapply OnOne2_map.
           eapply OnOne2_impl ; eauto.
           intros [? [[? ?] ?]] [? [[? ?] ?]] [h1 h2].
@@ -1543,6 +1620,20 @@ Section ReductionCongruence.
         + eapply red_fix_one_ty. assumption.
     Qed.
 
+    Lemma fix_context_red1 Δ mfix mfix' :
+      red1_one_term Δ mfix (map decomp_def' mfix') ->
+      fix_context (map recomp_def' mfix) = fix_context mfix'.
+    Proof using Type.
+      rewrite {2} (map_decomp_recomp_def' mfix').
+      intro h.
+      unfold fix_context, mapi.
+      generalize 0 at 2 4.
+      induction h as [(? & (? & ?) & r)(? & (? & ?) & r') ? (?&?) |]; intro; unfold on_Trel in *.
+      - noconf o0; reflexivity.
+      - cbn in *.
+        f_equal. apply IHh.
+    Qed.
+
     Lemma red_fix_one_body :
       forall mfix idx mfix',
         OnOne2
@@ -1558,49 +1649,21 @@ Section ReductionCongruence.
           intros y z e. cbn in e. destruct y, z. inversion e. eauto.
         } subst.
         reflexivity.
-      - set (f := fun x : def term => (dbody x, (dname x, dtype x, rarg x))) in *.
-        set (g := fun '(bo, (na, ty, ra)) => mkdef term na ty bo ra).
-        assert (el :  forall l, l = map f (map g l)).
-        { clear. intros l. induction l.
-          - reflexivity.
-          - cbn. destruct a as [? [[? ?] ?]]. cbn. f_equal. assumption.
-        }
-        assert (el' :  forall l, l = map g (map f l)).
-        { clear. intros l. induction l.
-          - reflexivity.
-          - cbn. destruct a. cbn. f_equal. assumption.
-        }
-        eapply trans_red.
-        + eapply IHh. symmetry. apply el.
-        + eapply fix_red_body. rewrite (el' mfix').
+      - eapply trans_red.
+        + eapply IHh, eq_sym, map_recomp_decomp_def'.
+        + assert (e : fix_context mfix = fix_context (map recomp_def' l1)).
+          { clear -h. induction h.
+            - rewrite <- map_decomp_recomp_def'. reflexivity.
+            - rewrite IHh.
+              eapply fix_context_red1.
+              rewrite -map_recomp_decomp_def'; eassumption.
+          }
+          eapply fix_red_body. rewrite (map_decomp_recomp_def' mfix').
           eapply OnOne2_map.
           eapply OnOne2_impl ; eauto.
           intros [? [[? ?] ?]] [? [[? ?] ?]] [h1 h2].
           unfold on_Trel in h1, h2. cbn in *. inversion h2. subst.
           unfold on_Trel. simpl. split ; eauto.
-          assert (e : fix_context mfix = fix_context (map g l1)).
-          { clear - h el el'. induction h.
-            - rewrite <- el'. reflexivity.
-            - rewrite IHh.
-              unfold fix_context. f_equal.
-              assert (e : map snd l1 = map snd l2).
-              { clear - p. induction p.
-                - destruct p as [h1 h2]. unfold on_Trel in h2.
-                  cbn. f_equal. assumption.
-                - cbn. f_equal. assumption.
-              }
-              clear - e.
-              unfold mapi. generalize 0 at 2 4.
-              intro n.
-              induction l1 in l2, e, n |- *.
-              + destruct l2 ; try discriminate e. cbn. reflexivity.
-              + destruct l2 ; try discriminate e. cbn.
-                cbn in e. inversion e.
-                specialize (IHl1 _ H1 (S n)).
-                destruct a as [? [[? ?] ?]], p as [? [[? ?] ?]].
-                simpl in *. inversion H0. subst.
-                f_equal. auto.
-          }
           rewrite <- e. assumption.
     Qed.
 
@@ -1692,21 +1755,9 @@ Section ReductionCongruence.
           intros y z e. cbn in e. destruct y, z. inversion e. eauto.
         } subst.
         reflexivity.
-      - set (f := fun x : def term => (dtype x, (dname x, dbody x, rarg x))) in *.
-        set (g := fun '(ty, (na, bo, ra)) => mkdef term na ty bo ra).
-        assert (el :  forall l, l = map f (map g l)).
-        { clear. intros l. induction l.
-          - reflexivity.
-          - cbn. destruct a as [? [[? ?] ?]]. cbn. f_equal. assumption.
-        }
-        assert (el' :  forall l, l = map g (map f l)).
-        { clear. intros l. induction l.
-          - reflexivity.
-          - cbn. destruct a. cbn. f_equal. assumption.
-        }
-        eapply trans_red.
-        + eapply IHh. symmetry. apply el.
-        + constructor. rewrite (el' mfix').
+      - eapply trans_red.
+        + eapply IHh, eq_sym, map_recomp_decomp_def.
+        + constructor. rewrite (map_decomp_recomp_def mfix').
           eapply OnOne2_map.
           eapply OnOne2_impl ; eauto.
           intros [? [[? ?] ?]] [? [[? ?] ?]] [h1 h2].
@@ -1743,49 +1794,21 @@ Section ReductionCongruence.
           intros y z e. cbn in e. destruct y, z. inversion e. eauto.
         } subst.
         reflexivity.
-      - set (f := fun x : def term => (dbody x, (dname x, dtype x, rarg x))) in *.
-        set (g := fun '(bo, (na, ty, ra)) => mkdef term na ty bo ra).
-        assert (el :  forall l, l = map f (map g l)).
-        { clear. intros l. induction l.
-          - reflexivity.
-          - cbn. destruct a as [? [[? ?] ?]]. cbn. f_equal. assumption.
-        }
-        assert (el' :  forall l, l = map g (map f l)).
-        { clear. intros l. induction l.
-          - reflexivity.
-          - cbn. destruct a. cbn. f_equal. assumption.
-        }
-        eapply trans_red.
-        + eapply IHh. symmetry. apply el.
-        + eapply cofix_red_body. rewrite (el' mfix').
+      - eapply trans_red.
+        + eapply IHh, eq_sym, map_recomp_decomp_def'.
+        + assert (e : fix_context mfix = fix_context (map recomp_def' l1)).
+          { clear -h. induction h.
+            - rewrite <- map_decomp_recomp_def'. reflexivity.
+            - rewrite IHh.
+              eapply fix_context_red1.
+              rewrite -map_recomp_decomp_def'; eassumption.
+          }
+          eapply cofix_red_body. rewrite (map_decomp_recomp_def' mfix').
           eapply OnOne2_map.
           eapply OnOne2_impl ; eauto.
           intros [? [[? ?] ?]] [? [[? ?] ?]] [h1 h2].
           unfold on_Trel in h1, h2. cbn in *. inversion h2. subst.
           unfold on_Trel. simpl. split ; eauto.
-          assert (e : fix_context mfix = fix_context (map g l1)).
-          { clear - h el el'. induction h.
-            - rewrite <- el'. reflexivity.
-            - rewrite IHh.
-              unfold fix_context. f_equal.
-              assert (e : map snd l1 = map snd l2).
-              { clear - p. induction p.
-                - destruct p as [h1 h2]. unfold on_Trel in h2.
-                  cbn. f_equal. assumption.
-                - cbn. f_equal. assumption.
-              }
-              clear - e.
-              unfold mapi. generalize 0 at 2 4.
-              intro n.
-              induction l1 in l2, e, n |- *.
-              + destruct l2 ; try discriminate e. cbn. reflexivity.
-              + destruct l2 ; try discriminate e. cbn.
-                cbn in e. inversion e.
-                specialize (IHl1 _ H1 (S n)).
-                destruct a as [? [[? ?] ?]], p as [? [[? ?] ?]].
-                simpl in *. inversion H0. subst.
-                f_equal. auto.
-          }
           rewrite <- e. assumption.
     Qed.
 

@@ -914,7 +914,7 @@ Section Inversions.
       is_closed_context Γ ->
       is_open_term Γ u ->
       is_open_term Γ v ->
-      eq_term_upto_univ Σ Re Rle u v ->
+      compare_term_upto_univ Σ R pb u v ->
       Is_conv_to_Arity Σ Γ v.
   Proof using Type.
     intros Re Rle Γ u v a clΓ clu clv e.
@@ -949,7 +949,7 @@ Section Inversions.
     is_closed_context Γ ->
     is_open_term Γ u ->
     is_open_term Γ v ->
-    eq_term_upto_univ Σ Re Rle v u ->
+    compare_term_upto_univ Σ R pb v u ->
     Is_conv_to_Arity Σ Γ v.
   Proof using Type.
     intros Re Rle Γ u v a clΓ clu clv e.
@@ -1134,7 +1134,7 @@ Section Inversions.
       [× eq_term_upto_univ_napp Σ (eq_universe Σ) (compare_universe pb Σ) #|l| u u',
         All2 (eq_term Σ Σ) l l' & t = mkApps u' l'].
   Proof using wfΣ.
-    destruct pb => /= => /eq_term_upto_univ_mkApps_l_inv; firstorder.
+    destruct pb => /= => /compare_term_upto_univ_mkApps_l_inv; firstorder.
   Qed.
 
   Lemma compare_term_mkApps_r_inv {pb} {u : term} {l : list term} {t : term} :
@@ -1143,7 +1143,7 @@ Section Inversions.
       [× eq_term_upto_univ_napp Σ (eq_universe Σ) (compare_universe pb Σ) #|l| u' u, 
         All2 (eq_term Σ Σ) l' l & t = mkApps u' l'].
   Proof using wfΣ.
-    destruct pb => /= => /eq_term_upto_univ_mkApps_r_inv; firstorder.
+    destruct pb => /= => /compare_term_upto_univ_mkApps_r_inv; firstorder.
   Qed.
 
   Lemma ws_cumul_pb_Ind_l_inv {pb Γ ind ui l T} :
@@ -1368,7 +1368,7 @@ Section Inversions.
     - constructor; cbn; eauto with fvs. cbn in c.
       destruct pb; constructor; eauto with fvs; try reflexivity.
       + eapply leq_term_leq_term_napp; tc; tas.
-      + apply eq_term_eq_term_napp; tc; tas.
+      + apply compare_term_compare_term_napp; tc; tas.
     - eapply red_ws_cumul_pb_left; tea.
       econstructor; tea; cbn; eauto with fvs.
       eapply red1_red. constructor; auto.

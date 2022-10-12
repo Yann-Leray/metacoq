@@ -61,9 +61,11 @@ Definition closed_subst (Γ : context) σ (Δ : context) :=
   usubst Γ σ Δ.
 
 (* Substitution accounting relevance marks for reduction / cumulativity *)
+Definition mark_subst Σ Γ σ Δ :=
+  forall x r, nth_error Γ x = Some r -> isTermRel Σ Δ (σ x) r.
+
 Definition valid_subst Σ Γ σ Δ :=
-  closed_subst Γ σ Δ ×
-  (forall x decl, nth_error Γ x = Some decl -> isTermRel Σ (marks_of_context Δ) (σ x) decl.(decl_name).(binder_relevance)).
+  mark_subst Σ (marks_of_context Γ) σ (marks_of_context Δ) × usubst Γ σ Δ.
 
 (* Well-typedness of a substitution *)
 
@@ -71,6 +73,7 @@ Definition well_subst {cf} Σ (Γ : context) σ (Δ : context) :=
   (forall x decl,
     nth_error Γ x = Some decl ->
     Σ ;;; Δ |- σ x : ((lift0 (S x)) (decl_type decl)).[ σ ]) ×
+  mark_subst Σ (marks_of_context Γ) σ (marks_of_context Δ) ×
   usubst Γ σ Δ.  
 
 Notation "Σ ;;; Δ ⊢ σ : Γ" :=

@@ -546,8 +546,8 @@ Qed.
       (lift_typing (fun Σ Γ (t T : term) =>
         wf_universes Σ t && wf_universes Σ T)).
   Proof using Type.
-    intros Σ Σ' φ wfΣ wfΣ' Hext Γ t T HT.
-    apply lift_typing_impl with (1 := HT); intros ? Hty.
+    intros Σ Σ' φ wfΣ wfΣ' Hext Γ T HT.
+    apply lift_typing_impl with (1 := HT) => ? Hty; eauto with extends.
     now eapply (wf_universes_weaken_full (Σ, _)).
   Qed.
 
@@ -581,7 +581,7 @@ Qed.
   Proof using Type.
     induction Δ as [|[na [b|] ty] ?]; simpl; constructor; auto.
     simpl.
-    destruct X as [? [? ?]]. now to_prop.
+    destruct X as [? [[? ?] ?]]. now to_prop.
     apply IHΔ. apply X.
     simpl.
     destruct X as (? & ? & ?). now to_prop.
@@ -629,7 +629,7 @@ Qed.
     rewrite wf_universes_subst.
     clear -s. generalize 0.
     induction args as [|[na [b|] ty] args] in sorts, s |- *; simpl in *; auto.
-    - destruct s as [? [[s' wf] [? ?]%andb_and]].
+    - destruct s as [? (([Hb ?]%andb_and & mk) & Ht)].
       constructor; eauto.
       rewrite wf_universes_subst. eapply IHargs; eauto.
       now rewrite wf_universes_lift.
@@ -639,17 +639,17 @@ Qed.
   Qed.
 
   Lemma wf_sorts_local_ctx_nth_error Σ P Γ Δ s n d : 
-    sorts_local_ctx P Σ Γ Δ s -> 
+    sorts_local_ctx (lift_typing P) Σ Γ Δ s -> 
     nth_error Δ n = Some d ->
-    ∑ Γ' t, P Σ Γ' (decl_type d) t.
+    ∑ Γ' t, (lift_typing P) Σ Γ' (TripleOpt (decl_body d) (decl_type d) t).
   Proof using Type.
     induction Δ as [|[na [b|] ty] Δ] in n, s |- *; simpl; auto.
     - now rewrite nth_error_nil.
-    - intros [h [h' h'']].
+    - intros [h hh].
       destruct n. simpl. move=> [= <-] /=. do 2 eexists; eauto.
       now simpl; eapply IHΔ.
     - destruct s => //. intros (h & e & h').
-      destruct n. simpl. move=> [= <-] /=. eexists; eauto.
+      destruct n. simpl. move=> [= <-] /=. eexists; eexists (Some _); split => //; eauto.
       now simpl; eapply IHΔ.
   Qed.
 
@@ -746,7 +746,7 @@ Qed.
   Qed.
 
   Lemma closedu_compare_decls k Γ Δ :
-    All2 (PCUICEquality.compare_decls eq eq) Γ Δ ->
+    PCUICEquality.eq_context_upto_names Γ Δ ->
     test_context (closedu k) Γ = test_context (closedu k) Δ.
   Proof using Type.
     induction 1; cbn; auto.
@@ -1029,7 +1029,8 @@ Qed.
 
     - split.
       * induction X; constructor; auto.
-        all: apply infer_typing_sort_impl with id tu => //.
+        + apply on_sortrel_impl_id with tu => //.
+        + apply on_triplefull_impl_id with tu => //.
       * induction X; simpl; auto.
         rewrite IHX /= /test_decl /=. now move/andP: Hs.
         rewrite IHX /= /test_decl /=. now move/andP: Hc => [] -> ->.
@@ -1038,14 +1039,15 @@ Qed.
       destruct X as [X _].
       pose proof (nth_error_Some_length heq_nth_error).
       eapply nth_error_All_local_env in X; tea.
-      destruct X as [Xty Xbod].
       destruct decl as [na [b|] ty]; cbn -[skipn] in *.
-      + now to_prop.
-      + now move: Xty => [s [] _ /andP[Hc _]].
+      + now destruct X as (([??]%andb_and & mk) & Xty).
+      + now destruct X as (Xbod & s & e & [??]%andb_and).
 
     - apply/andP; split; to_wfu; cbn ; eauto with pcuic.
        
     - cbn in *; to_wfu ; eauto with pcuic.
+    - destruct X0 as (Xbod & s & e & Xty1 & [-> ?]%andb_and) => //.
+    - destruct X0 as (((Xbod1 & [-> ?]%andb_and) & mk) & Xty) => //. rewrite H //.
     - rewrite wf_universes_subst. constructor. to_wfu; auto. constructor.
       now move/andP: H4 => [].
 
@@ -1053,10 +1055,8 @@ Qed.
       { rewrite wf_universeb_instance_forall.
         apply/wf_universe_instanceP.
         eapply consistent_instance_ext_wf; eauto. }
-      pose proof (declared_constant_inv _ _ _ _ wf_universes_weaken wf X H) as (onty & onbo).
-      * move: onty => [_ [] _ /andP[Hc _]].
-        to_prop.
-        eapply wf_universes_inst; eauto.
+      pose proof (declared_constant_inv _ _ _ _ wf_universes_weaken wf X H) as (onbo & _ & _ & [Hc _]%andb_and).
+      * eapply wf_universes_inst; eauto.
         exact (weaken_lookup_on_global_env' Σ.1 _ _ wf H).
         now eapply consistent_instance_ext_wf.
 
@@ -1066,7 +1066,7 @@ Qed.
         eapply consistent_instance_ext_wf; eauto. }
       pose proof (declared_inductive_inv wf_universes_weaken wf X isdecl).
       cbn in X1. eapply onArity in X1. cbn in X1.
-      move: X1 => [s [] _ /andP[Hind ?]].
+      move: X1 => [_ [_ [] _ /andP[Hind _]]].
       eapply wf_universes_inst; eauto.
       exact (weaken_lookup_on_global_env' Σ.1 _ _ wf (proj1 isdecl)).
       now eapply consistent_instance_ext_wf.
@@ -1081,7 +1081,7 @@ Qed.
       { apply wf_universes_inds.
         now eapply consistent_instance_ext_wf. }
       eapply on_ctype in onc. cbn in onc.
-      move: onc=> [_ [] _ /andP[onc _]].
+      move: onc=> [] _ [_ [] _ /andP[onc _]].
       eapply wf_universes_inst; eauto.
       exact (weaken_lookup_on_global_env' Σ.1 _ _ wf (proj1 (proj1 isdecl))).
       now eapply consistent_instance_ext_wf.
@@ -1093,7 +1093,7 @@ Qed.
       rewrite wfu /= wfpars wf_universes_mkApps /= 
         forallb_app wfinds /= H /= !andb_true_r.
       pose proof (declared_inductive_inv wf_universes_weaken wf X isdecl).
-      destruct X5. destruct onArity as (s & e & (hty & hs)%andb_and).
+      destruct X5. destruct onArity as (_ & _ & _ & (hty & _)%andb_and).
       rewrite ind_arity_eq in hty.
       rewrite !wf_universes_it_mkProd_or_LetIn in hty.
       move/and3P: hty => [] wfp wfindis wfisort.
@@ -1112,7 +1112,7 @@ Qed.
           (ind_ctors idecl).
         { clear -wf ond onConstructors.
           red in onConstructors. solve_all. destruct X.
-          destruct on_ctype as (s & e & (wfty & _)%andb_and).
+          destruct on_ctype as (_ & _ & _ & (wfty & _)%andb_and).
           rewrite cstr_eq in wfty.
           rewrite !wf_universes_it_mkProd_or_LetIn in wfty.
           move/and3P: wfty => [] _ clargs _.
@@ -1167,24 +1167,24 @@ Qed.
       noconf heq. simpl.
       rewrite wf_universes_subst.
       apply wf_extended_subst.
-      rewrite ind_arity_eq in onArity. destruct onArity as (s' & e & Hs).
+      rewrite ind_arity_eq in onArity. destruct onArity as (_ & ? & _ & Hs).
       rewrite wf_universes_it_mkProd_or_LetIn in Hs.
       now move/andP: Hs => /andP /andP [] /andP [].
       rewrite wf_universes_lift.
       eapply wf_sorts_local_ctx_smash in s.
-      eapply wf_sorts_local_ctx_nth_error in s as [? [? H]]; eauto.
-      red in H. destruct x0. now move/andP: H => [].
-      now destruct H as (s & e & (Hs & _)%andb_and). 
+      eapply wf_sorts_local_ctx_nth_error in s as [? [? (_ & _ & _ & (Hs & _)%andb_and)]]; eauto.
     
     - apply/andP; split; auto.
-      solve_all; destruct a0 as (? & _ & ?), b0; rtoProp; tas.
-      now rewrite wf_universes_lift in H2.
-      eapply nth_error_all in X0 as (s & e & Hty & (wfty & _)%andb_and); eauto.
+      apply All_forallb, All_impl with (1 := X0) => d [Hb Ht].
+      destruct Hb as (((_ & [Hb _]%andb_and) & _) & _), Ht as (_ & _ & _ & _ & [Ht _]%andb_and).
+      now toProp.
+      eapply nth_error_all in X0 as (_ & _ & s & e & Hty & (wfty & _)%andb_and); eauto.
 
     - apply/andP; split; auto.
-      solve_all; destruct a0 as (? & _ & ?), b0; rtoProp; tas.
-      now rewrite wf_universes_lift in H2.
-      eapply nth_error_all in X0 as (s & e & Hty & (wfty & _)%andb_and); eauto.
+      apply All_forallb, All_impl with (1 := X0) => d [Hb Ht].
+      destruct Hb as (((_ & [Hb _]%andb_and) & _) & _), Ht as (_ & _ & _ & _ & [Ht _]%andb_and).
+      now toProp.
+      eapply nth_error_all in X0 as (_ & _ & s & e & Hty & (wfty & _)%andb_and); eauto.
   Qed.
 
   Lemma typing_wf_universes {Σ : global_env_ext} {Γ t T} : 
@@ -1206,7 +1206,7 @@ Qed.
 
   Lemma isType_wf_universes {Σ Γ T} : wf Σ.1 -> isType Σ Γ T -> wf_universes Σ T.
   Proof using Type.
-    intros wfΣ (s & e & Hs). now eapply typing_wf_universes in Hs as [HT _]%andb_and.
+    intros wfΣ (_ & s & e & Hs). now eapply typing_wf_universes in Hs as [HT _]%andb_and.
   Qed.
   
 End CheckerFlags.

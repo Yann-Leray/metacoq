@@ -1,7 +1,7 @@
 From Coq Require Import ssreflect.
 From Equations Require Import Equations.
 From MetaCoq.Utils Require Import utils.
-From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICTyping PCUICProgram.
+From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICTactics PCUICTyping PCUICProgram.
 
 Definition isConstruct t :=
    match t with tConstruct _ _ _ => true | _ => false end.
@@ -170,10 +170,13 @@ Record expanded_minductive_decl Σ mdecl :=
   { expanded_params : expanded_context Σ [] mdecl.(ind_params);
     expanded_ind_bodies : Forall (expanded_inductive_decl Σ mdecl) mdecl.(ind_bodies) }.
 
+Axiom expanded_rewrite_decl : global_env -> rewrite_decl -> Prop.
+
 Definition expanded_decl Σ d :=
   match d with
   | ConstantDecl cb => expanded_constant_decl Σ cb
   | InductiveDecl idecl => expanded_minductive_decl Σ idecl
+  | RewriteDecl rew => expanded_rewrite_decl Σ rew
   end.
 
 Inductive expanded_global_declarations (univs : ContextSet.t) retro : forall (Σ : global_declarations), Prop :=

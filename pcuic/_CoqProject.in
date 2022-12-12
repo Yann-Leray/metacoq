@@ -44,6 +44,8 @@ theories/Typing/PCUICUnivSubstitutionTyp.v
 theories/Typing/PCUICClosedTyp.v
 theories/Typing/PCUICContextConversionTyp.v
 
+theories/PCUICPattern.v
+theories/PCUICGlobalMaps.v
 theories/PCUICContextSubst.v
 theories/PCUICCasesContexts.v
 theories/PCUICReduction.v
@@ -59,6 +61,9 @@ theories/PCUICCumulativity.v
 theories/PCUICCumulativitySpec.v
 theories/PCUICParallelReduction.v
 theories/PCUICParallelReductionConfluence.v
+theories/PCUICPatternUnification.v
+theories/PCUICPatternMinimization.v
+theories/PCUICPatternCommute.v
 theories/PCUICConfluence.v
 theories/PCUICWellScopedCumulativity.v
 theories/PCUICContextConversion.v

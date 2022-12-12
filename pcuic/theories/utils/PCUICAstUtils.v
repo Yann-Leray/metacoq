@@ -29,6 +29,7 @@ Fixpoint string_of_term (t : term) :=
   | tLetIn na b t' t => "LetIn(" ^ string_of_aname na ^ "," ^ string_of_term b
                                  ^ "," ^ string_of_term t' ^ "," ^ string_of_term t ^ ")"
   | tApp f l => "App(" ^ string_of_term f ^ "," ^ string_of_term l ^ ")"
+  | tSymb k n u => "Symb(" ^ string_of_kername k ^ "," ^ string_of_nat n ^ "," ^ string_of_universe_instance u ^ ")"
   | tConst c u => "Const(" ^ string_of_kername c ^ "," ^ string_of_universe_instance u ^ ")"
   | tInd i u => "Ind(" ^ string_of_inductive i ^ "," ^ string_of_universe_instance u ^ ")"
   | tConstruct i n u => "Construct(" ^ string_of_inductive i ^ "," ^ string_of_nat n ^ ","
@@ -484,6 +485,17 @@ Proof.
   unfold decompose_app => /=.
   destruct f => //.
   destruct l => //.
+Qed.
+
+Lemma decompose_app_mkApps_app t f l l' :
+  decompose_app t = (f, l) -> decompose_app (mkApps t l') = (f, l ++ l').
+Proof.
+  intro e.
+  apply decompose_app_rec_notApp in e as Hf.
+  apply decompose_app_inv in e as ->.
+  rewrite -mkApps_app.
+  apply decompose_app_mkApps.
+  rewrite Hf; reflexivity.
 Qed.
 
 Fixpoint nApp t :=

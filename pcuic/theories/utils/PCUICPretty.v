@@ -44,6 +44,7 @@ Section fresh.
     | tLambda na b t => "f"
     | tLetIn na b _ t' => name_from_term t'
     | tApp f _ => name_from_term f
+    | tSymb k n u => "x"
     | tConst c u => "x"
     | tInd (mkInd i k) u =>
       match lookup_ind_decl Σ i k with
@@ -201,6 +202,7 @@ Module PrintTermTree.
                         print_term (na' :: Γ) true false body)
     | tApp f l =>
       parens (top || inapp) (print_term Γ false true f ^ " " ^ print_term Γ false false l)
+    | tSymb k n u => string_of_kername k ++ "(" ++ string_of_nat n ++ ")" ++ print_universe_instance u
     | tConst c u => string_of_kername c ^ print_universe_instance u
     | tInd (mkInd i k) u =>
       match lookup_ind_decl Σ i k with
@@ -324,6 +326,9 @@ Module PrintTermTree.
             else (" := " ^ nl ^ print_term Σ' true nil true false b ^ "." ^ nl)
           | None => "."
           end ^ acc)
+      | (kn, RewriteDecl rew) :: decls =>
+        let Σ' := (set_declarations Σ decls, rew.(rew_universes)) in
+        print_env_aux short n Σ'.1 ("Rewrite rules; pretty-printer TODO" ^ nl ^ acc)
       end
     end.
 

@@ -93,6 +93,10 @@ Fixpoint eqb_term_upto_univ_napp
     eqb_term_upto_univ_napp equ lequ gen_compare_global_instance (S napp) u u' &&
     eqb_term_upto_univ_napp equ equ gen_compare_global_instance 0 v v'
 
+  | tSymb k n u, tSymb k' n' u' =>
+    eqb k k' && eqb n n' &&
+    forallb2 equ (map Universe.make u) (map Universe.make u')
+
   | tConst c u, tConst c' u' =>
     eqb c c' &&
     forallb2 equ (map Universe.make u) (map Universe.make u')

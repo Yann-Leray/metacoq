@@ -813,6 +813,37 @@ Proof.
   simpl. rewrite IHl; auto with arith.
 Qed.
 
+
+Inductive nth_error_app_spec {A} (l l' : list A) (n : nat) : option A -> Type :=
+| nth_error_app_spec_left x :
+  nth_error l n = Some x ->
+  n < #|l| ->
+  nth_error_app_spec l l' n (Some x)
+| nth_error_app_spec_right x :
+  nth_error l' (n - #|l|) = Some x ->
+  #|l| <= n < #|l| + #|l'| ->
+  nth_error_app_spec l l' n (Some x)
+| nth_error_app_spec_out : #|l| + #|l'| <= n -> nth_error_app_spec l l' n None.
+
+Lemma nth_error_appP {A} (l l' : list A) (n : nat) : nth_error_app_spec l l' n (nth_error (l ++ l') n).
+Proof.
+  destruct (Nat.ltb n #|l|) eqn:lt; [apply Nat.ltb_lt in lt|apply Nat.ltb_nlt in lt].
+  * rewrite nth_error_app_lt //.
+    destruct (snd (nth_error_Some' _ _) lt) as [x eq].
+    rewrite eq.
+    constructor; auto.
+  * destruct (Nat.ltb n (#|l| + #|l'|)) eqn:ltb'; [apply Nat.ltb_lt in ltb'|apply Nat.ltb_nlt in ltb'].
+    + rewrite nth_error_app2; try lia.
+      destruct nth_error eqn:hnth.
+      - constructor 2; auto; try lia.
+      - constructor.
+        eapply nth_error_None in hnth. lia.
+    + case: nth_error_spec => //; try lia.
+      { intros. len in l0. lia. }
+      len. intros. constructor. lia.
+Qed.
+
+
 Lemma nth_error_app_inv X (x : X) n l1 l2 :
   nth_error (l1 ++ l2) n = Some x -> (n < #|l1| /\ nth_error l1 n = Some x) \/ (n >= #|l1| /\ nth_error l2 (n - List.length l1) = Some x).
 Proof.
@@ -988,6 +1019,21 @@ Fixpoint unfold {A} (n : nat) (f : nat -> A) : list A :=
   | S n => unfold n f ++ [f n]
   end.
 
+Fixpoint unfold_rev {A} (n : nat) (f : nat -> A) : list A :=
+  match n with
+  | 0 => []
+  | S n => f n :: unfold_rev n f
+  end.
+
+Lemma unfold_rev_spec A n (f : nat -> A) :
+  unfold_rev n f = List.rev (unfold n f).
+Proof.
+  induction n.
+  - reflexivity.
+  - simpl. rewrite List.rev_app_distr.
+    simpl. f_equal. apply IHn.
+Qed.
+
 Lemma mapi_irrel_list {A B} (f : nat -> A) (l l' : list B) :
   #|l| = #|l'| ->
   mapi (fun i (x : B) => f i) l = mapi (fun i x => f i) l'.
@@ -1064,6 +1110,60 @@ Proof.
   intros x lt; rewrite fg //. lia.
   rewrite /= fg //.
 Qed.
+
+Fixpoint list_make {A} (f : nat -> A) (i n : nat) : list A :=
+  match n with
+  | 0 => []
+  | S n => f i :: list_make f (S i) n
+  end.
+
+Lemma list_make_length :
+  forall A (f : nat -> A) i n,
+    #|list_make f i n| = n.
+Proof.
+  intros A f i n.
+  induction n in i |- *.
+  - reflexivity.
+  - simpl. f_equal. apply IHn.
+Qed.
+
+Lemma nth_error_list_make {A} (f : nat -> A) m i n : n < m -> nth_error (list_make f i m) n = Some (f (i + n)).
+Proof.
+  induction m in i, n |- *; intros Hn; cbn; try lia.
+  destruct n => //=. 1: do 2 f_equal; lia.
+  replace (i + S n) with (S i + n) by lia.
+  apply IHm. lia.
+Qed.
+
+Lemma list_make_map :
+  forall A (f : nat -> A) i n B (g : A -> B),
+    map g (list_make f i n) = list_make (fun i => g (f i)) i n.
+Proof.
+  intros A f i n B g.
+  induction n in i |- *.
+  - reflexivity.
+  - simpl. f_equal. eapply IHn.
+Qed.
+
+Lemma list_make_app A (f : nat -> A) i n m :
+  list_make f i n ++ list_make f (i + n) m = list_make f i (n + m).
+Proof.
+  induction n in i |- *.
+  - simpl. f_equal. lia.
+  - simpl. f_equal. rewrite -plus_n_Sm. apply IHn.
+Qed.
+
+Lemma list_make_unfold A (f : nat -> A) n :
+  unfold n f = list_make f 0 n.
+Proof.
+  induction n.
+  - reflexivity.
+  - simpl. rewrite IHn.
+    change [f n] with (list_make f (0 + n) 1).
+    rewrite list_make_app -plus_n_Sm -plus_n_O.
+    reflexivity.
+Qed.
+
 
 Lemma forallb_mapi {A B} (p : B -> bool) (f : nat -> B) l :
   (forall i, i < #|l| -> p (f i)) ->
@@ -1215,6 +1315,23 @@ Proof.
   - replace (S n) with (n + 1) at 2 by lia.
     cbn [repeat]. cbn. rewrite  IHn.
     now rewrite repeat_app.
+Qed.
+
+Lemma firstn_repeat {A : Type} (n m : nat) (a : A) :
+  firstn n (repeat a m) = repeat a (min n m).
+Proof.
+  induction n in m |- *. 1: reflexivity.
+  destruct m. 1: reflexivity.
+  cbn. f_equal. apply IHn.
+Qed.
+
+Lemma skipn_repeat {A : Type} (n m : nat) (a : A) :
+  skipn n (repeat a m) = repeat a (m - n).
+Proof.
+  induction m in n |- *.
+  - cbn. rewrite skipn_nil. reflexivity.
+  - destruct n. 1: reflexivity.
+    cbn. apply IHm.
 Qed.
 
 

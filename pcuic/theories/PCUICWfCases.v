@@ -16,6 +16,7 @@ Equations(noind) wf_cases (t : term) : bool :=
 | tLambda na t b => wf_cases t && wf_cases b;
 | tLetIn na b t b' => [&& wf_cases b, wf_cases t & wf_cases b'];
 | tApp t u => wf_cases t && wf_cases u;
+| tSymb _ _ _ => true;
 | tConst _ _ => true;
 | tInd _ _ => true;
 | tConstruct _ _ _ => true;

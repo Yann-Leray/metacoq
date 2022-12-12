@@ -180,7 +180,7 @@ Proof.
   induction l.
   - reflexivity.
   - simpl. rewrite R_refl. assumption.
-Qed.
+Defined.
 
 Lemma forallb2_map :
   forall A B C D (R : A -> B -> bool) f g (l : list C) (l' : list D),
@@ -341,7 +341,7 @@ Lemma All2_refl {A} {P : A -> A -> Type} l :
   All2 P l l.
 Proof.
   intros HP. induction l; constructor; auto.
-Qed.
+Defined.
 
 Lemma forallb2_app {A B} (p : A -> B -> bool) l l' q q' :
   is_true (forallb2 p l l' && forallb2 p q q')
@@ -357,15 +357,15 @@ Proof.
   split.
   - induction 1; simpl; constructor; try congruence.
   - induction l in l' |- *; destruct l'; intros H; depelim H; constructor; auto.
-Qed.
+Defined.
 
 Lemma All2_map {A B C D} {R : C -> D -> Type} {f : A -> C} {g : B -> D} {l l'} :
   All2 (fun x y => R (f x) (g y)) l l' -> All2 R (map f l) (map g l').
-Proof. apply All2_map_equiv. Qed.
+Proof. apply All2_map_equiv. Defined.
 
 Lemma All2_map_inv {A B C D} {R : C -> D -> Type} {f : A -> C} {g : B -> D} {l l'} :
   All2 R (map f l) (map g l') -> All2 (fun x y => R (f x) (g y)) l l'.
-Proof. apply All2_map_equiv. Qed.
+Proof. apply All2_map_equiv. Defined.
 
 (* Lemma All2_List_Forall_mix_left {A : Type} {P : A -> Prop} {Q : A -> A -> Prop} *)
 (*       {l l' : list A} : *)
@@ -515,8 +515,9 @@ Lemma All2_impl {A B} {P Q : A -> B -> Type} {l l'} :
     (forall x y, P x y -> Q x y) ->
     All2 Q l l'.
 Proof.
-  induction 1; constructor; auto.
-Qed.
+  intros X IH.
+  induction X; constructor; auto.
+Defined.
 
 Lemma All2_eq_eq {A} (l l' : list A) : l = l' -> All2 (fun x y => x = y) l l'.
 Proof.
@@ -601,7 +602,7 @@ Qed.
 Lemma All_refl {A} (P : A -> Type) l : (forall x, P x) -> All P l.
 Proof.
   intros Hp; induction l; constructor; auto.
-Qed.
+Defined.
 
 Lemma All_rev_map {A B} (P : A -> Type) f (l : list B) : All (fun x => P (f x)) l -> All P (rev_map f l).
 Proof. induction 1. constructor. rewrite rev_map_cons. apply All_app_inv; auto. Qed.
@@ -627,7 +628,7 @@ Lemma Alli_impl_Alli {A} {P Q} (l : list A) {n} : Alli P n l -> Alli (fun n x =>
 Proof. induction 1; inversion 1; constructor; intuition auto. Defined.
 
 Lemma All_impl {A} {P Q} {l : list A} : All P l -> (forall x, P x -> Q x) -> All Q l.
-Proof. induction 1; try constructor; intuition auto. Qed.
+Proof. intros X IH. induction X; constructor; auto. Defined.
 
 Lemma Alli_impl {A} {P Q} (l : list A) {n} : Alli P n l -> (forall n x, P n x -> Q n x) -> Alli Q n l.
 Proof. induction 1; try constructor; intuition auto. Defined.
@@ -722,6 +723,27 @@ Proof.
     + specialize (h 0 a eq_refl). now rewrite Nat.add_0_r in h.
     + apply IHl. intros. specialize (h (S i) x H).
       simpl. now replace (S (k + i)) with (k + S i) by lia.
+Qed.
+
+Lemma All_rev_rect :
+  forall A P (R : list A -> Type),
+    R [] ->
+    (forall x l,
+      P x ->
+      All P l ->
+      R l ->
+      R (l ++ [x])
+    ) ->
+    forall l, All P l -> R l.
+Proof.
+  intros A P R Rnil Rcons l h.
+  rewrite <- rev_involutive.
+  apply All_rev in h. revert h.
+  generalize (List.rev l). clear l.
+  intros l h. induction h.
+  - apply Rnil.
+  - cbn. apply Rcons. all: auto.
+    apply All_rev. assumption.
 Qed.
 
 Lemma Alli_mapi {A B} {P : nat -> B -> Type} (f : nat -> A -> B) k l :
@@ -2405,8 +2427,9 @@ Lemma All_All2 {A} {P : A -> A -> Type} {Q} {l : list A} :
   (forall x, Q x -> P x x) ->
   All2 P l l.
 Proof.
-  induction 1; constructor; auto.
-Qed.
+  intros X HPQ.
+  induction X; constructor; auto.
+Defined.
 
 (* Should be All2_nth_error_Some_l *)
 Lemma All2_nth_error_Some {A B} {P : A -> B -> Type} {l l'} n t :
@@ -2762,7 +2785,7 @@ Lemma All_All2_refl {A : Type} {R} {l : list A} :
   All (fun x : A => R x x) l -> All2 R l l.
 Proof.
   induction 1; constructor; auto.
-Qed.
+Defined.
 
 Lemma All2_app_r {A} (P : A -> A -> Type) l l' r r' :
   All2 P (l ++ [r]) (l' ++ [r']) -> (All2 P l l') * (P r r').
@@ -3216,7 +3239,7 @@ Section All2_fold.
   Proof using Type.
     intros HP.
     induction Δ; constructor; auto.
-  Qed.
+  Defined.
 
   Lemma All2_fold_trans  :
     (forall Γ Γ' Γ'' x y z,
@@ -3508,7 +3531,30 @@ Lemma All3_impl {A B C} {P Q : A -> B -> C -> Type} {l l' l''} :
   (forall x y z, P x y z -> Q x y z) ->
   All3 Q l l' l''.
 Proof.
-  induction 1; constructor; auto.
+  intros X IH.
+  induction X; constructor; auto.
+Defined.
+
+Lemma All3_All2_left {A B C} {P : A -> B -> C -> Type} {Q : A -> B -> Type} {l l' l''} :
+  All3 P l l' l'' ->
+  (forall x y z, P x y z -> Q x y) ->
+  All2 Q l l'.
+Proof.
+  intros X IH.
+  induction X; constructor; eauto.
+Defined.
+
+Lemma All2_exists_All3 {A B C} {P : A -> B -> Type} {Q : A -> B -> C -> Type} {l l'} :
+  All2 P l l' ->
+  (forall x y, P x y -> ∑ z, Q x y z) ->
+  ∑ l'', All3 Q l l' l''.
+Proof.
+  intros X IH.
+  induction X as [|x y xs ys p].
+  1: eexists; econstructor.
+  destruct (IH _ _ p).
+  destruct IHX.
+  eexists; econstructor; eauto.
 Qed.
 
 Lemma map2_app {A B C} (f : A -> B -> C) l0 l0' l1 l1' :

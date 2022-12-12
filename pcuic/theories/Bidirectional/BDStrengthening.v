@@ -5,7 +5,7 @@ From MetaCoq.Common Require Import config.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICGlobalEnv
   PCUICTactics
   PCUICInduction PCUICLiftSubst PCUICUnivSubst PCUICEquality PCUICUtils
-  PCUICPosition PCUICTyping PCUICSigmaCalculus PCUICOnFreeVars PCUICClosed PCUICConfluence PCUICSpine PCUICInductiveInversion PCUICParallelReductionConfluence PCUICWellScopedCumulativity PCUICClosed PCUICRenameDef PCUICInstConv PCUICClosedTyp PCUICWeakeningEnvTyp PCUICRenameTyp PCUICRenameConv PCUICGuardCondition PCUICWeakeningConv.
+  PCUICPosition PCUICTyping PCUICSigmaCalculus PCUICOnFreeVars PCUICClosed PCUICConfluence PCUICSpine PCUICInductiveInversion PCUICParallelReductionConfluence PCUICSR PCUICWellScopedCumulativity PCUICClosed PCUICRenameDef PCUICInstConv PCUICClosedTyp PCUICWeakeningEnvTyp PCUICRenameTyp PCUICRenameConv PCUICGuardCondition PCUICWeakeningConv.
 
 From MetaCoq.PCUIC Require Import BDTyping BDToPCUIC BDFromPCUIC.
 
@@ -415,6 +415,11 @@ Section OnFreeVars.
     - intros.
       intros ? ? ?.
       eapply closed_on_free_vars.
+      eapply declared_symbol_closed_type ; tea.
+
+    - intros.
+      intros ? ? ?.
+      eapply closed_on_free_vars.
       rewrite closedn_subst_instance.
       eapply declared_constant_closed_type ; tea.
 
@@ -512,7 +517,7 @@ Section OnFreeVars.
 
 End OnFreeVars.
 
-Lemma on_free_vars_type `{checker_flags} P Σ (wfΣ : wf Σ.1) Γ t T :
+Lemma on_free_vars_type `{checker_flags} P Σ (wfΣ : wf Σ.1) (Hrew : type_preserving Σ) Γ t T :
   on_ctx_free_vars P Γ ->
   on_free_vars P t ->
   Σ ;;; Γ |- t : T ->
@@ -698,6 +703,11 @@ Proof using wfΣ.
     eapply infering_prod_on_free_vars.
     4: eassumption.
     all: assumption.
+
+  - intros. red. move => P Δ f hf hΓ /= _.
+    erewrite rename_closed.
+    2: by eapply declared_symbol_closed_type ; tea.
+    econstructor ; tea.
 
   - intros. red. move => P Δ f hf hΓ /= _.
     rewrite rename_subst_instance.
@@ -896,7 +906,7 @@ Qed.
 
 End BDRenaming.
 
-Theorem typing_renaming_cond_P `{checker_flags} {P f Σ Γ Δ t T} {wfΣ : wf Σ.1} :
+Theorem typing_renaming_cond_P `{checker_flags} {P f Σ Γ Δ t T} {wfΣ : wf Σ.1} {Hrew : type_preserving Σ}:
   renaming P Σ Γ Δ f ->
   on_ctx_free_vars P Γ ->
   on_free_vars P t ->
@@ -996,7 +1006,7 @@ Proof.
       all: lia.
 Qed.
 
-Lemma strengthening `{cf: checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} Γ Γ' Γ'' t T :
+Lemma strengthening `{cf: checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} {Hrew : type_preserving Σ} Γ Γ' Γ'' t T :
   Σ ;;; Γ ,,, Γ' ,,, lift_context #|Γ'| 0 Γ'' |- lift #|Γ'| #|Γ''| t : T ->
   ∑ T', Σ ;;; Γ ,,, Γ'' |- t : T'.
 Proof.

@@ -2531,10 +2531,10 @@ Section WfEnv.
     rewrite {1}/expand_lets_k_ctx.
     rewrite PCUICClosed.closed_ctx_lift.
     rewrite -(Nat.add_0_r (k + #|Γ|)).
-    eapply closedn_ctx_subst. simpl; len'.
+    eapply closedn_ctx_subst. simpl; len.
     eapply closedn_ctx_expand_lets. eapply closedn_ctx_upwards; tea. lia.
     rewrite forallb_rev. now eapply closedn_to_extended_list_k.
-    rewrite subst_subst_context. len'.
+    rewrite subst_subst_context. len.
     rewrite map_rev extended_subst_to_extended_list_k.
     rewrite (closed_ctx_subst _ (context_assumptions Γ + k)) //.
     rewrite Nat.add_comm. eapply closedn_ctx_expand_lets => //.

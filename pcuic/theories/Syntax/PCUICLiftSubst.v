@@ -10,14 +10,6 @@ Import Nat.
 
 Derive Signature for Peano.le.
 
-(** Assumptions contexts do not contain let-ins. *)
-
-Inductive assumption_context : context -> Prop :=
-| assumption_context_nil : assumption_context []
-| assumption_context_vass na t Γ : assumption_context Γ -> assumption_context (vass na t :: Γ).
-
-Derive Signature for assumption_context.
-
 Create HintDb terms.
 
 Ltac arith_congr := repeat (try lia; progress f_equal).
@@ -315,6 +307,16 @@ Proof.
     try solve [simpl lift; simpl closed; f_equal; auto; rtoProp; solve_all]; try easy.
   - rewrite lift_rel_lt; auto.
     revert H. elim (Nat.ltb_spec n0 k); intros; try easy.
+Qed.
+
+Lemma subst_closed s k t : closedn k t -> subst s k t = t.
+Proof.
+  revert k.
+  induction t using PCUICInduction.term_forall_list_ind; simpl;
+  intros; unfold test_predicate_k, test_branch_k, test_def in *; rtoProp; simpl; autorewrite with map;
+    try solve [f_equal; eauto; solve_all]; repeat nth_leb_simpl.
+  - destruct (Nat.ltb_spec n k) => //; lia.
+  - destruct (Nat.ltb_spec n k) => //; lia.
 Qed.
 
 Lemma closed_upwards {k t} k' : closedn k t -> k' >= k -> closedn k' t.
@@ -819,35 +821,6 @@ Proof.
 Qed.
 
 (** Standard substitution lemma for a context with no lets. *)
-
-Inductive nth_error_app_spec {A} (l l' : list A) (n : nat) : option A -> Type :=
-| nth_error_app_spec_left x :
-  nth_error l n = Some x ->
-  n < #|l| ->
-  nth_error_app_spec l l' n (Some x)
-| nth_error_app_spec_right x :
-  nth_error l' (n - #|l|) = Some x ->
-  #|l| <= n < #|l| + #|l'| ->
-  nth_error_app_spec l l' n (Some x)
-| nth_error_app_spec_out : #|l| + #|l'| <= n -> nth_error_app_spec l l' n None.
-
-Lemma nth_error_appP {A} (l l' : list A) (n : nat) : nth_error_app_spec l l' n (nth_error (l ++ l') n).
-Proof.
-  destruct (Nat.ltb n #|l|) eqn:lt; [apply Nat.ltb_lt in lt|apply Nat.ltb_nlt in lt].
-  * rewrite nth_error_app_lt //.
-    destruct (snd (nth_error_Some' _ _) lt) as [x eq].
-    rewrite eq.
-    constructor; auto.
-  * destruct (Nat.ltb n (#|l| + #|l'|)) eqn:ltb'; [apply Nat.ltb_lt in ltb'|apply Nat.ltb_nlt in ltb'].
-    + rewrite nth_error_app2; try lia.
-      destruct nth_error eqn:hnth.
-      - constructor 2; auto; try lia.
-      - constructor.
-        eapply nth_error_None in hnth. lia.
-    + case: nth_error_spec => //; try lia.
-      { intros. len in l0. lia. }
-      len. intros. constructor. lia.
-Qed.
 
 Lemma nth_error_app_context (Γ Δ : context) (n : nat) :
   nth_error_app_spec Δ Γ n (nth_error (Γ ,,, Δ) n).

@@ -83,7 +83,7 @@ End firstorder.
 Fixpoint firstorder_env' (Σ : global_declarations) :=
   match Σ with
   | nil => []
-  | (nm, ConstantDecl _) :: Σ' =>
+  | (nm, (ConstantDecl _ | RewriteDecl _)) :: Σ' =>
     let Σb := firstorder_env' Σ' in
     ((nm, false) :: Σb)
   | (nm, InductiveDecl mind) :: Σ' =>
@@ -271,7 +271,7 @@ Lemma plookup_env_lookup_env {Σ : global_env_ext} kn b :
   ∑ Σ' decl, lookup_env Σ kn = Some decl ×
     strictly_extends_decls Σ' Σ ×
     match decl with
-    | ConstantDecl _ => b = false
+    | ConstantDecl _ | RewriteDecl _ => b = false
     | InductiveDecl mind =>
       b = firstorder_mutind (firstorder_env' (declarations Σ')) mind
     end.
@@ -287,11 +287,18 @@ Proof using.
     red. split => //. eexists (_ :: []); cbn; trea.
     eexists; split => //. cbn; split => //.
     red. split => //. eexists (_ :: []); cbn; trea.
+    eexists; split => //. cbn; split => //.
+    red. split => //. eexists (_ :: []); cbn; trea.
   * intros neq h.
     destruct d => //. cbn in h.
     move: h. case: eqb_specT=> // _ h'.
     unfold firstorder_env in IHΣ. cbn in IHΣ.
     specialize (IHΣ h') as [Σ' [decl [Hdecl [ext' ?]]]].
+    exists Σ', decl; split => //. split => //.
+    destruct ext' as [equ [Σ'' eq]]. split => //.
+    eexists (_ :: Σ''). cbn in *. rewrite eq. trea.
+    move: h. cbn. apply neqb in neq. rewrite (negbTE neq).
+    intros h'; specialize (IHΣ h') as [Σ' [decl [Hdecl [ext' ?]]]].
     exists Σ', decl; split => //. split => //.
     destruct ext' as [equ [Σ'' eq]]. split => //.
     eexists (_ :: Σ''). cbn in *. rewrite eq. trea.
@@ -379,6 +386,12 @@ Proof using Type.
       intros neq hf. depelim hf. now cbn in H.
     + move=> neq hl hf.
       apply IHg => //. now depelim hf.
+  - cbn.
+    case: eqb_spec.
+    + move=> -> [=].
+      intros neq hf. depelim hf. now cbn in H.
+    + move=> neq hl hf.
+      apply IHg => //. now depelim hf.
 Qed.
 
 Lemma plookup_env_extends {Σ Σ' : global_env} kn b :
@@ -401,6 +414,12 @@ Proof using Type.
       eapply plookup_env_Some_not_fresh in hl.
       cbn. case: eqb_spec.
       + intros <-.  apply fresh_global_app in f as [].
+        contradiction.
+      + now intros neq.
+    * intros hl. specialize (IHΣ'' hl).
+      eapply plookup_env_Some_not_fresh in hl.
+      cbn. case: eqb_spec.
+      + intros <-. apply fresh_global_app in f as [].
         contradiction.
       + now intros neq.
     * intros hl. specialize (IHΣ'' hl).
@@ -626,14 +645,14 @@ Proof using Type.
 Qed.
 
 Lemma firstorder_value_spec (Σ:global_env_ext) t i u args mind :
-  wf Σ -> wf_local Σ [] ->
+  wf Σ -> type_preserving Σ -> wf_local Σ [] ->
    Σ ;;; [] |- t : mkApps (tInd i u) args ->
   PCUICWcbvEval.value Σ t ->
   lookup_env Σ (i.(inductive_mind)) = Some (InductiveDecl mind) ->
   @firstorder_ind Σ (firstorder_env Σ) i ->
   firstorder_value Σ [] t.
 Proof using Type.
-  intros Hwf Hwfl Hty Hvalue.
+  intros Hwf Hrew Hwfl Hty Hvalue.
   revert mind i u args Hty.
 
   induction Hvalue as [ t Hvalue | t args' Hhead Hargs IH ] using PCUICWcbvEval.value_values_ind;

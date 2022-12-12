@@ -303,6 +303,10 @@ Inductive eq_term_upto_univ_napp Σ (Re Rle : Universe.t -> Universe.t -> Prop) 
     Σ ⊢ u <==[ Re , 0 ] u' ->
     Σ ⊢ tApp t u <==[ Rle , napp ] tApp t' u'
 
+| eq_Symb : forall k n u u',
+    R_universe_instance Re u u' ->
+    Σ ⊢ tSymb k n u <==[ Rle , napp ] tSymb k n u'
+
 | eq_Const : forall c u u',
     R_universe_instance Re u u' ->
     Σ ⊢ tConst c u <==[ Rle , napp ] tConst c u'
@@ -1488,13 +1492,9 @@ Lemma eq_term_upto_univ_it_mkLambda_or_LetIn_r Σ Re Rle Γ :
   respectful (eq_term_upto_univ Σ Re Rle) (eq_term_upto_univ Σ Re Rle)
              (it_mkLambda_or_LetIn Γ) (it_mkLambda_or_LetIn Γ).
 Proof.
-  intros he u v h.
-  induction Γ as [| [na [b|] A] Γ ih ] in u, v, h |- *.
-  - assumption.
-  - simpl. cbn. apply ih. constructor ; try apply eq_term_upto_univ_refl.
-    all: auto.
-  - simpl. cbn. apply ih. constructor ; try apply eq_term_upto_univ_refl.
-    all: auto.
+  intros he.
+  eapply eq_term_upto_univ_it_mkLambda_or_LetIn; tea.
+  now apply eq_context_upto_refl.
 Qed.
 
 Lemma eq_term_it_mkLambda_or_LetIn {cf:checker_flags} Σ φ Γ :
@@ -1504,25 +1504,32 @@ Proof.
   apply eq_term_upto_univ_it_mkLambda_or_LetIn_r; exact _.
 Qed.
 
-Lemma eq_term_upto_univ_it_mkProd_or_LetIn Σ Re Rle Γ :
+Lemma eq_term_upto_univ_it_mkProd_or_LetIn Σ Re Rle :
+    RelationClasses.Reflexive Re ->
+    Proper (eq_context_upto Σ Re Re ==> eq_term_upto_univ Σ Re Rle ==> eq_term_upto_univ Σ Re Rle) it_mkProd_or_LetIn.
+Proof.
+  intros he Γ Δ eq u v h.
+  induction eq in u, v, h, he |- *.
+  - assumption.
+  - simpl. cbn. apply IHeq => //.
+    destruct p; cbn; constructor ; tas; try reflexivity.
+Qed.
+
+Lemma eq_term_upto_univ_it_mkProd_or_LetIn_r Σ Re Rle Γ :
   RelationClasses.Reflexive Re ->
   respectful (eq_term_upto_univ Σ Re Rle) (eq_term_upto_univ Σ Re Rle)
              (it_mkProd_or_LetIn Γ) (it_mkProd_or_LetIn Γ).
 Proof.
-  intros he u v h.
-  induction Γ as [| [na [b|] A] Γ ih ] in u, v, h |- *.
-  - assumption.
-  - simpl. cbn. apply ih. constructor ; try apply eq_term_upto_univ_refl.
-    all: auto.
-  - simpl. cbn. apply ih. constructor ; try apply eq_term_upto_univ_refl.
-    all: auto.
+  intros he.
+  eapply eq_term_upto_univ_it_mkProd_or_LetIn; tea.
+  now apply eq_context_upto_refl.
 Qed.
 
 Lemma eq_term_it_mkProd_or_LetIn {cf:checker_flags} Σ φ Γ:
   respectful (eq_term Σ φ) (eq_term Σ φ)
              (it_mkProd_or_LetIn Γ) (it_mkProd_or_LetIn Γ).
 Proof.
-  eapply eq_term_upto_univ_it_mkProd_or_LetIn ; exact _.
+  eapply eq_term_upto_univ_it_mkProd_or_LetIn_r; exact _.
 Qed.
 
 Lemma eq_term_it_mkLambda_or_LetIn_inv {cf:checker_flags} Σ φ Γ u v :

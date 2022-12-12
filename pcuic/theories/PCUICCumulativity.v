@@ -3,7 +3,7 @@ From Coq Require Import CRelationClasses.
 From Equations.Type Require Import Relation Relation_Properties.
 From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import config BasicAst.
-From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils
+From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICGlobalMaps
      PCUICLiftSubst PCUICEquality PCUICUnivSubst
      PCUICReduction.
 
@@ -37,7 +37,7 @@ Hint Resolve cumul_refl : pcuic.
 
 Include PCUICConversion.
 
-Module PCUICConversionParAlgo <: EnvironmentTyping.ConversionParSig PCUICTerm PCUICEnvironment PCUICTermUtils PCUICEnvTyping.
+Module PCUICConversionParAlgo <: EnvironmentTyping.ConversionParSig PCUICTerm PCUICEnvironment PCUICEnvTyping PCUICTermUtils.
   Definition cumul_gen := @cumulAlgo_gen.
 End PCUICConversionParAlgo.
 

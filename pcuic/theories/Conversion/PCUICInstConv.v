@@ -2,7 +2,7 @@
 From Coq Require Import Morphisms.
 From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import config.
-From MetaCoq.PCUIC Require Import PCUICAst PCUICOnOne PCUICTactics PCUICAstUtils PCUICCases PCUICInduction
+From MetaCoq.PCUIC Require Import PCUICAst PCUICOnOne PCUICTactics PCUICAstUtils PCUICCases PCUICPattern PCUICInduction
   PCUICLiftSubst PCUICUnivSubst
   PCUICTyping PCUICReduction PCUICCumulativity
   PCUICEquality PCUICGlobalEnv PCUICClosed PCUICClosedConv PCUICClosedTyp PCUICEquality PCUICWeakeningEnvConv PCUICWeakeningEnvTyp
@@ -30,6 +30,7 @@ Definition rigid_head t :=
   match t with
   | tVar _
   | tSort _
+  | tSymb _ _ _
   | tConst _ _
   | tInd _ _
   | tConstruct _ _ _ => true
@@ -444,6 +445,24 @@ Proof.
     now rewrite inst_mkLambda_or_LetIn /=; sigma.
 Qed.
 
+Lemma inst_mkProd_or_LetIn f d t :
+  inst f (mkProd_or_LetIn d t) =
+  mkProd_or_LetIn (inst_decl f d) (inst (⇑ f) t).
+Proof.
+  destruct d as [na [] ty]; rewrite /= /mkProd_or_LetIn /=; f_equal; now rewrite up_Up.
+Qed.
+
+Lemma inst_it_mkProd_or_LetIn f ctx t :
+  inst f (it_mkProd_or_LetIn ctx t) =
+  it_mkProd_or_LetIn (inst_context f ctx) (inst (⇑^#|ctx| f) t).
+Proof.
+  move: t.
+  induction ctx; simpl => t.
+  - now rewrite Upn_0.
+  - rewrite /= IHctx inst_context_snoc /snoc /=. f_equal.
+    now rewrite inst_mkProd_or_LetIn /=; sigma.
+Qed.
+
 Lemma inst_reln f ctx n acc :
   forallb (closedn (n + #|ctx|)) acc ->
   map (inst (⇑^(n + #|ctx|) f)) (reln acc n ctx) =
@@ -542,7 +561,7 @@ Proof.
   now apply closedn_ctx_expand_lets.
 Qed.
 
-Lemma inst_case_predicate_context {cf} {Σ : global_env_ext} {wfΣ : wf Σ} {ind mdecl idecl f p} :
+Lemma inst_context_case_predicate_context {cf} {Σ : global_env_ext} {wfΣ : wf Σ} {ind mdecl idecl f p} :
   declared_inductive Σ ind mdecl idecl ->
   wf_predicate mdecl idecl p ->
   inst_context f (case_predicate_context ind mdecl idecl p) =
@@ -849,7 +868,7 @@ Proof.
         rewrite Nat.add_0_r in H.
         rewrite H.
         rewrite /ptm. rewrite up_0.
-        rewrite (inst_case_predicate_context decli) //.
+        rewrite (inst_context_case_predicate_context decli) //.
       ++ rewrite /p' case_predicate_context_length //.
          { now apply inst_wf_predicate. }
         rewrite Nat.add_0_r. simpl.
@@ -1200,7 +1219,7 @@ Proof. reflexivity. Qed.
 
 
 
-Lemma on_free_vars_rename_S Δ t n A :
+Lemma on_free_vars_rename_S {T} Δ t n (A : T) :
   on_free_vars (shiftnP #|Δ| xpred0) t ->
   on_free_vars (shiftnP (#|Δ ,, vass n A|) xpred0) (rename S t).
 Proof.
@@ -1698,6 +1717,52 @@ Proof.
   rewrite on_free_vars_ctx_app in H1. solve_all. cbn in *. rewrite shiftnP0 in H2. tea.
 Defined.
 
+Lemma inst_symb_hd σ t k :
+  symb_hd t = Some k ->
+  symb_hd (inst σ t) = Some k.
+Proof.
+  induction t => //.
+Qed.
+
+Lemma inst_pattern_matches P σ p t s :
+  on_free_vars P t ->
+  pattern_matches p t s ->
+  pattern_matches p (inst σ t) (found_substitution_map (List.map (inst σ)) id s).
+Proof.
+  induction 2 using pattern_matches_ind; inv_on_free_vars; unfold pattern_matches in * => //=.
+  - rewrite !eqb_refl //.
+  - rewrite IHpattern_matches; tas.
+    assert (arg_pattern_matches parg (inst σ arg) (List.map (inst σ) s2)) as ->.
+    2: { rewrite found_substitution_map_app //. }
+    clear -H1 b.
+    induction H1 in b |- * using arg_pattern_matches_ind; inv_on_free_vars; unfold arg_pattern_matches in * => //=.
+    + rewrite /arg_pattern_matches /= in IHarg_pattern_matches1.
+      rewrite IHarg_pattern_matches1 // IHarg_pattern_matches2 // -map_app //.
+    + rewrite !eqb_refl //.
+  - len.
+    rewrite IHpattern_matches // eqb_refl /=.
+    rewrite !found_substitution_map_app.
+    rewrite flagCase.
+    do 2 f_equal.
+    + f_equal. apply (f_equal2 cons); auto.
+      rewrite inst_it_mkProd_or_LetIn /=.
+      f_equal. 2: sigma; now len.
+      rewrite inst_inst_case_context // /inst_case_predicate_context.
+      f_equal. cbn.
+      symmetry; apply inst_closedn_ctx.
+      rewrite closedn_ctx_on_free_vars //.
+    + solve_all.
+      rewrite inst_it_mkLambda_or_LetIn /=.
+      f_equal. 2: sigma; now len.
+      rewrite inst_inst_case_context /inst_case_branch_context.
+      1: now rewrite -test_context_k_closed_on_free_vars_ctx.
+      f_equal. cbn.
+      symmetry. apply inst_closedn_ctx.
+      rewrite closedn_ctx_on_free_vars //.
+      now rewrite -test_context_k_closed_on_free_vars_ctx.
+  - inv_on_free_vars; auto.
+Qed.
+
 Lemma red1_inst {Σ : global_env_ext} {wfΣ : wf Σ} {Γ Δ u v σ} :
   usubst Γ σ Δ ->
   is_open_term Γ u ->
@@ -1752,6 +1817,19 @@ Proof.
     * do 2 econstructor; eauto.
   - simpl. rewrite inst_mkApps. simpl.
     do 2 econstructor. rewrite nth_error_map. rewrite H. reflexivity.
+  - eapply on_declared_rule in H as H'; tea.
+    destruct H' as [? _ _ ? _].
+    apply pattern_matches_length in H0 as Hsize.
+    rewrite /rhs inst_subst0 map_app.
+    eapply (inst_pattern_matches _ σ) in H0; tea.
+    set s' := found_substitution_map (map (inst σ)) id s.
+    change (found_usubst s) with (found_usubst s') in ss.
+    change (map (inst _) (found_subst s)) with (found_subst s').
+    replace (map (inst _) ss) with ss.
+    2: { rewrite /ss /symbols_subst. generalize 0 at 1 3. induction (#|_| - _); cbnr. intros; f_equal; auto. }
+    rewrite (inst_closed _ _ (rhs decl)).
+    1: now replace #|_| with (#|context_of_symbols (symbols rdecl)| + pat_holes decl) by (autorewrite with len; lia).
+    constructor; eapply red_rewrite; tea.
   - simpl. eapply red_abs; eauto.
   - simpl; eapply red_abs; eauto.
     eapply IHh; tea.
@@ -1771,7 +1849,7 @@ Proof.
     eapply red_case_p; eauto.
     simpl.
     eapply IHh; eauto.
-    + rewrite /PCUICCases.inst_case_predicate_context.
+    + rewrite /inst_case_predicate_context.
       rewrite /= -inst_inst_case_context_wf //.
       { now rewrite test_context_k_closed_on_free_vars_ctx. }
       relativize #|pcontext p|; [eapply usubst_app_up|now len]; eauto.

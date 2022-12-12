@@ -55,6 +55,11 @@ Inductive infering `{checker_flags} (Σ : global_env_ext) (Γ : context) : term 
   Σ ;;; Γ |- u ◃ A ->
   Σ ;;; Γ |- tApp t u ▹ B{0 := u}
 
+| infer_Symb k n u :
+  forall rdecl sdecl (isdecl : declared_symbol Σ.1 k n rdecl sdecl),
+  consistent_instance_ext Σ rdecl.(rew_universes) u ->
+  Σ ;;; Γ |- tSymb k n u ▹ type_of_symbol rdecl sdecl k n u
+
 | infer_Const cst u :
   forall decl (isdecl : declared_constant Σ.1 cst decl),
   consistent_instance_ext Σ (cst_universes decl) u ->
@@ -365,6 +370,11 @@ Section BidirectionalInduction.
       Pcheck Γ u A ->
       Pinfer Γ (tApp t u) (subst10 u B)) ->
 
+    (forall (Γ : context) (kn : kername) n u rdecl (sdecl : symbol),
+      declared_symbol Σ.1 kn n rdecl sdecl ->
+      consistent_instance_ext Σ rdecl.(rew_universes) u ->
+      Pinfer Γ (tSymb kn n u) (type_of_symbol rdecl sdecl kn n u)) ->
+
     (forall (Γ : context) (cst : kername) u (decl : constant_body),
       declared_constant Σ.1 cst decl ->
       consistent_instance_ext Σ (cst_universes decl) u ->
@@ -478,7 +488,7 @@ Section BidirectionalInduction.
 
     env_prop_bd.
   Proof using Type.
-    intros Pdecl_check Pdecl_sort Pdecl_check_rel Pdecl_sort_rel HΓ HΓRel HRel HSort HProd HLambda HLetIn HApp HConst HInd HConstruct HCase
+    intros Pdecl_check Pdecl_sort Pdecl_check_rel Pdecl_sort_rel HΓ HΓRel HRel HSort HProd HLambda HLetIn HApp HSymb HConst HInd HConstruct HCase
       HProj HFix HCoFix HPrim HiSort HiProd HiInd HCheck ; unfold env_prop_bd.
       pose (@Fix_F typing_sum (precompose lt typing_sum_size) Ptyping_sum) as p.
     forward p.
@@ -568,6 +578,9 @@ Section BidirectionalInduction.
       all: applyIH.
 
     - eapply HApp ; eauto.
+      all: applyIH.
+
+    - unshelve eapply HSymb ; auto.
       all: applyIH.
 
     - unshelve eapply HConst ; auto.

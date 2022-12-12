@@ -35,6 +35,7 @@ Fixpoint trans (t : PCUICAst.term) : Ast.term :=
   | PCUICAst.tVar n => tVar n
   | PCUICAst.tEvar ev args => tEvar ev (List.map trans args)
   | PCUICAst.tSort u => tSort u
+  | PCUICAst.tSymb k n u => tSymb k n u
   | PCUICAst.tConst c u => tConst c u
   | PCUICAst.tInd c u => tInd c u
   | PCUICAst.tConstruct c k u => tConstruct c k u
@@ -97,10 +98,41 @@ Definition trans_minductive_body md :=
      ind_variance := md.(PCUICEnvironment.ind_variance)
   |}.
 
+Axiom pat : Ast.pattern.
+
+Definition trans_pattern (e : PCUICAst.pattern) : Ast.pattern :=
+  match e with
+  | PCUICAst.pSymb k n => pat
+  | PCUICAst.pApp f arg => pat
+  | PCUICAst.pCase c nbrs => pat
+  | PCUICAst.pProj c => pat
+  end.
+
+Definition trans_rewrite_rule r :=
+  {| pat_holes := r.(PCUICEnvironment.pat_holes);
+     pat_head := r.(PCUICEnvironment.pat_head);
+     pat_lhs := trans_pattern r.(PCUICEnvironment.pat_lhs);
+     rhs := trans r.(PCUICEnvironment.rhs)
+  |}.
+
+Definition trans_symbol s :=
+  {| symb_name := s.(PCUICEnvironment.symb_name) ;
+     symb_rel := s.(PCUICEnvironment.symb_rel);
+     symb_type := trans s.(PCUICEnvironment.symb_type)
+  |}.
+
+Definition trans_rewrite_body rew :=
+  {| symbols := List.map trans_symbol rew.(PCUICEnvironment.symbols);
+     rules := List.map trans_rewrite_rule rew.(PCUICEnvironment.rules);
+     prules := List.map trans_rewrite_rule rew.(PCUICEnvironment.prules);
+     rew_universes := rew.(PCUICEnvironment.rew_universes)
+  |}.
+
 Definition trans_global_decl (d : PCUICEnvironment.global_decl) :=
   match d with
   | PCUICEnvironment.ConstantDecl bd => ConstantDecl (trans_constant_body bd)
   | PCUICEnvironment.InductiveDecl bd => InductiveDecl (trans_minductive_body bd)
+  | PCUICEnvironment.RewriteDecl bd => RewriteDecl (trans_rewrite_body bd)
   end.
 
 Definition trans_global_decls (d : PCUICEnvironment.global_declarations) : global_declarations :=

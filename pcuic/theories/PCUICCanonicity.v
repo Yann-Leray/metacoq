@@ -237,7 +237,7 @@ Section Spines.
     now apply red_it_mkProd_or_LetIn_smash.
   Qed.
 
-  Lemma typing_spine_smash Γ Δ T args T' :
+  Lemma typing_spine_smash {Hrew : type_preserving Σ} Γ Δ T args T' :
     typing_spine Σ Γ (it_mkProd_or_LetIn Δ T) args T' ->
     typing_spine Σ Γ (it_mkProd_or_LetIn (smash_context [] Δ) (expand_lets Δ T)) args T'.
   Proof.
@@ -452,7 +452,7 @@ Qed.
     eexists _, _, _; eauto. eapply sp.
   Qed.
 
-  Lemma wf_fixpoint_spine Γ mfix idx decl args ty :
+  Lemma wf_fixpoint_spine {Hrew : type_preserving Σ} Γ mfix idx decl args ty :
     wf_fixpoint Σ.1 mfix ->
     nth_error mfix idx = Some decl ->
     isType Σ Γ (dtype decl) ->
@@ -501,7 +501,7 @@ Qed.
         now eapply typing_wf_local.
   Qed.
 
-  Lemma wf_cofixpoint_spine Γ mfix idx decl args ty :
+  Lemma wf_cofixpoint_spine {Hrew : type_preserving Σ} Γ mfix idx decl args ty :
     wf_cofixpoint Σ.1 mfix ->
     nth_error mfix idx = Some decl ->
     isType Σ Γ (dtype decl) ->
@@ -607,6 +607,7 @@ Qed.
 Section Canonicity.
   Context {cf:checker_flags} {Σ : global_env_ext}.
   Context {wfΣ : wf Σ}.
+  Context {Hrew : type_preserving Σ}.
 
   Notation wh_neutral := (whne RedFlags.default).
   Notation wh_normal := (whnf RedFlags.default).
@@ -990,7 +991,7 @@ Section Canonicity.
       eapply red1_red. constructor.
       pose proof (subject_closed t1); auto.
       eapply eval_closed in H; eauto.
-      eapply subject_reduction in IHHe1. 2-3:eauto.
+      eapply subject_reduction in IHHe1. 2-4:eauto.
       eapply inversion_Lambda in IHHe1 as (? & ? & ? & ? & e); eauto.
       eapply (substitution0 (Γ := [])) in t3; eauto.
       eapply IHHe3.
@@ -1015,7 +1016,7 @@ Section Canonicity.
       eapply subject_reduction in t1; eauto. eapply subject_closed in t1; eauto.
       pose proof (subject_is_open_term t2).
       eapply substitution_let in t2; eauto.
-      eapply subject_reduction in t2.
+      eapply subject_reduction in t2. 3: assumption.
       3:{ eapply (red_red (Δ := [vass na t]) (Γ' := [])); eauto. 3:repeat constructor.
           cbn. rewrite addnP_shiftnP. eapply type_is_open_term in t1. now erewrite t1.
           repeat constructor. cbn. rewrite addnP_shiftnP.
@@ -1029,7 +1030,7 @@ Section Canonicity.
       eapply red1_red. econstructor; eauto.
       apply declared_constant_from_gen; eauto.
 
-    - epose proof (subject_reduction Σ [] _ _ _ wfΣ Ht).
+    - epose proof (subject_reduction Σ [] _ _ _ wfΣ _ Ht).
       apply inversion_Case in Ht; auto. destruct_sigma Ht.
       unshelve epose proof (isdecl_ := declared_inductive_to_gen isdecl); eauto.
       destruct (declared_inductive_inj d isdecl_); subst mdecl0 idecl0.
@@ -1046,7 +1047,7 @@ Section Canonicity.
       specialize (X X0).
       redt _; eauto.
 
-    - epose proof (subject_reduction Σ [] _ _ _ wfΣ Ht).
+    - epose proof (subject_reduction Σ [] _ _ _ wfΣ _ Ht).
       apply inversion_Proj in Ht; auto; destruct_sigma Ht.
       specialize (IHHe1 _ t).
       assert (red Σ [] (tProj p discr) a).
@@ -1056,12 +1057,12 @@ Section Canonicity.
       specialize (X X0).
       redt _; eauto.
 
-    - epose proof (subject_reduction Σ [] _ _ _ wfΣ Ht).
+    - epose proof (subject_reduction Σ [] _ _ _ wfΣ _ Ht).
       apply inversion_App in Ht; auto; destruct_sigma Ht.
       specialize (IHHe1 _ t).
       specialize (IHHe2 _ t0).
-      epose proof (subject_reduction Σ [] _ _ _ wfΣ t IHHe1) as Ht2.
-      epose proof (subject_reduction Σ [] _ _ _ wfΣ t0 IHHe2) as Ha2.
+      epose proof (subject_reduction Σ [] _ _ _ wfΣ _ t IHHe1) as Ht2.
+      epose proof (subject_reduction Σ [] _ _ _ wfΣ _ t0 IHHe2) as Ha2.
       assert (red Σ [] (tApp f a) (tApp (mkApps fn argsv) av)).
       { redt _.
         eapply red_app; eauto.

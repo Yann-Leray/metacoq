@@ -2,8 +2,8 @@
 From Coq Require Import Morphisms.
 From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import config.
-From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICTactics PCUICCases PCUICInduction
-  PCUICLiftSubst PCUICUnivSubst PCUICCumulativity
+From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICTactics PCUICCases PCUICPattern
+  PCUICInduction PCUICLiftSubst PCUICUnivSubst PCUICCumulativity
   PCUICTyping PCUICReduction PCUICGlobalEnv PCUICClosed PCUICEquality PCUICRenameDef
   PCUICSigmaCalculus PCUICClosed PCUICOnFreeVars PCUICOnFreeVarsConv PCUICGuardCondition PCUICTyping
   PCUICWeakeningEnvConv PCUICWeakeningEnvTyp PCUICClosedConv PCUICClosedTyp PCUICRenameConv.
@@ -209,6 +209,19 @@ Proof.
      + eassumption.
      + rewrite rename_closed. 2: assumption.
        eapply declared_constant_closed_body. all: eauto.
+   - apply on_declared_rule in H as H'; tas.
+     destruct H' as [? _ _ ? _].
+     apply pattern_matches_length in H0 as Hsize.
+     rewrite /rhs0 !rename_subst0 map_app.
+     eapply (rename_pattern_matches _ f) in H0; tea.
+     set s' := found_substitution_map (map (rename f)) id s.
+     change (found_usubst s) with (found_usubst s') in ss.
+     change (map (rename f) (found_subst s)) with (found_subst s').
+     replace (map (rename f) ss) with ss.
+     2: { rewrite /ss /symbols_subst. generalize 0 at 1 3. induction (#|_| - _); cbnr. intros; f_equal; auto. }
+     rewrite (rename_closedn _ _ (rhs decl)).
+     1: now replace #|_| with (#|context_of_symbols (symbols rdecl)| + pat_holes decl) by (unfold ss; autorewrite with len; lia).
+     eapply cumul_rewrite; tea.
    - rewrite rename_mkApps. simpl.
      eapply cumul_proj. rewrite nth_error_map. rewrite H. reflexivity.
    - eapply cumul_Trans; try apply X0; try apply X2; eauto. eapply urename_is_open_term; eauto.
@@ -433,6 +446,7 @@ Proof.
       destruct X0 as [[Hx [Hxy_ Hxy]] Hy].
       eapply Hxy; eauto.
   - eapply cumul_Sort; eauto.
+  - eapply cumul_Symb; eauto.
   - eapply cumul_Const; eauto.
 Defined.
 
@@ -866,6 +880,11 @@ Proof.
       * simpl. reflexivity.
       * simpl. replace (i - 0) with i by lia.
         reflexivity.
+  - intros Σ wfΣ Γ wfΓ kn s u rdecl sdecl X X0 isdecl hconst P Δ f hf.
+    simpl. eapply meta_conv.
+    + constructor. all: eauto. apply hf.
+    + rewrite rename_closed. 2: auto.
+      eapply declared_symbol_closed_type. all: eauto.
   - intros Σ wfΣ Γ wfΓ cst u decl X X0 isdecl hconst P Δ f hf.
     simpl. eapply meta_conv.
     + constructor. all: eauto. apply hf.

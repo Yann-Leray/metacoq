@@ -28,6 +28,16 @@ Definition decl_depth_gen (depth : term -> nat) (x : context_decl) :=
 Definition context_depth_gen (depth : term -> nat) (l : context) :=
   list_depth_gen (decl_depth_gen depth) l.
 
+Definition ctx_term_depth_aux {A} (decl_depth : A -> nat) :=
+  fix ctx_term_depth (l : list A) (acc: nat) : nat :=
+    match l with
+    | [] => acc
+    | a :: v => ctx_term_depth v (S (max (decl_depth a) acc))
+    end.
+
+Definition ctx_term_depth_gen (depth : term -> nat) (l : context) (t : term) :=
+  ctx_term_depth_aux (decl_depth_gen depth) l (depth t).
+
 Definition branch_depth_gen (depth : term -> nat) p (br : branch term) :=
   let pard := list_depth_gen depth p.(pparams) in
   let bctxd := context_depth_gen depth br.(bcontext) in
@@ -55,6 +65,7 @@ Fixpoint depth t : nat :=
   end.
 
 Notation context_depth := (context_depth_gen depth).
+Notation ctx_term_depth := (ctx_term_depth_gen depth).
 Notation list_depth := (list_depth_gen depth).
 Notation mfixpoint_depth := (mfixpoint_depth_gen depth).
 
@@ -66,6 +77,40 @@ Proof.
   etransitivity; tea.
   lia.
 Qed.
+
+Lemma depth_mkLambda_or_LetIn d t :
+  depth (mkLambda_or_LetIn d t) = S (max (decl_depth_gen depth d) (depth t)).
+Proof.
+  unfold decl_depth_gen.
+  destruct d, decl_body => /=; lia.
+Qed.
+
+Lemma depth_it_mkLambda_or_LetIn ctx t :
+  depth (it_mkLambda_or_LetIn ctx t) = ctx_term_depth ctx t.
+Proof.
+  induction ctx in t |- * => //=.
+  rewrite IHctx.
+  unfold ctx_term_depth.
+  rewrite depth_mkLambda_or_LetIn //.
+Qed.
+
+Lemma depth_mkProd_or_LetIn d t :
+  depth (mkProd_or_LetIn d t) = S (max (decl_depth_gen depth d) (depth t)).
+Proof.
+  unfold decl_depth_gen.
+  destruct d, decl_body => /=; lia.
+Qed.
+
+Lemma depth_it_mkProd_or_LetIn ctx t :
+  depth (it_mkProd_or_LetIn ctx t) = ctx_term_depth ctx t.
+Proof.
+  induction ctx in t |- * => //=.
+  rewrite IHctx.
+  unfold ctx_term_depth.
+  rewrite depth_mkProd_or_LetIn //.
+Qed.
+
+
 
 Lemma mfixpoint_depth_In {mfix d} :
   In d mfix ->
@@ -104,6 +149,62 @@ Proof.
   fix aux 1. destruct l. simpl; auto. simpl.
   f_equal. apply Hf. apply aux.
 Defined.
+
+Lemma ctx_term_depth_aux_hom {A} {depth: A -> nat} {l l' t t'} :
+  All2 (fun t' t => depth t' = depth t) l' l ->
+  t' = t ->
+  ctx_term_depth_aux depth l' t' = ctx_term_depth_aux depth l t.
+Proof.
+  induction 1 in t, t' |- * => //= ->.
+  apply IHX.
+  lia.
+Defined.
+
+Lemma ctx_term_depth_hom {l t t'} :
+  depth t' = depth t ->
+  ctx_term_depth l t' = ctx_term_depth l t.
+Proof.
+  apply ctx_term_depth_aux_hom.
+  apply All2_refl => x; lia.
+Defined.
+
+Lemma ctx_term_depth_aux_offset {A} {depth: A -> nat} {l l' t t' off} :
+  All2 (fun t' t => depth t' <= depth t + off) l' l ->
+  (t' <= t + off) ->
+  ctx_term_depth_aux depth l' t' <= ctx_term_depth_aux depth l t + off.
+Proof.
+  induction 1 in t, t' |- * => //= Hf.
+  apply IHX.
+  lia.
+Defined.
+
+Lemma ctx_term_depth_offset {l t t' off} :
+  (depth t' <= depth t + off) ->
+  ctx_term_depth l t' <= ctx_term_depth l t + off.
+Proof.
+  apply ctx_term_depth_aux_offset.
+  apply All2_refl => x; lia.
+Defined.
+
+Lemma ctx_term_depth_aux_mono {A} (depth: A -> nat) l t :
+  t <= ctx_term_depth_aux depth l t.
+Proof.
+  induction l in t |- * => //=.
+  specialize (IHl (S (max (depth a) t))).
+  lia.
+Qed.
+
+Lemma list_depth_ctx_term_depth_aux {A} (depth: A -> nat) l t :
+  list_depth_gen depth l <= ctx_term_depth_aux depth l t.
+Proof.
+  induction l in t |- * => //=.
+  1: lia.
+  set t' := (S (max (depth a) t)).
+  pose proof (ctx_term_depth_aux_mono depth l t').
+  specialize (IHl t').
+  lia.
+Qed.
+
 
 Lemma depth_lift n k t : depth (lift n k t) = depth t.
 Proof.
@@ -319,6 +420,7 @@ Lemma term_forall_ctx_list_ind :
     (forall Γ (t u : term),
       (forall t', depth t' < depth (tApp t u) -> P Γ t') ->
       P Γ t -> P Γ u -> P Γ (tApp t u)) ->
+    (forall Γ kn (n : nat) (u : list Level.t), P Γ (tSymb kn n u)) ->
     (forall Γ s (u : list Level.t), P Γ (tConst s u)) ->
     (forall Γ (i : inductive) (u : list Level.t), P Γ (tInd i u)) ->
     (forall Γ (i : inductive) (n : nat) (u : list Level.t), P Γ (tConstruct i n u)) ->
@@ -337,7 +439,7 @@ Lemma term_forall_ctx_list_ind :
     (forall Γ p, P Γ (tPrim p)) ->
     forall Γ (t : term), P Γ t.
 Proof.
-  intros ????????????????? Γ t.
+  intros ?????????????????? Γ t.
   revert Γ t. set(foo:=CoreTactics.the_end_of_the_section). intros.
   Subterm.rec_wf_rel aux t (MR lt depth); unfold MR in *; simpl. clear H1.
   assert (auxl : forall Γ {A} (l : list A) (f : A -> term),
@@ -387,7 +489,7 @@ Proof.
         | H : _ |- _ => solve [apply H; (eapply aux || eapply auxl); auto; red; simpl; try lia]
         end.
 
-  - eapply X10; eauto.
+  - eapply X11; eauto.
     * red. split.
       + eapply auxl; auto. simpl. unfold predicate_depth_gen, branch_depth_gen.
         now change (fun x => depth x) with depth; lia.
@@ -410,11 +512,11 @@ Proof.
         eapply auxbr. unfold branch_depth_gen. lia.
       + eapply IHbrs. intros. apply auxΓ. simpl in *. lia.
         intros. apply auxbr. simpl. lia.
-  - eapply X12; try (apply aux; red; simpl; lia).
+  - eapply X13; try (apply aux; red; simpl; lia).
     apply auxΓ => //. simpl. specialize (H mfix). lia.
     red. apply All_pair. split; apply auxl; simpl; auto.
 
-  - eapply X13; try (apply aux; red; simpl; lia).
+  - eapply X14; try (apply aux; red; simpl; lia).
     apply auxΓ => //. simpl. specialize (H mfix). lia.
     red. apply All_pair. split; apply auxl; simpl; auto.
 Defined.
@@ -440,15 +542,19 @@ Lemma term_ind_depth_app :
     (forall (t u : term),
       (forall t', depth t' < depth (tApp t u) -> P t') ->
       P t -> P u -> P (tApp t u)) ->
+    (forall kn (n : nat) (u : list Level.t), P (tSymb kn n u)) ->
     (forall s (u : list Level.t), P (tConst s u)) ->
     (forall (i : inductive) (u : list Level.t), P (tInd i u)) ->
     (forall (i : inductive) (n : nat) (u : list Level.t), P (tConstruct i n u)) ->
     (forall (ci : case_info) (p : predicate term) (t : term) (brs : list (branch term)),
+        (forall t', depth t' < depth (tCase ci p t brs) -> P t') ->
         CasePredProp_depth P p ->
         P t ->
         CaseBrsProp_depth p P brs ->
         P (tCase ci p t brs)) ->
-    (forall (s : projection) (t : term), P t -> P (tProj s t)) ->
+    (forall (s : projection) (t : term),
+      (forall t', depth t' < depth (tProj s t) -> P t') ->
+      P t -> P (tProj s t)) ->
     (forall (m : mfixpoint term) (n : nat),
         onctx P (fix_context m) ->
         tFixProp P P m -> P (tFix m n)) ->
@@ -458,7 +564,7 @@ Lemma term_ind_depth_app :
     (forall p, P (tPrim p)) ->
     forall (t : term), P t.
 Proof.
-  intros ????????????????? t.
+  intros ?????????????????? t.
   revert t. set(foo:=CoreTactics.the_end_of_the_section). intros.
   Subterm.rec_wf_rel aux t (MR lt depth); unfold MR in *; simpl. clear H0.
   assert (auxl : forall {A} (l : list A) (f : A -> term),
@@ -507,7 +613,7 @@ Proof.
         | H : _ |- _ => solve [apply H; (eapply aux || eapply auxl); auto; red; simpl; try lia]
         end.
 
-  - eapply X10; eauto.
+  - eapply X11; eauto.
     * red. split.
       + eapply auxl; auto. simpl. unfold predicate_depth_gen, branch_depth_gen.
         now change (fun x => depth x) with depth; lia.
@@ -530,11 +636,11 @@ Proof.
         eapply auxbr. unfold branch_depth_gen. lia.
       + eapply IHbrs. intros. apply auxΓ. simpl in *. lia.
         intros. apply auxbr. simpl. lia.
-  - eapply X12; try (apply aux; red; simpl; lia).
+  - eapply X13; try (apply aux; red; simpl; lia).
     apply auxΓ => //. simpl. specialize (H mfix). lia.
     red. apply All_pair. split; apply auxl; simpl; auto.
 
-  - eapply X13; try (apply aux; red; simpl; lia).
+  - eapply X14; try (apply aux; red; simpl; lia).
     apply auxΓ => //. simpl. specialize (H mfix). lia.
     red. apply All_pair. split; apply auxl; simpl; auto.
 Defined.

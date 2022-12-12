@@ -87,7 +87,7 @@ Proof.
 Qed.
 
 Lemma weaken_env_prop_closed {cf} :
-  weaken_env_prop cumulSpec0 (lift_typing typing) (lift_typing (fun (_ : global_env_ext) (Γ : context) (t T : term) =>
+  weaken_env_prop cumulSpec0 red (lift_typing typing) (lift_typing (fun (_ : global_env_ext) (Γ : context) (t T : term) =>
   closedn #|Γ| t && closedn #|Γ| T)).
 Proof. repeat red. intros. destruct t; red in X0; eauto. Qed.
 

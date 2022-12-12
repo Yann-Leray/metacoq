@@ -9,6 +9,33 @@ From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils
     universe consistency of the global environment.
 *)
 
+Lemma declared_rules_inj {Σ kn rdecl rdecl'} :
+  declared_rules_gen Σ kn rdecl ->
+  declared_rules_gen Σ kn rdecl' ->
+  rdecl = rdecl'.
+Proof.
+  intros. unfold declared_rules_gen in *. rewrite H in H0.
+  now inv H0.
+Qed.
+
+Lemma declared_rule_inj {Σ kn r rdecl rdecl' decl decl'} :
+  declared_rule_gen Σ kn r rdecl decl ->
+  declared_rule_gen Σ kn r rdecl' decl' ->
+  rdecl = rdecl' /\ decl = decl'.
+Proof.
+  intros [] []. unfold declared_rules_gen in *.
+  rewrite H in H1. inversion H1. subst. rewrite H2 in H0. inversion H0. eauto.
+Qed.
+
+Lemma declared_symbol_inj {Σ kn n rdecl rdecl' sdecl sdecl'} :
+  declared_symbol_gen Σ kn n rdecl sdecl ->
+  declared_symbol_gen Σ kn n rdecl' sdecl' ->
+  rdecl = rdecl' /\ sdecl = sdecl'.
+Proof.
+  intros [] []. unfold declared_rules_gen in *.
+  rewrite H in H1. inversion H1. subst. rewrite H2 in H0. inversion H0. eauto.
+Qed.
+
 Lemma declared_constant_inj {Σ c} decl1 decl2 :
   declared_constant_gen Σ c decl1 -> declared_constant_gen Σ c decl2 -> decl1 = decl2.
 Proof.
@@ -106,7 +133,7 @@ Section DeclaredInv.
 End DeclaredInv.
 
 Definition wf_global_uctx_invariants {cf:checker_flags} {P} Σ :
-  on_global_env cumulSpec0 P Σ ->
+  on_global_env cumulSpec0 red P Σ ->
   global_uctx_invariants (global_uctx Σ).
 Proof.
  intros HΣ. split.
@@ -129,7 +156,7 @@ Proof.
 Qed.
 
 Definition wf_ext_global_uctx_invariants {cf:checker_flags} {P} Σ :
-  on_global_env_ext cumulSpec0 P Σ ->
+  on_global_env_ext cumulSpec0 red P Σ ->
   global_uctx_invariants (global_ext_uctx Σ).
 Proof.
  intros HΣ. split.
@@ -146,14 +173,14 @@ Proof.
 Qed.
 
 Lemma wf_consistent {cf:checker_flags} Σ {P} :
-  on_global_env cumulSpec0 P Σ -> consistent (global_constraints Σ).
+  on_global_env cumulSpec0 red P Σ -> consistent (global_constraints Σ).
 Proof.
   destruct Σ.
   intros [cu ong]. apply cu.
 Qed.
 
 Definition global_ext_uctx_consistent {cf:checker_flags} {P} Σ
- : on_global_env_ext cumulSpec0 P Σ -> consistent (global_ext_uctx Σ).2.
+ : on_global_env_ext cumulSpec0 red P Σ -> consistent (global_ext_uctx Σ).2.
 Proof.
   intros HΣ. cbn. unfold global_ext_constraints.
   unfold wf_ext, on_global_env_ext in HΣ.

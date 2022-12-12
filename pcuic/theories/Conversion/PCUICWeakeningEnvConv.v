@@ -1,7 +1,7 @@
 (* Distributed under the terms of the MIT license. *)
 From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import config.
-From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils
+From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICGlobalMaps
   PCUICWeakeningEnv PCUICEquality PCUICReduction PCUICCumulativity PCUICCumulativitySpec
   (* PCUICContextSubst *) (* PCUICUnivSubst *) (* PCUICCases *) (* PCUICTyping *)
   (* PCUICGuardCondition *) (* PCUICGlobalEnv *).
@@ -50,15 +50,16 @@ Qed.
 Section ExtendsWf.
   Context {cf : checker_flags}.
   Context {Pcmp: global_env_ext -> context -> conv_pb -> term -> term -> Type}.
+  Context {Pred : global_env -> context -> term -> term -> Type}.
   Context {P: global_env_ext -> context -> term -> typ_or_sort -> Type}.
 
-  Let wf := on_global_env Pcmp P.
+  Let wf := on_global_env Pcmp Pred P.
 
 Lemma global_variance_sigma_mon {Σ Σ' gr napp v} :
   wf Σ' -> extends Σ Σ' ->
   global_variance Σ gr napp = Some v ->
   global_variance Σ' gr napp = Some v.
-Proof using P Pcmp cf.
+Proof using P Pred Pcmp cf.
   intros wfΣ' ext.
   rewrite /global_variance_gen /lookup_constructor /lookup_constructor_gen
     /lookup_inductive /lookup_inductive_gen /lookup_minductive /lookup_minductive_gen.
@@ -76,7 +77,7 @@ Lemma R_global_instance_weaken_env Σ Σ' Re Re' Rle Rle' gr napp :
   RelationClasses.subrelation Rle Rle' ->
   RelationClasses.subrelation Re Rle' ->
   subrelation (R_global_instance Σ Re Rle gr napp) (R_global_instance Σ' Re' Rle' gr napp).
-Proof using P Pcmp cf.
+Proof using P Pred Pcmp cf.
   intros wfΣ ext he hle hele t t'.
   rewrite /R_global_instance_gen /R_opt_variance.
   destruct global_variance_gen as [v|] eqn:look.
@@ -98,7 +99,7 @@ Instance eq_term_upto_univ_weaken_env Σ Σ' Re Re' Rle Rle' napp :
   RelationClasses.subrelation Re Rle' ->
   CRelationClasses.subrelation (eq_term_upto_univ_napp Σ Re Rle napp)
     (eq_term_upto_univ_napp Σ' Re' Rle' napp).
-Proof using P Pcmp cf.
+Proof using P Pred Pcmp cf.
   intros wfΣ ext he hele hle t t'.
   induction t in napp, t', Rle, Rle', hle, hele |- * using PCUICInduction.term_forall_list_ind;
     try (inversion 1; subst; constructor;
@@ -132,9 +133,21 @@ Lemma weakening_env_red1 Σ Σ' Γ M N :
   extends Σ Σ' ->
   red1 Σ Γ M N ->
   red1 Σ' Γ M N.
-Proof using P Pcmp cf.
+Proof using P Pred Pcmp cf.
   induction 3 using red1_ind_all;
     try solve [econstructor; eauto with extends; solve_all].
+Qed.
+
+Lemma weakening_env_red Σ Σ' Γ M N :
+  wf Σ' ->
+  extends Σ Σ' ->
+  red Σ Γ M N ->
+  red Σ' Γ M N.
+Proof using P Pred Pcmp cf.
+  induction 3;
+    try solve [econstructor; eauto with extends].
+  constructor.
+  eapply weakening_env_red1; eassumption.
 Qed.
 
 Lemma weakening_env_cumul_gen pb Σ Σ' φ Γ M N :
@@ -142,7 +155,7 @@ Lemma weakening_env_cumul_gen pb Σ Σ' φ Γ M N :
   extends Σ Σ' ->
   cumulAlgo_gen (Σ, φ)  Γ pb M N ->
   cumulAlgo_gen (Σ', φ) Γ pb M N.
-Proof using P Pcmp.
+Proof using P Pred Pcmp.
   intros wfΣ ext.
   induction 1; simpl.
   - econstructor. eapply compare_term_subset.
@@ -158,14 +171,14 @@ Lemma weakening_env_conv Σ Σ' φ Γ M N :
   extends Σ Σ' ->
   convAlgo (Σ, φ) Γ M N ->
   convAlgo (Σ', φ) Γ M N.
-Proof using P Pcmp. apply weakening_env_cumul_gen with (pb := Conv). Qed.
+Proof using P Pred Pcmp. apply weakening_env_cumul_gen with (pb := Conv). Qed.
 
 Lemma weakening_env_cumul Σ Σ' φ Γ M N :
   wf Σ' ->
   extends Σ Σ' ->
   cumulAlgo (Σ, φ) Γ M N ->
   cumulAlgo (Σ', φ) Γ M N.
-Proof using P Pcmp. apply weakening_env_cumul_gen with (pb := Cumul). Qed.
+Proof using P Pred Pcmp. apply weakening_env_cumul_gen with (pb := Cumul). Qed.
 
 
 Lemma weakening_env_cumulSpec0 Σ Σ' φ Γ pb M N :
@@ -199,6 +212,7 @@ Proof.
   - eapply cumul_Construct; eauto. 2:solve_all.
     eapply @R_global_instance_weaken_env. 1,2,6:eauto. all: tc.
   - eapply cumul_Sort. eapply subrelations_compare_extends; tea.
+  - eapply cumul_Symb. eapply R_universe_instance_impl'; eauto; tc.
   - eapply cumul_Const. eapply R_universe_instance_impl'; eauto; tc.
 Defined.
 
@@ -208,19 +222,19 @@ Lemma weakening_env_convSpec Σ Σ' φ Γ M N :
   extends Σ Σ' ->
   convSpec (Σ, φ) Γ M N ->
   convSpec (Σ', φ) Γ M N.
-Proof using P Pcmp. apply weakening_env_cumulSpec0 with (pb := Conv). Qed.
+Proof using P Pred Pcmp. apply weakening_env_cumulSpec0 with (pb := Conv). Qed.
 
 Lemma weakening_env_cumulSpec Σ Σ' φ Γ M N :
   wf Σ' ->
   extends Σ Σ' ->
   cumulSpec (Σ, φ) Γ M N ->
   cumulSpec (Σ', φ) Γ M N.
-Proof using P Pcmp. apply weakening_env_cumulSpec0 with (pb := Cumul). Qed.
+Proof using P Pred Pcmp. apply weakening_env_cumulSpec0 with (pb := Cumul). Qed.
 
 Lemma weakening_env_conv_decls {Σ φ Σ' Γ Γ'} :
   wf Σ' -> extends Σ Σ' ->
   CRelationClasses.subrelation (conv_decls cumulSpec0 (Σ, φ) Γ Γ') (conv_decls cumulSpec0 (Σ', φ) Γ Γ').
-Proof using P Pcmp.
+Proof using P Pred Pcmp.
   intros wfΣ' ext d d' Hd; depelim Hd; constructor; tas;
     eapply weakening_env_convSpec; tea.
 Qed.
@@ -228,7 +242,7 @@ Qed.
 Lemma weakening_env_cumul_decls {Σ φ Σ' Γ Γ'} :
   wf Σ' -> extends Σ Σ' ->
   CRelationClasses.subrelation (cumul_decls cumulSpec0 (Σ, φ) Γ Γ') (cumul_decls cumulSpec0 (Σ', φ) Γ Γ').
-Proof using P Pcmp.
+Proof using P Pred Pcmp.
   intros wfΣ' ext d d' Hd; depelim Hd; constructor; tas;
     (eapply weakening_env_convSpec || eapply weakening_env_cumulSpec); tea.
 Qed.
@@ -238,7 +252,7 @@ Lemma weakening_env_conv_ctx {Σ Σ' φ Γ Δ} :
   extends Σ Σ' ->
   conv_context cumulSpec0 (Σ, φ) Γ Δ ->
   conv_context cumulSpec0 (Σ', φ) Γ Δ.
-Proof using P Pcmp.
+Proof using P Pred Pcmp.
   intros wfΣ' ext.
   intros; eapply All2_fold_impl; tea => Γ0 Γ' d d'.
   now eapply weakening_env_conv_decls.
@@ -250,7 +264,7 @@ Lemma weakening_env_cumul_ctx {Σ Σ' φ Γ Δ} :
   extends Σ Σ' ->
   cumul_context cumulSpec0 (Σ, φ) Γ Δ ->
   cumul_context cumulSpec0 (Σ', φ) Γ Δ.
-Proof using P Pcmp.
+Proof using P Pred Pcmp.
   intros wfΣ' ext.
   intros; eapply All2_fold_impl; tea => Γ0 Γ' d d'.
   now eapply weakening_env_cumul_decls.

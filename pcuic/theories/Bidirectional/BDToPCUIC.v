@@ -105,6 +105,7 @@ Section BDToPCUICTyping.
   Context `{cf : checker_flags}.
   Context (Σ : global_env_ext).
   Context (wfΣ : wf Σ).
+  Context (Hrew : type_preserving Σ).
 
   (** The predicates we wish to prove, note the extra well-formedness hypothesis on the context
   and type whenever they are inputs to the algorithm *)
@@ -213,7 +214,7 @@ Section BDToPCUICTyping.
 
   (** The big theorem, proven by mutual induction using the custom induction principle *)
   Theorem bidirectional_to_pcuic : env_prop_bd Σ Pcheck Pinfer Psort Pprod Pind PΓ PΓ_rel.
-  Proof using wfΣ.
+  Proof using wfΣ Hrew.
     apply bidir_ind_env.
 
     - intros. eapply bd_wf_local. eassumption.
@@ -258,6 +259,8 @@ Section BDToPCUICTyping.
 
     - red ; intros ; econstructor ; eauto.
 
+    - red ; intros ; econstructor ; eauto.
+
     - intros ; intro.
 
       assert (cparams : ctx_inst Σ Γ (pparams p) (List.rev (ind_params mdecl)@[puinst p])).
@@ -265,7 +268,7 @@ Section BDToPCUICTyping.
         rewrite rev_involutive.
         apply wf_rel_weak ; auto.
         move: (H) => [decl ?].
-        unshelve epose proof (decl' := declared_minductive_to_gen decl); eauto.
+        pose proof (decl' := declared_minductive_to_gen (wfΣ := wfΣ) decl).
         eapply wf_local_subst_instance_decl ; eauto.
         eapply wf_local_app_inv.
         now eapply on_minductive_wf_params_indices.
@@ -440,7 +443,7 @@ End BDToPCUICTyping.
 
 (** The user-facing theorems, directly following from the previous one *)
 
-Theorem infering_typing `{checker_flags} (Σ : global_env_ext) Γ t T (wfΣ : wf Σ) :
+Theorem infering_typing `{checker_flags} (Σ : global_env_ext) Γ t T (wfΣ : wf Σ) (Hrew : type_preserving Σ) :
   wf_local Σ Γ -> Σ ;;; Γ |- t ▹ T -> Σ ;;; Γ |- t : T.
 Proof.
   intros.
@@ -448,7 +451,7 @@ Proof.
   all: assumption.
 Qed.
 
-Theorem checking_typing `{checker_flags} (Σ : global_env_ext) Γ t T (wfΣ : wf Σ) :
+Theorem checking_typing `{checker_flags} (Σ : global_env_ext) Γ t T (wfΣ : wf Σ) (Hrew : type_preserving Σ) :
   wf_local Σ Γ -> isType Σ Γ T -> Σ ;;; Γ |- t ◃ T -> Σ ;;; Γ |- t : T.
 Proof.
   intros wfΓ HT Ht. revert wfΓ HT.
@@ -456,15 +459,15 @@ Proof.
   all: assumption.
 Qed.
 
-Theorem infering_sort_typing `{checker_flags} (Σ : global_env_ext) Γ t u (wfΣ : wf Σ) :
+Theorem infering_sort_typing `{checker_flags} (Σ : global_env_ext) Γ t u (wfΣ : wf Σ) (Hrew : type_preserving Σ) :
   wf_local Σ Γ -> Σ ;;; Γ |- t ▹□ u -> Σ ;;; Γ |- t : tSort u.
 Proof.
   intros wfΓ Ht. revert Ht wfΓ.
-  apply bidirectional_to_pcuic.
+  apply bidirectional_to_pcuic;
   assumption.
 Qed.
 
-Theorem infering_sort_isType `{checker_flags} (Σ : global_env_ext) Γ t u (wfΣ : wf Σ) :
+Theorem infering_sort_isType `{checker_flags} (Σ : global_env_ext) Γ t u (wfΣ : wf Σ) (Hrew : type_preserving Σ) :
   wf_local Σ Γ -> Σ ;;; Γ |- t ▹□ u -> isType Σ Γ t.
 Proof.
   intros wfΓ Ht.
@@ -472,44 +475,44 @@ Proof.
   now apply infering_sort_typing.
 Qed.
 
-Theorem einfering_sort_isType `{checker_flags} (Σ : global_env_ext) Γ t (wfΣ : wf Σ) :
+Theorem einfering_sort_isType `{checker_flags} (Σ : global_env_ext) Γ t (wfΣ : wf Σ) (Hrew : type_preserving Σ) :
   wf_local Σ Γ -> (∑ u, Σ ;;; Γ |- t ▹□ u) -> isType Σ Γ t.
 Proof.
   intros wfΓ [u Ht].
   now eapply infering_sort_isType.
 Qed.
 
-Theorem infering_prod_typing `{checker_flags} (Σ : global_env_ext) Γ t na A B (wfΣ : wf Σ) :
+Theorem infering_prod_typing `{checker_flags} (Σ : global_env_ext) Γ t na A B (wfΣ : wf Σ) (Hrew : type_preserving Σ) :
   wf_local Σ Γ -> Σ ;;; Γ |- t ▹Π (na,A,B) -> Σ ;;; Γ |- t : tProd na A B.
 Proof.
   intros wfΓ Ht. revert Ht wfΓ.
-  apply bidirectional_to_pcuic.
+  apply bidirectional_to_pcuic;
   assumption.
 Qed.
 
-Theorem infering_ind_typing `{checker_flags} (Σ : global_env_ext) Γ t ind u args (wfΣ : wf Σ) :
+Theorem infering_ind_typing `{checker_flags} (Σ : global_env_ext) Γ t ind u args (wfΣ : wf Σ) (Hrew : type_preserving Σ) :
 wf_local Σ Γ -> Σ ;;; Γ |- t ▹{ind} (u,args) -> Σ ;;; Γ |- t : mkApps (tInd ind u) args.
 Proof.
   intros wfΓ Ht. revert Ht wfΓ.
-  apply bidirectional_to_pcuic.
+  apply bidirectional_to_pcuic;
   assumption.
 Qed.
 
-Theorem wf_local_bd_typing `{checker_flags} (Σ : global_env_ext) Γ (wfΣ : wf Σ) :
+Theorem wf_local_bd_typing `{checker_flags} (Σ : global_env_ext) Γ (wfΣ : wf Σ) (Hrew : type_preserving Σ) :
   wf_local_bd Σ Γ -> wf_local Σ Γ.
 Proof.
-  apply bidirectional_to_pcuic.
+  apply bidirectional_to_pcuic;
   assumption.
 Qed.
 
-Theorem wf_local_bd_rel_typing `{checker_flags} (Σ : global_env_ext) Γ Γ' (wfΣ : wf Σ) :
+Theorem wf_local_bd_rel_typing `{checker_flags} (Σ : global_env_ext) Γ Γ' (wfΣ : wf Σ) (Hrew : type_preserving Σ) :
   wf_local Σ Γ -> wf_local_bd_rel Σ Γ Γ' -> wf_local_rel Σ Γ Γ'.
 Proof.
   intros.
   now apply bidirectional_to_pcuic.
 Qed.
 
-Theorem ctx_inst_bd_typing `{checker_flags} (Σ : global_env_ext) Γ l Δ (wfΣ : wf Σ) :
+Theorem ctx_inst_bd_typing `{checker_flags} (Σ : global_env_ext) Γ l Δ (wfΣ : wf Σ) (Hrew : type_preserving Σ) :
   wf_local Σ (Γ,,,Δ) ->
   PCUICTyping.ctx_inst checking Σ Γ l (List.rev Δ) ->
   PCUICTyping.ctx_inst typing Σ Γ l (List.rev Δ).

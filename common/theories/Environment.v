@@ -6,6 +6,7 @@ From MetaCoq.Common Require Import BasicAst Primitive Universes.
 Module Type Term.
 
   Parameter Inline term : Type.
+  Parameter Inline pattern : Type.
 
   Parameter Inline tRel : nat -> term.
   Parameter Inline tSort : Universe.t -> term.
@@ -19,10 +20,13 @@ Module Type Term.
   Parameter Inline lift : nat -> nat -> term -> term.
   Parameter Inline subst : list term -> nat -> term -> term.
   Parameter Inline closedn : nat -> term -> bool.
+  Notation closedn_ctx := (test_context_k closedn).
+  Parameter Inline closedu : nat -> term -> bool.
   Parameter Inline noccur_between : nat -> nat -> term -> bool.
   Parameter Inline subst_instance_constr : UnivSubst term.
 
   Notation lift0 n := (lift n 0).
+  Notation subst0 s := (subst s 0).
 End Term.
 
 Module Retroknowledge.
@@ -63,12 +67,12 @@ Module Environment (T : Term).
 
   (** Local (de Bruijn) variable binding *)
 
-  Definition vass x A : context_decl :=
+  Definition vass {T} x A : BasicAst.context_decl T :=
     {| decl_name := x ; decl_body := None ; decl_type := A |}.
 
   (** Local (de Bruijn) let-binding *)
 
-  Definition vdef x t A : context_decl :=
+  Definition vdef {T} x t A : BasicAst.context_decl T :=
     {| decl_name := x ; decl_body := Some t ; decl_type := A |}.
 
   (** Local (de Bruijn) context *)
@@ -157,6 +161,17 @@ Module Environment (T : Term).
       end
     end.
 
+  (** Assumption contexts do not contain definitions *)
+
+  Inductive assumption_context : context -> Prop :=
+    | assumption_context_nil : assumption_context []
+    | assumption_context_vass :
+        forall na t Γ,
+          assumption_context Γ ->
+          assumption_context (vass na t :: Γ).
+
+  Derive Signature for assumption_context.
+
   (** Smashing a context produces an assumption context. *)
 
   Fixpoint smash_context (Γ Γ' : context) : context :=
@@ -226,6 +241,40 @@ Module Environment (T : Term).
   Lemma expand_lets_ctx_length Γ Δ : #|expand_lets_ctx Γ Δ| = #|Δ|.
   Proof. now rewrite /expand_lets_ctx; len. Qed.
   #[global] Hint Rewrite expand_lets_ctx_length : len.
+
+  Inductive untyped_subslet (Γ : context) : list term -> context -> Type :=
+  | untyped_emptyslet : untyped_subslet Γ [] []
+  | untyped_cons_let_ass Δ s na t T :
+      untyped_subslet Γ s Δ ->
+      untyped_subslet Γ (t :: s) (Δ ,, vass na T)
+  | untyped_cons_let_def Δ s na t T :
+      untyped_subslet Γ s Δ ->
+      untyped_subslet Γ (subst0 s t :: s) (Δ ,, vdef na t T).
+
+  Lemma untyped_subslet_length {Γ s Δ} : untyped_subslet Γ s Δ -> #|s| = #|Δ|.
+  Proof. induction 1; simpl; lia. Qed.
+  #[global] Hint Rewrite @untyped_subslet_length : len.
+
+  Lemma untyped_subslet_context {Γ Γ' s Δ} : untyped_subslet Γ s Δ -> untyped_subslet Γ' s Δ.
+  Proof. induction 1; now constructor. Qed.
+
+  Lemma untyped_subslet_assumption {Γ Γ' s s' Δ Δ'} :
+    assumption_context Δ -> assumption_context Δ' ->
+    #|Δ| = #|Δ'| -> #|s| = #|s'| ->
+    untyped_subslet Γ s Δ -> untyped_subslet Γ' s' Δ'.
+  Proof.
+    induction Δ as [| [na [b|] ty] Δ] in s, s', Δ' |- *; intros H H' e e' X.
+    - inversion X; subst. destruct s', Δ' => //. constructor.
+    - exfalso. inv H.
+    - inversion X; subst. destruct s', Δ' => //.
+      destruct c as [na' [b'|] ty']; [exfalso; inv H'|].
+      constructor.
+      eapply IHΔ; tea.
+      + now inv H.
+      + now inv H'.
+      + cbn in e. now inv e.
+      + cbn in e'. now inv e'.
+  Qed.
 
   Definition fix_context (m : mfixpoint term) : context :=
     List.rev (mapi (fun i d => vass d.(dname) (lift i 0 d.(dtype))) m).
@@ -318,9 +367,74 @@ Module Environment (T : Term).
     option_map f (cst_body decl) = cst_body (map_constant_body f decl).
   Proof. destruct decl; reflexivity. Qed.
 
+  (** REWRITE RULES *)
+  Record rewrite_rule := mkrew {
+    pat_holes : nat ; (* Number of holes in the lhs, also the size of the context under which rhs exists *)
+    pat_head : nat ; (* Head symbol, local reference in the block *)
+    pat_lhs : pattern ;
+    rhs : term (* under context [context_of_symbols ,,, pat_context] *)
+  }.
+
+  Record symbol := mksymb {
+    symb_name : name ;
+    symb_rel : relevance;
+    symb_type : term ;
+  }.
+
+  Record rewrite_decl := {
+    symbols : list symbol ;
+    (* Relevances and types of the different symbols in the block,
+       can be thought of as a context.
+       The head can depend on the tail.
+     *)
+    rules : list rewrite_rule ; (* The actual rewrite rules *)
+    prules : list rewrite_rule ; (* Parallel rewrite rules to complete the
+                                    others. They aren't used in the theory
+                                    itself, only as an intermediary for
+                                    confluence.
+                                  *)
+    rew_universes : universes_decl
+  }.
+
+  Definition context_of_symbols :=
+    map (fun symb => vass (mkBindAnn symb.(symb_name) symb.(symb_rel)) symb.(symb_type)).
+
+  Record found_substitution := {
+    found_subst : list term;
+    found_usubst : Instance.t ;
+  }.
+
+  Definition found_substitution_map f fu s :=
+    {| found_subst := f s.(found_subst); found_usubst := fu s.(found_usubst) |}.
+
+  Lemma found_substitution_map_map f f' fu fu' s :
+    found_substitution_map f fu (found_substitution_map f' fu' s) =
+    found_substitution_map (f ∘ f') (fu ∘ fu') s.
+  Proof.
+    now destruct s.
+  Qed.
+
+  Definition found_substitution_app s s' :=
+    found_substitution_map (fun s => s ++ s') id s.
+
+  Infix "++f" := found_substitution_app (at level 59).
+
+  Lemma found_substitution_map_app f fu s1 s2 :
+    found_substitution_map (List.map f) fu (s1 ++f s2) =
+    found_substitution_map (List.map f) fu s1 ++f List.map f s2.
+  Proof.
+    destruct s1 as [fs fus]; cbn.
+    unfold found_substitution_app.
+    rewrite !found_substitution_map_map.
+    unfold found_substitution_map.
+    cbn.
+    now rewrite map_app.
+  Qed.
+
   Inductive global_decl :=
   | ConstantDecl : constant_body -> global_decl
-  | InductiveDecl : mutual_inductive_body -> global_decl.
+  | InductiveDecl : mutual_inductive_body -> global_decl
+  | RewriteDecl : rewrite_decl -> global_decl.
   Derive NoConfusion for global_decl.
 
   Definition global_declarations := list (kername * global_decl).
@@ -862,6 +976,25 @@ Module Environment (T : Term).
     lia.
   Qed.
 
+  Lemma assumption_context_to_assumptions Γ :
+    assumption_context Γ -> context_assumptions Γ = #|Γ|.
+  Proof.
+    induction Γ => //; intro H.
+    destruct a as [na [b|] ty]; cbn.
+    - exfalso; inv H.
+    - f_equal; apply IHΓ. now inv H.
+  Qed.
+
+  Lemma context_assumptions_to_assumption_context Γ :
+    context_assumptions Γ = #|Γ| -> assumption_context Γ.
+  Proof.
+    induction Γ; intro H.
+    1: constructor.
+    destruct a as [na [b|] ty]; cbn in *.
+    - pose proof (context_assumptions_length_bound Γ); lia.
+    - constructor. now inversion H.
+  Qed.
+
   Lemma context_assumptions_map f Γ : context_assumptions (map_context f Γ) = context_assumptions Γ.
   Proof.
     induction Γ as [|[? [?|] ?] ?]; simpl; auto.
@@ -907,6 +1040,33 @@ Module Environment (T : Term).
 
   #[global] Hint Rewrite context_assumptions_subst_instance
      context_assumptions_subst_context context_assumptions_lift_context : len.
+
+  (** Lifting a relation to declarations, without alpha renaming. *)
+  Inductive All1_decls {A} (P : A -> Type) : BasicAst.context_decl A -> Type :=
+  | on_vass1 na t :
+    P t ->
+    All1_decls P (vass na t)
+
+  | on_vdef1 na b t :
+    P b ->
+    P t ->
+    All1_decls P (vdef na b t).
+  Derive Signature NoConfusion for All1_decls.
+
+  Lemma All1_decls_impl {A} (P Q : A -> Type) d :
+    All1_decls P d ->
+    (forall t, P t -> Q t) ->
+    All1_decls Q d.
+  Proof.
+    intros ond H; destruct ond; constructor; auto.
+  Qed.
+
+  Definition All_fold_over {A} (P : list (BasicAst.context_decl A) -> BasicAst.context_decl A -> Type) Γ :=
+    All_fold (fun Δ => P (Δ ++ Γ)).
+
+  Notation on_decls1 P := (fun Γ => All1_decls (P Γ)).
+  Notation on_contexts1 P := (All_fold (on_decls1 P)).
+  Notation on_contexts1_over P Γ := (All_fold_over (on_decls1 P) Γ).
 
   (** Lifting a relation to declarations, without alpha renaming. *)
   Inductive All_decls (P : term -> term -> Type) : context_decl -> context_decl -> Type :=
@@ -975,5 +1135,14 @@ Module Type TermUtils (T: Term) (E: EnvironmentSig T).
 
   Parameter Inline destArity : context -> term -> option (context × Universe.t).
   Parameter Inline inds : kername -> Instance.t -> list one_inductive_body -> list term.
+
+  Parameter Inline symbols_subst :
+    kername -> nat -> Instance.t -> nat -> list term.
+  Parameter Inline context_env_clos :
+    (context -> term -> term -> Type) -> context -> term -> term -> Type.
+
+  Parameter Inline pattern_matches : pattern -> term -> found_substitution -> Type.
+  Parameter Inline pattern_holes : pattern -> nat.
+  Parameter Inline pattern_head : pattern -> kername × nat.
 
 End TermUtils.

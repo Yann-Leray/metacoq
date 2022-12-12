@@ -1,9 +1,9 @@
 (* Distributed under the terms of the MIT license. *)
 From MetaCoq.Utils Require Import utils.
-From MetaCoq.Common Require Import config.
+From MetaCoq.Common Require Import config EnvironmentTyping.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICOnOne PCUICAstUtils
-     PCUICLiftSubst PCUICUnivSubst PCUICInduction
-     PCUICCases PCUICClosed PCUICTactics.
+     PCUICLiftSubst PCUICUnivSubst PCUICInduction PCUICGlobalMaps
+     PCUICCases PCUICPattern PCUICClosed PCUICTactics.
 
 Require Import ssreflect.
 Require Import Equations.Prop.DepElim.
@@ -64,6 +64,13 @@ Inductive red1 (Σ : global_env) (Γ : context) : term -> term -> Type :=
     nth_error args (p.(proj_npars) + p.(proj_arg)) = Some arg ->
     Σ ;;; Γ |- tProj p (mkApps (tConstruct p.(proj_ind) 0 u) args) ⇝ arg
 
+(** Rewrite rule *)
+| red_rewrite k rdecl r decl lhs s :
+    declared_rule Σ k r rdecl decl ->
+    pattern_matches decl.(pat_lhs) lhs s ->
+    let ss := symbols_subst k 0 s.(found_usubst) #|rdecl.(symbols)| in
+    let rhs := subst (s.(found_subst) ++ ss) 0 decl.(rhs) in
+    red1 Σ Γ lhs rhs
 
 | abs_red_l na M M' N : Σ ;;; Γ |- M ⇝ M' -> Σ ;;; Γ |- tLambda na M N ⇝ tLambda na M' N
 | abs_red_r na M M' N : Σ ;;; Γ ,, vass na N |- M ⇝ M' -> Σ ;;; Γ |- tLambda na N M ⇝ tLambda na N M'
@@ -118,6 +125,8 @@ Inductive red1 (Σ : global_env) (Γ : context) : term -> term -> Type :=
     Σ ;;; Γ |- tCoFix mfix0 idx ⇝ tCoFix mfix1 idx
 where " Σ ;;; Γ |- t ⇝ u " := (red1 Σ Γ t u).
 
+Derive Signature for red1.
+
 Definition red1_ctx Σ := (OnOne2_local_env (on_one_decl (fun Δ t t' => red1 Σ Δ t t'))).
 Definition red1_ctx_rel Σ Γ := (OnOne2_local_env (on_one_decl (fun Δ t t' => red1 Σ (Γ ,,, Δ) t t'))).
 
@@ -160,6 +169,13 @@ Lemma red1_ind_all :
          (arg : term),
            nth_error args (p.(proj_npars) + p.(proj_arg)) = Some arg ->
            P Γ (tProj p (mkApps (tConstruct p.(proj_ind) 0 u) args)) arg) ->
+
+       (forall (Γ : context) k rdecl r decl lhs (s : found_substitution),
+        declared_rule Σ k r rdecl decl ->
+        pattern_matches decl.(pat_lhs) lhs s ->
+        let ss := symbols_subst k 0 s.(found_usubst) #|rdecl.(symbols)| in
+        let rhs := subst (s.(found_subst) ++ ss) 0 decl.(rhs) in
+        P Γ lhs rhs) ->
 
        (forall (Γ : context) (na : aname) (M M' N : term),
         red1 Σ Γ M M' -> P Γ M M' -> P Γ (tLambda na M N) (tLambda na M' N)) ->
@@ -242,7 +258,7 @@ Lemma red1_ind_all :
 
        forall (Γ : context) (t t0 : term), red1 Σ Γ t t0 -> P Γ t t0.
 Proof.
-  intros. rename X27 into Xlast. revert Γ t t0 Xlast.
+  intros. rename X28 into Xlast. revert Γ t t0 Xlast.
   fix aux 4. intros Γ t T.
   move aux at top.
   destruct 1; match goal with
@@ -277,22 +293,22 @@ Proof.
     + constructor. split; auto.
     + constructor. auto.
 
-  - eapply X23.
+  - eapply X24.
     revert mfix0 mfix1 o; fix auxl 3.
     intros l l' Hl; destruct Hl;
     constructor; try split; auto; intuition.
 
-  - eapply X24.
+  - eapply X25.
     revert o. generalize (fix_context mfix0). intros c Xnew.
     revert mfix0 mfix1 Xnew; fix auxl 3; intros l l' Hl;
     destruct Hl; constructor; try split; auto; intuition.
 
-  - eapply X25.
+  - eapply X26.
     revert mfix0 mfix1 o.
     fix auxl 3; intros l l' Hl; destruct Hl;
       constructor; try split; auto; intuition.
 
-  - eapply X26.
+  - eapply X27.
     revert o. generalize (fix_context mfix0). intros c new.
     revert mfix0 mfix1 new; fix auxl 3; intros l l' Hl; destruct Hl;
       constructor; try split; auto; intuition.
@@ -303,7 +319,14 @@ Hint Constructors red1 : pcuic.
 
 Definition red Σ Γ := clos_refl_trans (fun t u : term => Σ;;; Γ |- t ⇝ u).
 
+Polymorphic Derive Signature for Relation.clos_refl_trans.
+
 Notation " Σ ;;; Γ |- t ⇝* u " := (red Σ Γ t u) (at level 50, Γ, t, u at next level).
+
+Module PCUICReductionPar <: ReductionParSig PCUICTerm PCUICEnvironment PCUICEnvTyping PCUICTermUtils.
+  Definition red := @red.
+End PCUICReductionPar.
+
 
 Definition red_one_ctx_rel (Σ : global_env) (Γ : context) :=
   OnOne2_local_env
@@ -429,8 +452,8 @@ Section ReductionCongruence.
   | tCtxCase_branch      : case_info -> predicate term (* type info *)
                            -> term (* discriminee *) -> branch_context (* branches *) -> term_context
   | tCtxProj      : projection -> term_context -> term_context
-  (* | tCtxFix       : mfixpoint_context -> nat -> term_context harder because types of fixpoints are necessary *)
-  (* | tCtxCoFix     : mfixpoint_context -> nat -> term_context *)
+  | tCtxFix       : mfixpoint_context -> nat -> term_context (* harder because types of fixpoints are necessary *)
+  | tCtxCoFix     : mfixpoint_context -> nat -> term_context
 
   with list_context :=
    | tCtxHead : term_context -> list term -> list_context
@@ -438,15 +461,12 @@ Section ReductionCongruence.
 
   with branch_context :=
    | tCtxHead_nat : (context * term_context) -> list (branch term) -> branch_context
-   | tCtxTail_nat : (branch term) -> branch_context -> branch_context.
+   | tCtxTail_nat : (branch term) -> branch_context -> branch_context
 
-  (* with mfixpoint_context := *)
-  (*  | tCtxHead_mfix : def_context -> list (def term) -> mfixpoint_context *)
-  (*  | tCtxTail_mfix : def term -> mfixpoint_context -> mfixpoint_context *)
-
-  (* with def_context := *)
-  (*  | tCtxType : name -> term_context -> term -> nat -> def_context *)
-  (*  | tCtxDef : name -> term -> term_context -> nat -> def_context. *)
+  with mfixpoint_context :=
+   | tCtxHead_mfix_Type : aname -> term_context -> term -> nat -> mfixpoint term -> mfixpoint_context
+   | tCtxHead_mfix_Def : aname -> term -> term_context -> nat -> mfixpoint term -> mfixpoint_context
+   | tCtxTail_mfix : def term -> mfixpoint_context -> mfixpoint_context.
 
   Fixpoint branch_contexts (b : branch_context) : list context :=
     match b with
@@ -481,9 +501,9 @@ Section ReductionCongruence.
                   preturn := fill_context p |} c brs ;
     | tCtxCase_discr ci p c brs => tCase ci p (fill_context c) brs;
     | tCtxCase_branch ci p c brs => tCase ci p c (fill_branch_context brs);
-    | tCtxProj p c => tProj p (fill_context c) }
-    (* | tCtxFix mfix n => tFix (fill_mfix_context mfix) n; *)
-    (* | tCtxCoFix mfix n => tCoFix (fill_mfix_context mfix) n } *)
+    | tCtxProj p c => tProj p (fill_context c)
+    | tCtxFix mfix n => tFix (fill_mfix_context mfix) n;
+    | tCtxCoFix mfix n => tCoFix (fill_mfix_context mfix) n }
 
     with fill_list_context (l : list_context) : list term by struct l :=
     { fill_list_context (tCtxHead ctx l) => (fill_context ctx) :: l;
@@ -493,15 +513,15 @@ Section ReductionCongruence.
     { fill_branch_context (tCtxHead_nat (bctx, ctx) l) =>
       {| bcontext := bctx;
          bbody := fill_context ctx |} :: l;
-      fill_branch_context (tCtxTail_nat hd ctx) => hd :: fill_branch_context ctx }.
+      fill_branch_context (tCtxTail_nat hd ctx) => hd :: fill_branch_context ctx }
 
-    (* with fill_mfix_context (l : mfixpoint_context) : mfixpoint term by struct l := *)
-    (* { fill_mfix_context (tCtxHead_mfix (tCtxType na ty def rarg) l) => *)
-    (*     {| dname := na; dtype := fill_context ty; dbody := def; rarg := rarg |} :: l; *)
-    (*   fill_mfix_context (tCtxHead_mfix (tCtxDef na ty def rarg) l) => *)
-    (*     {| dname := na; dtype := ty; dbody := fill_context def; rarg := rarg |} :: l; *)
-    (*   fill_mfix_context (tCtxTail_mfix hd ctx) => hd :: fill_mfix_context ctx }. *)
-    Global Transparent fill_context fill_list_context fill_branch_context.
+    with fill_mfix_context (l : mfixpoint_context) : mfixpoint term by struct l :=
+    { fill_mfix_context (tCtxHead_mfix_Type na ty def rarg l) =>
+        {| dname := na; dtype := fill_context ty; dbody := def; rarg := rarg |} :: l;
+      fill_mfix_context (tCtxHead_mfix_Def na ty def rarg l) =>
+        {| dname := na; dtype := ty; dbody := fill_context def; rarg := rarg |} :: l;
+      fill_mfix_context (tCtxTail_mfix hd ctx) => hd :: fill_mfix_context ctx }.
+    Global Transparent fill_context fill_list_context fill_branch_context fill_mfix_context.
 
     Equations hole_context (ctx : term_context) (Γ : context) : context by struct ctx := {
     | tCtxHole | Γ => Γ;
@@ -520,9 +540,9 @@ Section ReductionCongruence.
       hole_context pret (Γ ,,, inst_case_context params puinst pctx);
     | tCtxCase_discr ci p c brs | Γ => hole_context c Γ;
     | tCtxCase_branch ci p c brs | Γ => hole_branch_context p brs Γ;
-    | tCtxProj p c | Γ => hole_context c Γ }
-    (* | tCtxFix mfix n | Γ => hole_mfix_context mfix Γ ; *)
-    (* | tCtxCoFix mfix n | Γ => hole_mfix_context mfix Γ } *)
+    | tCtxProj p c | Γ => hole_context c Γ
+    | tCtxFix mfix n | Γ => hole_mfix_context [] mfix Γ ;
+    | tCtxCoFix mfix n | Γ => hole_mfix_context [] mfix Γ }
 
     with hole_list_context (l : list_context) (Γ : context) : context by struct l :=
     { hole_list_context (tCtxHead ctx l) Γ => hole_context ctx Γ;
@@ -531,13 +551,15 @@ Section ReductionCongruence.
     with hole_branch_context (p : predicate term) (l : branch_context) (Γ : context) : context by struct l :=
     { hole_branch_context p (tCtxHead_nat (bctx, ctx) l) Γ =>
        hole_context ctx (Γ ,,, inst_case_context p.(pparams) p.(puinst) bctx);
-      hole_branch_context p (tCtxTail_nat hd ctx) Γ => hole_branch_context p ctx Γ }.
+      hole_branch_context p (tCtxTail_nat hd ctx) Γ => hole_branch_context p ctx Γ }
 
-    (* with hole_mfix_context (l : mfixpoint_context) (Γ : context) : context by struct l := *)
-    (* { hole_mfix_context (tCtxHead_mfix (tCtxType na ctx def rarg) _) Γ => hole_context ctx Γ; *)
-    (*   hole_mfix_context (tCtxHead_mfix (tCtxDef na ty ctx rarg) _) Γ => hole_context ctx; *)
-    (*   hole_mfix_context (tCtxTail_mfix hd ctx) Γ => hole_mfix_context ctx tys Γ }. *)
-    Global Transparent hole_context hole_list_context hole_branch_context.
+    with hole_mfix_context (mfix0 : mfixpoint term) (l : mfixpoint_context) (Γ : context) : context by struct l :=
+    { hole_mfix_context mfix0 (tCtxHead_mfix_Type na ctx def rarg _) Γ => hole_context ctx Γ;
+      hole_mfix_context mfix0 (tCtxHead_mfix_Def na ty ctx rarg mfix') Γ =>
+          let mfixc := PCUICPosition.fix_context_alt (rev_map PCUICPosition.def_sig mfix0 ++ [(na, ty)] ++ map PCUICPosition.def_sig mfix') in
+          hole_context ctx (Γ ,,, mfixc);
+      hole_mfix_context mfix0 (tCtxTail_mfix hd ctx) Γ => hole_mfix_context (hd :: mfix0) ctx Γ }.
+    Global Transparent hole_context hole_list_context hole_branch_context hole_mfix_context.
 
   End FillContext.
 
@@ -636,9 +658,22 @@ Section ReductionCongruence.
           let brctx := inst_case_branch_context p br in
           on_Trel_eq (red1 Σ (Γ ,,, brctx)) bbody bcontext br br')
           fill_l (fill_branch_context y l)).
+    set (P''' := fun l fill_l =>
+       forall mfix0 Γ y,
+       red1 Σ (hole_mfix_context mfix0 l Γ) x y -> (
+       OnOne2 (on_Trel_eq (fun t u => Σ ;;; Γ ,,, fix_context (List.rev mfix0 ++ fill_l) |- t ⇝ u) dbody (fun x => (dname x, dtype x, rarg x))) fill_l (fill_mfix_context y l) +
+       OnOne2 (on_Trel_eq (fun t u => Σ ;;; Γ |- t ⇝ u) dtype (fun x => (dname x, dbody x, rarg x))) fill_l (fill_mfix_context y l))).
     revert Γ y r.
-    eapply (fill_context_elim x P P' P''); subst P P' P''; cbv beta.
-    all:  intros **; simp fill_context; cbn in *; auto; try solve [constructor; eauto].
+    eapply (fill_context_elim x P P' P'' P'''); subst P P' P'' P'''; cbv beta.
+    all: intros **; simp fill_context; cbn -[fix_context] in *; auto; try solve [constructor; eauto].
+
+    1,2: specialize (X _ _ _ X0) as [X | X]; now constructor.
+    - now do 2 constructor.
+    - left. constructor. split => //. eapply X. relativize (fix_context _); tea.
+      rewrite PCUICPosition.fix_context_fix_context_alt rev_map_spec map_app /= {4}/PCUICPosition.def_sig /= -map_rev //.
+    - specialize (X _ _ _ X0) as [X | X].
+      1: rewrite /= -app_assoc in X.
+      all: solve [do 2 constructor; eauto].
     Qed.
 
   Theorem red_contextual_closure_equiv Γ t u : red Σ Γ t u <~> contextual_closure (red Σ) Γ t u.
@@ -2074,6 +2109,9 @@ Section Stacks.
         apply OnOne2_app.
         constructor; cbn.
         rewrite -app_assoc in h; auto.
+    - apply evar_red.
+      apply OnOne2_app.
+      constructor; auto.
   Qed.
 
   Corollary red_context_zip :

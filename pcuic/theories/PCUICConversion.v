@@ -310,8 +310,8 @@ Section ConvCongruences.
   Proof using Type.
     intros H; depind H.
     - destruct pb; now inversion c.
-    - depelim r. solve_discr.
-    - depelim r. solve_discr.
+    - depelim r; solve_discr.
+    - depelim r; solve_discr.
   Qed.
 
   Lemma ws_cumul_pb_Sort_Prod_inv {Γ s na dom codom} pb :
@@ -320,7 +320,7 @@ Section ConvCongruences.
   Proof using Type.
     intros H. depind H.
     - destruct pb; now inversion c.
-    - depelim r. solve_discr.
+    - depelim r; solve_discr.
     - depelim r; solve_discr.
       + eapply IHws_cumul_pb. reflexivity.
       + eapply IHws_cumul_pb. reflexivity.
@@ -331,11 +331,10 @@ Section ConvCongruences.
   Proof using Type.
     intros H; depind H; auto.
     - destruct pb; now inversion c.
-    - depelim r.
-      + solve_discr.
+    - depelim r; solve_discr.
       + eapply IHws_cumul_pb; reflexivity.
       + eapply IHws_cumul_pb; reflexivity.
-    - depelim r. solve_discr.
+    - depelim r; solve_discr.
   Qed.
 
   Lemma ws_cumul_pb_Sort_l_inv {Γ s T} pb :
@@ -344,7 +343,7 @@ Section ConvCongruences.
   Proof using Type.
     intros H. depind H.
     - destruct pb; inversion c; eauto using into_closed_red.
-    - depelim r. solve_discr.
+    - depelim r; solve_discr.
     - destruct IHws_cumul_pb as [s' [redv leq]].
       exists s'. split; auto. eapply into_closed_red; tea.
       eapply red_step with v; eauto with fvs.
@@ -353,13 +352,13 @@ Section ConvCongruences.
   Lemma ws_cumul_pb_Sort_r_inv {Γ s T} pb :
     Σ ;;; Γ ⊢ T ≤[pb] tSort s ->
     ∑ s', Σ ;;; Γ ⊢ T ⇝ tSort s' × compare_universe pb Σ s' s.
-  Proof using Type.
+  Proof using wfΣ.
     intros H. depind H.
     - destruct pb; inversion c; eauto using into_closed_red.
     - destruct IHws_cumul_pb as [s' [redv leq]].
       exists s'. split; auto. eapply into_closed_red; tea.
       eapply red_step with v; eauto with fvs.
-    - depelim r. solve_discr.
+    - depelim r; solve_discr.
   Qed.
 
   (* #[global]
@@ -550,6 +549,7 @@ Section ConvCongruences.
       depelim r; try specialize (X0 _ _ _ _ eq_refl) as
         [(? & ? & ? & [? ? ? ?])|?].
       - right. split; try apply clos_rt_rt1n_iff; eauto.
+      - solve_discr.
       - solve_discr.
       - left. do 3 eexists; split; eauto with pcuic.
         * transitivity r; eauto with pcuic.
@@ -904,7 +904,7 @@ Section Inversions.
   Proof using wfΣ.
     intros [clΓ clu H]. generalize_eq x (tSort u).
     induction H; simplify *.
-    - depind r. solve_discr.
+    - depind r; solve_discr.
     - reflexivity.
     - rewrite IHclos_refl_trans2; eauto with fvs.
   Qed.
@@ -1000,24 +1000,12 @@ Section Inversions.
   Proof using Type.
     intros Γ u v h a.
     induction u in Γ, v, h, a |- *. all: try contradiction.
-    - dependent destruction h.
-      apply (f_equal nApp) in H as eq. simpl in eq.
-      rewrite nApp_mkApps in eq. simpl in eq.
-      destruct args. 2: discriminate.
-      simpl in H. discriminate.
-    - dependent destruction h.
-      + apply (f_equal nApp) in H as eq. simpl in eq.
-        rewrite nApp_mkApps in eq. simpl in eq.
-        destruct args. 2: discriminate.
-        simpl in H. discriminate.
+    - dependent destruction h; solve_discr.
+    - dependent destruction h; solve_discr.
       + assumption.
       + simpl in *. eapply IHu2. all: eassumption.
-    - dependent destruction h.
+    - dependent destruction h; solve_discr.
       + simpl in *. apply isArity_subst. assumption.
-      + apply (f_equal nApp) in H as eq. simpl in eq.
-        rewrite nApp_mkApps in eq. simpl in eq.
-        destruct args. 2: discriminate.
-        simpl in H. discriminate.
       + assumption.
       + assumption.
       + simpl in *. eapply IHu3. all: eassumption.
@@ -3083,7 +3071,7 @@ End ConvSubst.
 #[global] Hint Rewrite @on_free_vars_subst_instance : fvs.
 #[global] Hint Rewrite @on_free_vars_ctx_subst_instance subst_instance_length : fvs.
 
-Lemma subst_instance_ws_cumul_pb {cf : checker_flags} (Σ : global_env_ext) Γ u A B univs pb :
+Lemma subst_instance_ws_cumul_pb {cf : checker_flags} (Σ : global_env_ext) (wfΣ : wf Σ) Γ u A B univs pb :
   valid_constraints (global_ext_constraints (Σ.1, univs))
                     (subst_instance_cstrs u Σ) ->
   Σ ;;; Γ ⊢ A ≤[pb] B ->
@@ -3095,7 +3083,7 @@ Proof.
     * eapply leq_term_subst_instance; tea.
     * eapply eq_term_subst_instance; tea.
   - econstructor 2; revgoals; cycle 1.
-    { eapply (red1_subst_instance Σ.1 Γ u t v r). }
+    { eapply (red1_subst_instance Σ.1 Γ u t v _ r). }
     all:eauto with fvs.
   - econstructor 3. 6:eapply red1_subst_instance; cbn; eauto.
     all: eauto with fvs.
@@ -3687,7 +3675,7 @@ Proof.
   intros e.
   revert pb Γ M N e HΓ HM HN.
   apply: (cumulSpec0_ind_all Σ).
-  1-9: intros; subst; econstructor 2; eauto; try solve [econstructor; eauto];
+  1-10: intros; subst; econstructor 2; eauto; try solve [econstructor; eauto];
     match goal with |- _ ;;; _  ⊢ ?t ≤[_] _ =>
       eapply (ws_cumul_pb_refl' (exist Γ _) (exist t _)) end.
   all: intro pb.
@@ -3790,6 +3778,7 @@ Proof.
     apply forallb_All in H3, H4. apply (All2_All_mix_left H3) in X. clear H3.
     apply (All2_All_mix_right H4) in X. clear H4. eapply All2_impl. 1: tea. cbn; intros x y [[Hx Heqxy] Hy].
     eapply Heqxy.2; eauto.
+  - intros. econstructor 1; eauto. destruct pb; subst; econstructor; eauto.
   - intros. econstructor 1; eauto. destruct pb; subst; econstructor; eauto.
   - intros. econstructor 1; eauto. destruct pb; subst; econstructor; eauto.
   Unshelve. all: eauto.

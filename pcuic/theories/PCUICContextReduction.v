@@ -107,6 +107,7 @@ Section CtxReduction.
     - repeat econstructor; eassumption.
     - repeat econstructor; eassumption.
     - repeat econstructor; eassumption.
+    - repeat (econstructor; tea).
     - eapply red_abs_alt; eauto.
     - eapply red_abs_alt; eauto.
       unshelve eapply (IHr (shiftnP 1 P)); tea.

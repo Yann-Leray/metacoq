@@ -75,10 +75,13 @@ Section with_tc.
             ind_universes := md.(Ast.Env.ind_universes);
             ind_variance := md.(Ast.Env.ind_variance) |}.
 
+    Axiom monad_trans_rewrite_body' : Ast.Env.rewrite_decl -> TemplateMonad rewrite_decl.
+
     Definition monad_trans_global_decl' (d : Ast.Env.global_decl) :=
       match d with
       | Ast.Env.ConstantDecl bd => bd <- monad_trans_constant_body' bd;; ret (ConstantDecl bd)
       | Ast.Env.InductiveDecl bd => bd <- monad_trans_minductive_body' bd;; ret (InductiveDecl bd)
+      | Ast.Env.RewriteDecl bd => bd <- monad_trans_rewrite_body' bd;; ret (RewriteDecl bd)
       end.
 
     Definition tmQuoteInductive' (mind : kername) : TemplateMonad mutual_inductive_body :=

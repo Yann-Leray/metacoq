@@ -374,7 +374,7 @@ Definition open_decl_proj {Γ : context} (d : open_decl Γ) := proj1_sig d.
 Coercion open_decl_proj : open_decl >-> context_decl.
 
 Definition vass_open_decl {Γ : closed_context} (na : binder_annot name) (t : open_term Γ) : open_decl Γ :=
-  exist (vass na t) (proj2_sig t).
+  exist (vass na (t : term)) (proj2_sig t).
 
 Definition ws_cumul_decls {cf : checker_flags} (pb : conv_pb) (Σ : global_env_ext)
   (Γ : context) (d : context_decl) (d' : context_decl) :=

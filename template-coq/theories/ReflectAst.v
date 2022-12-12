@@ -160,6 +160,12 @@ Proof.
     subst. left. reflexivity.
 Defined.
 
+#[global] Instance reflect_predicate : ReflectEq (predicate term) :=
+  let h := EqDec_ReflectEq _ in h.
+
+#[global] Instance reflect_branch : ReflectEq (branch term) :=
+  let h := EqDec_ReflectEq _ in h.
+
 #[global] Instance reflect_term : ReflectEq term :=
   let h := EqDec_ReflectEq term in _.
 
@@ -232,10 +238,61 @@ Proof.
   unfold eqb_mutual_inductive_body; finish_reflect.
 Defined.
 
+Definition eqb_symbol (x y : symbol) :=
+  let (namex, relx, typx) := x in
+  let (namey, rely, typy) := y in
+  eqb namex namey && eqb relx rely && eqb typx typy.
+
+#[global] Instance reflect_symbol : ReflectEq symbol.
+Proof.
+  refine {| eqb := eqb_symbol |}.
+  intros [] [].
+  unfold eqb_symbol; finish_reflect.
+Defined.
+
+Definition eqb_pattern (x y : pattern) :=
+  match x, y with
+  | _, _ => false
+  end.
+
+#[global] Instance reflect_pattern : ReflectEq pattern.
+Proof.
+  refine {| eqb := eqb_pattern |}.
+  admit;
+  intros [] [];
+  unfold eqb_pattern; finish_reflect.
+Admitted.
+
+Definition eqb_rewrite_rule (x y : rewrite_rule) :=
+  let (ctxx, headx, elimsx, rhsx) := x in
+  let (ctxy, heady, elimsy, rhsy) := y in
+  eqb ctxx ctxy && eqb headx heady && eqb elimsx elimsy && eqb rhsx rhsy.
+
+#[global] Instance reflect_rewrite_rule : ReflectEq rewrite_rule.
+Proof.
+  refine {| eqb := eqb_rewrite_rule |}.
+  intros [] [].
+  unfold eqb_rewrite_rule; finish_reflect.
+Defined.
+
+Definition eqb_rewrite_decl (x y : rewrite_decl) :=
+  let (symbx, rulx, prulx, univx) := x in
+  let (symby, ruly, pruly, univy) := y in
+  eqb symbx symby && eqb rulx ruly && eqb prulx pruly && eqb univx univy.
+
+#[global] Instance reflect_rewrite_decl : ReflectEq rewrite_decl.
+Proof.
+  refine {| eqb := eqb_rewrite_decl |}.
+  intros [] [].
+  unfold eqb_rewrite_decl; finish_reflect.
+Defined.
+
+
 Definition eqb_global_decl x y :=
   match x, y with
   | ConstantDecl cst, ConstantDecl cst' => eqb cst cst'
   | InductiveDecl mib, InductiveDecl mib' => eqb mib mib'
+  | RewriteDecl rew, RewriteDecl rew' => eqb rew rew'
   | _, _ => false
   end.
 

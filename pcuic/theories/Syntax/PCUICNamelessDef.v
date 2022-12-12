@@ -43,6 +43,7 @@ Fixpoint nameless (t : term) : bool :=
   | tLambda na A b => banon na && nameless A && nameless b
   | tLetIn na b B t => banon na && nameless b && nameless B && nameless t
   | tApp u v => nameless u && nameless v
+  | tSymb k n u => true
   | tConst c u => true
   | tInd i u => true
   | tConstruct i n u => true
@@ -99,6 +100,7 @@ Fixpoint nl (t : term) : term :=
   | tLambda na A b => tLambda (anonymize na) (nl A) (nl b)
   | tLetIn na b B t => tLetIn (anonymize na) (nl b) (nl B) (nl t)
   | tApp u v => tApp (nl u) (nl v)
+  | tSymb k n u => tSymb k n u
   | tConst c u => tConst c u
   | tInd i u => tInd i u
   | tConstruct i n u => tConstruct i n u
@@ -111,6 +113,18 @@ Fixpoint nl (t : term) : term :=
 
 Definition nlctx (Γ : context) : context :=
   map (map_decl_anon nl) Γ.
+
+Definition nl_rewrite_rule r :=
+  {| pat_holes := r.(pat_holes);
+     pat_head := r.(pat_head);
+     pat_lhs := r.(pat_lhs);
+     rhs := nl r.(rhs) |}.
+
+Definition nl_rewrite_decl rew :=
+  {| symbols := rew.(symbols);
+     rules := map nl_rewrite_rule rew.(rules);
+     prules := map nl_rewrite_rule rew.(prules);
+     rew_universes := rew.(rew_universes) |}.
 
 Definition nl_constant_body c :=
   Build_constant_body
@@ -152,6 +166,7 @@ Definition nl_global_decl (d : global_decl) : global_decl :=
   match d with
   | ConstantDecl cb => ConstantDecl (nl_constant_body cb)
   | InductiveDecl mib => InductiveDecl (nl_mutual_inductive_body mib)
+  | RewriteDecl rew => RewriteDecl (nl_rewrite_decl rew)
   end.
 
 Definition nl_global_declarations (Σ : global_declarations) : global_declarations :=

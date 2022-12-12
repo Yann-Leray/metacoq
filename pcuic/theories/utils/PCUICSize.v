@@ -45,6 +45,41 @@ Proof.
   rewrite IHl. simpl. lia.
 Qed.
 
+Lemma size_mkLambda_or_LetIn d t :
+  size (mkLambda_or_LetIn d t) = S (decl_size size d) + size t.
+Proof.
+  unfold decl_size.
+  destruct d, decl_body => /=; lia.
+Qed.
+
+Lemma size_it_mkLambda_or_LetIn ctx t :
+  size (it_mkLambda_or_LetIn ctx t) = context_size size ctx + size t.
+Proof.
+  unfold context_size.
+  induction ctx in t |- * => //=.
+  specialize (IHctx (mkLambda_or_LetIn a t)).
+  rewrite size_mkLambda_or_LetIn in IHctx.
+  lia.
+Qed.
+
+Lemma size_mkProd_or_LetIn d t :
+  size (mkProd_or_LetIn d t) = S (decl_size size d) + size t.
+Proof.
+  unfold decl_size.
+  destruct d, decl_body => /=; lia.
+Qed.
+
+Lemma size_it_mkProd_or_LetIn ctx t :
+  size (it_mkProd_or_LetIn ctx t) = context_size size ctx + size t.
+Proof.
+  unfold context_size.
+  induction ctx in t |- * => //=.
+  specialize (IHctx (mkProd_or_LetIn a t)).
+  rewrite size_mkProd_or_LetIn in IHctx.
+  lia.
+Qed.
+
+
 Lemma nth_error_size {A} (f : A -> nat) {l : list A} {n x} :
   nth_error l n = Some x ->
   f x < list_size f l.

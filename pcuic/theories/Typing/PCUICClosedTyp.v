@@ -76,7 +76,7 @@ Qed.
 Lemma declared_decl_closed_ind {cf : checker_flags} {Σ : global_env} {wfΣ : wf Σ} {cst decl} :
   lookup_env Σ cst = Some decl ->
   Forall_decls_typing (fun (_ : global_env_ext) (Γ : context) (t T : term) => closedn #|Γ| t && closedn #|Γ| T) Σ ->
-  on_global_decl cumulSpec0 (fun Σ Γ b t => closedn #|Γ| b && typ_or_sort_default (closedn #|Γ|) t true)
+  on_global_decl cumulSpec0 red (fun Σ Γ b t => closedn #|Γ| b && typ_or_sort_default (closedn #|Γ|) t true)
                  (Σ, universes_decl_of_decl decl) cst decl.
 Proof.
   intros.
@@ -190,6 +190,17 @@ Proof.
     generalize (closedn_subst [u] #|Γ| 0 B). rewrite Nat.add_0_r.
     move=> Hs. apply: Hs => /=. simpl. rewrite H1 => //.
     rewrite Nat.add_1_r. auto.
+
+  - apply closedn_subst0.
+    + unfold symbols_subst.
+      generalize (S n) at 1.
+      induction (#|symbols rdecl| - S n); simpl; auto.
+    + rewrite PCUICPattern.symbols_subst_length.
+      rewrite closedn_subst_instance.
+      eapply declared_symbol_inv in X0; eauto with extends.
+      destruct X0 as (_ & (Hs & _)%andb_and).
+      rewrite skipn_length map_length in Hs.
+      eauto using closed_upwards with arith.
 
   - eapply declared_constant_to_gen in H0.
     rewrite closedn_subst_instance.
@@ -480,7 +491,7 @@ Qed.
 Lemma declared_decl_closed `{checker_flags} {Σ : global_env} {cst decl} :
   wf Σ ->
   lookup_env Σ cst = Some decl ->
-  on_global_decl cumulSpec0 (fun Σ Γ b t => closedn #|Γ| b && typ_or_sort_default (closedn #|Γ|) t true)
+  on_global_decl cumulSpec0 red (fun Σ Γ b t => closedn #|Γ| b && typ_or_sort_default (closedn #|Γ|) t true)
                  (Σ, universes_decl_of_decl decl) cst decl.
 Proof.
   intros.
@@ -489,6 +500,30 @@ Proof.
 Qed.
 
 
+Lemma declared_symbol_closed_type {cf:checker_flags} {Σ : global_env} {wfΣ : wf Σ} {kn s rdecl sdecl u} :
+  declared_symbol Σ kn s rdecl sdecl ->
+  closed (type_of_symbol rdecl sdecl kn s u).
+Proof.
+  intros h.
+  eapply declared_symbol_to_gen in h.
+  destruct h as (h & e).
+  eapply lookup_on_global_env in h. 2: eauto.
+  destruct h as [Σ' [ext wfΣ' decl']].
+  destruct decl' as (onc & _ & _ & _).
+  eapply nth_error_All_local_env in onc.
+  2: eapply nth_error_Some_length in e; now rewrite map_length.
+  hnf in onc. rewrite nth_error_map e /on_local_decl /= in onc.
+  destruct onc as (? & h).
+  eapply subject_closed in h.
+  unfold type_of_symbol.
+  apply closedn_subst0.
+  { unfold symbols_subst. generalize (S s) at 1. induction (#|symbols _| - _); cbn; intros; auto. }
+  rewrite closedn_subst_instance.
+  rewrite PCUICPattern.symbols_subst_length.
+  rewrite skipn_length map_length in h.
+  apply h.
+  Unshelve. all: tea.
+Qed.
 
 Lemma declared_constant_closed_type {cf:checker_flags} {Σ : global_env} {wfΣ : wf Σ} {cst decl} :
   declared_constant Σ cst decl ->
@@ -758,6 +793,8 @@ Proof.
     eapply declared_constant_closed_body; eauto.
   - move: hav; rewrite on_free_vars_mkApps /=.
     now move/(nth_error_forallb H).
+  - apply on_declared_rule in H; tas.
+    eapply on_free_vars_rewrite_rule; tea.
   - rewrite (on_ctx_free_vars_concat _ _ [_]) // /= hctx
       on_ctx_free_vars_tip /= addnP_shiftnP /on_free_vars_decl
       /test_decl /= // hctx h2.
@@ -829,7 +866,8 @@ Lemma term_closedn_list_ind :
     (forall k (n : aname) (t : term),
         P k t -> forall t0 : term, P k t0 -> forall t1 : term, P (S k) t1 -> P k (tLetIn n t t0 t1)) ->
     (forall k (t u : term), P k t -> P k u -> P k (tApp t u)) ->
-    (forall k s (u : list Level.t), P  k (tConst s u)) ->
+    (forall k s (n : nat) (u : list Level.t), P k (tSymb s n u)) ->
+    (forall k s (u : list Level.t), P k (tConst s u)) ->
     (forall k (i : inductive) (u : list Level.t), P k (tInd i u)) ->
     (forall k (i : inductive) (n : nat) (u : list Level.t), P k (tConstruct i n u)) ->
     (forall k (ci : case_info) (p : predicate term),
@@ -941,6 +979,7 @@ Lemma term_noccur_between_list_ind :
     (forall k n (na : aname) (t : term),
         P k n t -> forall t0 : term, P k n t0 -> forall t1 : term, P (S k) n t1 -> P k n (tLetIn na t t0 t1)) ->
     (forall k n (t u : term), P k n t -> P k n u -> P k n (tApp t u)) ->
+    (forall k n s (i : nat) (u : list Level.t), P k n (tSymb s i u)) ->
     (forall k n s (u : list Level.t), P k n (tConst s u)) ->
     (forall k n (i : inductive) (u : list Level.t), P k n (tInd i u)) ->
     (forall k n (i : inductive) (c : nat) (u : list Level.t), P k n (tConstruct i c u)) ->

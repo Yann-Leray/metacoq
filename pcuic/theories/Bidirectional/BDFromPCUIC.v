@@ -111,8 +111,8 @@ Section BDFromPCUIC.
 
 (** The big theorem*)
 Lemma bidirectional_from_pcuic `{checker_flags} :
-      env_prop (fun Σ Γ t T => {T' & Σ ;;; Γ |- t ▹ T' × Σ ;;; Γ ⊢ T' ≤ T})
-        (fun Σ Γ => wf_local_bd Σ Γ).
+      env_prop (fun Σ Γ t T => type_preserving Σ -> {T' & Σ ;;; Γ |- t ▹ T' × Σ ;;; Γ ⊢ T' ≤ T})
+        (fun Σ Γ => type_preserving Σ -> wf_local_bd Σ Γ).
 Proof.
   apply typing_ind_env.
 
@@ -148,7 +148,7 @@ Proof.
     constructor.
     assumption.
 
-  - intros n A B ? ? ? ? CumA ? CumB.
+  - intros n A B ? ? ? ? CumA ? CumB Hrew.
     apply conv_infer_sort in CumA ; auto.
     destruct CumA as (?&?&?).
     apply conv_infer_sort in CumB ; auto.
@@ -162,7 +162,8 @@ Proof.
       apply leq_universe_product_mon.
       all: assumption.
 
-  - intros n A t ? ? ? ? CumA ? (?&?&?).
+  - intros n A t ? ? ? ? CumA ? ? Hrew.
+    destruct X2 as (?&?&?); tas.
     apply conv_infer_sort in CumA ; auto.
     destruct CumA as (?&?&?).
     eexists.
@@ -172,7 +173,8 @@ Proof.
       eapply isType_ws_cumul_pb_refl.
       by eexists ; eauto.
 
-  - intros n t A u ? ? ? ? CumA ? Cumt ? (?&?&?).
+  - intros n t A u ? ? ? ? CumA ? Cumt ? ? Hrew.
+    destruct X3 as (?&?&?); tas.
     apply conv_infer_sort in CumA ; auto.
     destruct CumA as (?&?&?).
     apply conv_check in Cumt ; auto.
@@ -183,7 +185,8 @@ Proof.
     + apply ws_cumul_pb_LetIn_bo.
       eassumption.
 
-  - intros t na A B u ? ? ? ? ? Cumt ? (?&?&?).
+  - intros t na A B u ? ? ? ? ? Cumt ? ? Hrew.
+    destruct X4 as (?&?&?); tas.
     apply conv_infer_prod in Cumt ; auto.
     destruct Cumt as (?&?&?&[]).
     eexists.
@@ -194,6 +197,14 @@ Proof.
       etransitivity ; tea.
       now apply ws_cumul_pb_eq_le.
     + now eapply substitution_ws_cumul_pb_vass.
+
+  - intros.
+    eexists.
+    split.
+    1: econstructor ; tea.
+    apply ws_cumul_pb_refl.
+    1: fvs.
+    now eapply closed_on_free_vars, declared_symbol_closed_type.
 
   - intros.
     eexists.
@@ -221,7 +232,7 @@ Proof.
     1: fvs.
     now eapply closed_on_free_vars, declared_constructor_closed_type.
 
-  - intros ci p c brs indices ps mdecl idecl isdecl wfΣ' wfbΓ epar ? predctx wfpred ? ? ty_p Cump ? ? Hinst ty_c Cumc ? ? ? ty_br.
+  - intros ci p c brs indices ps mdecl idecl isdecl wfΣ' wfbΓ epar ? predctx wfpred ? ? ty_p Cump ? ? Hinst ty_c Cumc ? ? ? ty_br Hrew.
 
     apply conv_infer_sort in Cump as (?&?&?) ; auto.
     apply conv_infer_ind in Cumc as (?&?&[]) ; auto.
@@ -229,13 +240,13 @@ Proof.
     split.
     + econstructor.
       all: tea.
-      * by eapply All_local_app_rel.
+      * eapply All_local_app_rel; eauto.
       * eapply is_allowed_elimination_monotone.
         all: eassumption.
       * rewrite subst_instance_app_ctx rev_app_distr in Hinst.
         replace (pparams p) with (firstn (context_assumptions (List.rev (subst_instance (puinst p)(ind_params mdecl)))) (pparams p ++ indices)).
         eapply ctx_inst_app_impl ; tea.
-        1: intros ??? [] ; by apply conv_check.
+        1: intros ??? [] ; apply conv_check; eauto.
         rewrite context_assumptions_rev context_assumptions_subst_instance.
         erewrite PCUICGlobalMaps.onNpars.
         2: eapply on_declared_minductive ; eauto.
@@ -267,10 +278,11 @@ Proof.
         fold predctx in brctxty.
         fold ptm in brctxty.
         fold brctxty in Hbr.
-        destruct Hbr as (?&(?&Cumbody)&?&?&?).
+        destruct Hbr as (?&(?&Cumbody)&?&?&?); tas.
+        forward Cumbody; tas.
         apply conv_check in Cumbody ; auto.
         split ; auto.
-        by apply All_local_app_rel.
+        apply All_local_app_rel; eauto.
 
     + apply ws_cumul_pb_mkApps ; auto.
       * apply ws_cumul_pb_it_mkLambda_or_LetIn.
@@ -291,7 +303,7 @@ Proof.
            1: apply wf_local_closed_context ; tea.
            eapply subject_is_open_term ; tea.
 
-  - intros ? c u mdecl idecl cdecl pdecl isdecl args ? ? ? Cumc ?.
+  - intros ? c u mdecl idecl cdecl pdecl isdecl args ? ? ? Cumc ? Hrew.
     apply conv_infer_ind in Cumc as (ui'&args'&[]) ; auto.
     eexists.
     split.
@@ -379,7 +391,8 @@ Proof.
     eexists. split; [econstructor; tea|].
     eapply ws_cumul_pb_refl; fvs.
 
-  - intros ? ? ? ? ? ? (?&?&?) ? (?&?&?) ?.
+  - intros ? ? ? ? ? ? ? ? ? ? Hrew.
+    destruct X1 as (?&?&?), X3 as (?&?&?); tas.
     eexists.
     split.
     1: eassumption.
@@ -390,7 +403,7 @@ Qed.
 End BDFromPCUIC.
 
 (** The direct consequence on typing *)
-Lemma typing_infering `{checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ t T} :
+Lemma typing_infering `{checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} {Hrew : type_preserving Σ} {Γ t T} :
   Σ ;;; Γ |- t : T -> ∑ T', Σ ;;; Γ |- t ▹ T' × Σ ;;; Γ ⊢ T' ≤ T.
 Proof.
   intros.
@@ -398,7 +411,7 @@ Proof.
   all: assumption.
 Qed.
 
-Lemma typing_checking `{checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ t T} :
+Lemma typing_checking `{checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} {Hrew : type_preserving Σ} {Γ t T} :
   Σ ;;; Γ |- t : T -> Σ ;;; Γ |- t ◃ T.
 Proof.
   move => /typing_infering [T' [? ?]].
@@ -406,7 +419,7 @@ Proof.
   now apply ws_cumul_pb_forget_cumul.
 Qed.
 
-Lemma typing_infering_sort `{checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ t u} :
+Lemma typing_infering_sort `{checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} {Hrew : type_preserving Σ} {Γ t u} :
   Σ ;;; Γ |- t : tSort u -> ∑ u', Σ ;;; Γ |- t ▹□ u' × leq_universe Σ u' u.
 Proof.
   intros.
@@ -414,7 +427,7 @@ Proof.
   now apply typing_infering.
 Qed.
 
-Lemma isType_infering_sort `{checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ t} :
+Lemma isType_infering_sort `{checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} {Hrew : type_preserving Σ} {Γ t} :
   isType Σ Γ t -> ∑ u', Σ ;;; Γ |- t ▹□ u'.
 Proof.
   intros [? ty].
@@ -422,7 +435,7 @@ Proof.
   now eexists.
 Qed.
 
-Lemma typing_infer_prod `{checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ t na A B} :
+Lemma typing_infer_prod `{checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} {Hrew : type_preserving Σ} {Γ t na A B} :
   Σ ;;; Γ |- t : tProd na A B ->
   ∑ na' A' B', [× Σ ;;; Γ |- t ▹Π (na',A',B'),
     eq_binder_annot na na', Σ ;;; Γ ⊢ A' = A & Σ ;;; Γ ,, vass na A ⊢ B' ≤ B].
@@ -432,7 +445,7 @@ Proof.
   now apply typing_infering.
 Qed.
 
-Lemma typing_infer_ind `{checker_flags} Σ (wfΣ : wf Σ) Γ t ind ui args :
+Lemma typing_infer_ind `{checker_flags} Σ (wfΣ : wf Σ) (Hrew : type_preserving Σ) Γ t ind ui args :
   Σ ;;; Γ |- t : mkApps (tInd ind ui) args ->
   ∑ ui' args', [× Σ ;;; Γ |- t ▹{ind} (ui',args'),
       R_global_instance Σ (eq_universe Σ) (leq_universe Σ) (IndRef ind) #|args| ui' ui
@@ -443,7 +456,7 @@ Proof.
   now apply typing_infering.
 Qed.
 
-Lemma wf_local_wf_local_bd `{checker_flags} {Σ} (wfΣ : wf Σ) {Γ} :
+Lemma wf_local_wf_local_bd `{checker_flags} {Σ} (wfΣ : wf Σ) (Hrew : type_preserving Σ) {Γ} :
   wf_local Σ Γ ->
   wf_local_bd Σ Γ.
 Proof.
@@ -452,7 +465,7 @@ Proof.
   now eapply type_Prop_wf.
 Qed.
 
-Lemma wf_local_rel_wf_local_bd `{checker_flags} {Σ} (wfΣ : wf Σ) {Γ Γ'} :
+Lemma wf_local_rel_wf_local_bd `{checker_flags} {Σ} (wfΣ : wf Σ) (Hrew : type_preserving Σ) {Γ Γ'} :
   wf_local_rel Σ Γ Γ' ->
   wf_local_bd_rel Σ Γ Γ'.
 Proof.
@@ -465,7 +478,7 @@ Proof.
   - now apply isType_infering_sort.
 Qed.
 
-Theorem ctx_inst_typing_bd `{checker_flags} (Σ : global_env_ext) Γ l Δ (wfΣ : wf Σ) :
+Theorem ctx_inst_typing_bd `{checker_flags} (Σ : global_env_ext) (Hrew : type_preserving Σ) Γ l Δ (wfΣ : wf Σ) :
   PCUICTyping.ctx_inst typing Σ Γ l Δ ->
   PCUICTyping.ctx_inst checking Σ Γ l Δ.
 Proof.

@@ -2,7 +2,7 @@
 From Coq Require CMorphisms.
 From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import config.
-From MetaCoq.PCUIC Require Import PCUICAst PCUICOnOne PCUICAstUtils PCUICReflect.
+From MetaCoq.PCUIC Require Import PCUICAst PCUICOnOne PCUICAstUtils PCUICPattern PCUICReflect.
 
 Require Import ssreflect ssrbool.
 Require Import Morphisms CRelationClasses.
@@ -181,4 +181,114 @@ Proof.
   - specialize (IHt1 H).
     rewrite IHt1. destruct t1; auto.
   - simpl in H => //.
+Qed.
+
+Import Equations.Prop.Logic.
+
+Definition not_lhs Σ (t : term) :=
+  (∑ k n rd x,
+    symb_hd t = Some (k, n) ×
+    lookup_rules Σ k = Some rd ×
+    first_match (rd.(prules) ++ rd.(rules)) t = Some x
+  ) ->
+  False.
+
+Variant lhs_view t :=
+| is_lhs (k : kername) (rd : rewrite_decl)
+    (r : rewrite_rule) (s : found_substitution)
+    (H : PCUICDepth.list_depth s.(found_subst) < PCUICDepth.depth t) : lhs_view t
+
+| is_not_lhs.
+
+Arguments is_lhs {_}.
+Arguments is_not_lhs {_}.
+
+Definition lhs_viewc Σ (t : term) : lhs_view t :=
+  match symb_hd t with
+  | None => is_not_lhs
+  | Some (k, n) =>
+  match lookup_rules Σ k with
+  | None => is_not_lhs
+  | Some rd =>
+  match inspect (first_match (rd.(prules) ++ rd.(rules)) t) with
+  | exist None _ => is_not_lhs
+  | exist (Some (r, s)) e => is_lhs k rd r s (first_match_subst_depth _ _ _ _ e)
+  end end end.
+
+Inductive lhs_view_spec Σ (t : term) : lhs_view t -> Type :=
+| is_lhs_spec k rd r s H :
+    lookup_rules Σ k = Some rd ->
+    first_match (rd.(prules) ++ rd.(rules)) t = Some (r, s) ->
+    lhs_view_spec Σ t (is_lhs k rd r s H)
+
+| is_not_lhs_spec :
+    not_lhs Σ t ->
+    lhs_view_spec Σ t is_not_lhs.
+
+Lemma lhs_viewc_sound Σ t : lhs_view_spec Σ t (lhs_viewc Σ t).
+Proof.
+  unfold lhs_viewc.
+  1: destruct symb_hd as [[k n]|] eqn:e1.
+  1: destruct lookup_rules eqn:e2.
+  1: destruct inspect eqn:e3.
+  1: destruct x as [[]|].
+  all: econstructor; tea.
+  all: intros (k' & n' & rd' & (r' & s') & e1' & e2' & e3').
+  all: rewrite e1' in e1 => //; injection e1 as [= -> ->].
+  all: rewrite e2' in e2 => //; injection e2 as [= ->].
+  injection e3.
+  rewrite e3' => //.
+Qed.
+
+Lemma rigid_arg_pattern_not_lhs Σ pat tm s :
+  rigid_arg_pattern_match pat tm = Some s ->
+  not_lhs Σ tm.
+Proof using Type.
+  intros e.
+  enough (symb_hd tm = None).
+  { intros (k & n & _ & _ & e' & _); congruence. }
+  revert tm s e.
+  induction pat using rigid_arg_pattern_ind with (P := fun _ => True) => //.
+  all: intros; destruct tm => //=.
+  cbn in e.
+  destruct rigid_arg_pattern_match eqn:? => //.
+  eapply IHpat => //.
+  eassumption.
+Qed.
+
+Lemma rigid_arg_pattern_not_fixapp pat tm s :
+  rigid_arg_pattern_match pat tm = Some s ->
+  ~~ isFixLambda_app tm.
+Proof using Type.
+  intro H.
+  cut (~~isFixLambda_app tm × ~~ isFixLambda tm). 1: now intros [].
+  revert tm s H.
+  induction pat using rigid_arg_pattern_ind with (P := fun _ => True) => //.
+  all: intros; destruct tm => //=.
+  cbn in H.
+  destruct rigid_arg_pattern_match eqn:? => //.
+  edestruct IHpat; tea.
+  split; auto.
+  now destruct tm1.
+Qed.
+
+Lemma not_lhs_matches Σ k n r rdecl decl tm s :
+  declared_rules_gen (lookup_env Σ) k rdecl ->
+  nth_error (prules rdecl ++ rules rdecl) r = Some decl ->
+  symb_hd tm = Some (k, n) ->
+  pattern_matches (pat_lhs decl) tm s ->
+  not_lhs Σ tm -> False.
+Proof.
+  intros.
+  apply declared_rules_lookup_gen in H.
+  assert (∑ decl', first_match (rdecl.(prules) ++ rdecl.(rules)) tm = Some decl') as ((decl' & s') & Hfm).
+  { unfold first_match.
+    induction (prules rdecl ++ rules rdecl) in r, decl, H0, H2 |- *; cbn.
+    1: now destruct r.
+    destruct r; cbn in H0.
+    1: { injection H0 as [= ->]. rewrite H2. eexists; reflexivity. }
+    destruct pattern_match. 1: eexists; reflexivity.
+    now eapply IHl. }
+  apply H3.
+  repeat eexists; tea.
 Qed.

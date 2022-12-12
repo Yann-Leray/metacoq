@@ -1894,6 +1894,8 @@ Proof.
   destruct (decompose_app t); simpl in *; try discriminate.
   destruct t0; try discriminate.
   elim H.
+  solve_discr. clear p. induction lhs; try discriminate.
+  cbn in X. rewrite head_tapp. now apply IHlhs1.
   rewrite !head_tapp. auto.
   rewrite !head_tapp. auto.
 Qed.

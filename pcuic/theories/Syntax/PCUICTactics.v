@@ -3,7 +3,7 @@ From Coq Require Import ssreflect.
 From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import config BasicAst.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICCases PCUICLiftSubst
-  PCUICSigmaCalculus.
+  PCUICSigmaCalculus PCUICPattern.
 
 #[global] Hint Extern 20 (#|?X| = #|?Y|) =>
   match goal with
@@ -50,7 +50,7 @@ Definition lengths :=
     @ind_predicate_context_length,
     @map_context_length, @skipn_map_length,
     @mapi_context_length, idsn_length,
-    @projs_length, ren_ids_length).
+    @projs_length, ren_ids_length, symbols_subst_length).
 
 Ltac len ::=
   repeat (rewrite !lengths /= //); try solve [lia_f_equal].

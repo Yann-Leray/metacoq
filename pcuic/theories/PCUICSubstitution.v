@@ -110,6 +110,42 @@ Proof.
   induction 1; simpl; f_equal; auto.
 Qed.
 
+Lemma symbols_subst_subslet {cf} Σ Γ kn rdecl n u :
+  wf_local Σ Γ ->
+  declared_rules Σ kn rdecl ->
+  consistent_instance_ext Σ rdecl.(rew_universes) u ->
+  n <= #|rdecl.(symbols)| ->
+  subslet Σ Γ (symbols_subst kn n u #|rdecl.(symbols)|) (skipn n (context_of_symbols rdecl.(symbols)))@[u].
+Proof.
+  intros ????.
+  rewrite /symbols_subst.
+  set n' := #|symbols rdecl| - n.
+  replace n with (#|symbols rdecl| - n') by lia.
+  assert (HH : n' <= #|symbols rdecl|) by lia.
+  revert HH.
+  induction n'.
+  - rewrite !Nat.sub_0_r skipn_all2 /=.
+    1: len.
+    constructor.
+  - cbn. intro HH.
+    pose proof (He := skipn_nth_error (context_of_symbols (symbols rdecl)) (#|symbols rdecl| - S n')).
+    rewrite nth_error_map in He.
+    destruct nth_error eqn:?; cbn in He; rewrite He.
+    2: { apply nth_error_None in Heqo; lia. }
+    replace (S (_ - S _)) with (#|symbols rdecl| - n') by lia.
+    set n0 := (#|symbols rdecl| - S n').
+    constructor; cbn.
+    1: now apply IHn'.
+    replace (list_make _ _ _) with (symbols_subst kn (S n0) u #|symbols rdecl|).
+    2: {
+      rewrite /symbols_subst.
+      f_equal.
+      all: lia.
+    }
+    1: econstructor; tas.
+    split; tas.
+Qed.
+
 Lemma subst_decl_closed n k d : closed_decl k d -> subst_decl n k d = d.
 Proof.
   case: d => na [body|] ty; rewrite /subst_decl /map_decl /=.
@@ -843,14 +879,6 @@ Hint Unfold subst1 : subst.
 #[global]
 Hint Rewrite subst_mkApps distr_subst: subst.
 
-Inductive untyped_subslet (Γ : context) : list term -> context -> Type :=
-| untyped_emptyslet : untyped_subslet Γ [] []
-| untyped_cons_let_ass Δ s na t T :
-    untyped_subslet Γ s Δ ->
-    untyped_subslet Γ (t :: s) (Δ ,, vass na T)
-| untyped_cons_let_def Δ s na t T :
-    untyped_subslet Γ s Δ ->
-    untyped_subslet Γ (subst0 s t :: s) (Δ ,, vdef na t T).
 
 Lemma subslet_untyped_subslet {cf:checker_flags} Σ Γ s Γ' : subslet Σ Γ s Γ' -> untyped_subslet Γ s Γ'.
 Proof.
@@ -1151,11 +1179,6 @@ Proof.
         rewrite -(subst_compose_assoc _ _ (↑^#|Γ''|)).
         rewrite subst_consn_shiftn //.
         rewrite !shiftk_compose. intros i; lia_f_equal.
-Qed.
-
-Lemma untyped_subslet_length {Γ s Δ} : untyped_subslet Γ s Δ -> #|s| = #|Δ|.
-Proof.
-  induction 1; simpl; lia.
 Qed.
 
 (* Let-expanding substitution *)

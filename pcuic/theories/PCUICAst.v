@@ -201,6 +201,7 @@ Inductive term :=
 | tLambda (na : aname) (A t : term)
 | tLetIn (na : aname) (b B t : term) (* let na := b : B in t *)
 | tApp (u v : term)
+| tSymb (k : kername) (n : nat) (ui : Instance.t)
 | tConst (k : kername) (ui : Instance.t)
 | tInd (ind : inductive) (ui : Instance.t)
 | tConstruct (ind : inductive) (n : nat) (ui : Instance.t)
@@ -398,6 +399,7 @@ Instance subst_instance_constr : UnivSubst term :=
   | tRel _ | tVar _ => c
   | tEvar ev args => tEvar ev (List.map (subst_instance_constr u) args)
   | tSort s => tSort (subst_instance_univ u s)
+  | tSymb c n u' => tSymb c n (subst_instance_instance u u')
   | tConst c u' => tConst c (subst_instance_instance u u')
   | tInd i u' => tInd i (subst_instance_instance u u')
   | tConstruct ind k u' => tConstruct ind k (subst_instance_instance u u')
@@ -426,6 +428,7 @@ Fixpoint closedu (k : nat) (t : term) : bool :=
   | tSort univ => closedu_universe k univ
   | tInd _ u => closedu_instance k u
   | tConstruct _ _ u => closedu_instance k u
+  | tSymb _ _ u => closedu_instance k u
   | tConst _ u => closedu_instance k u
   | tRel i => true
   | tEvar ev args => forallb (closedu k) args
@@ -444,9 +447,33 @@ Fixpoint closedu (k : nat) (t : term) : bool :=
   | _ => true
   end.
 
+(* Rewrite Rules *)
+Unset Elimination Schemes.
+Inductive arg_pattern :=
+  | pHole: arg_pattern
+  | pRigid (p: rigid_arg_pattern)
+with rigid_arg_pattern :=
+  | pargApp (f : rigid_arg_pattern) (arg : arg_pattern)
+  | pConstr (ind : inductive) (n : nat)
+  (* | pSymb (k : kername) (n : nat) *)
+.
+Scheme arg_pattern_ind := Induction for arg_pattern Sort Type
+  with rigid_arg_pattern_ind := Induction for rigid_arg_pattern Sort Type.
+Derive NoConfusion for arg_pattern rigid_arg_pattern.
+Set Elimination Schemes.
+
+Inductive pattern :=
+  | pSymb (k : kername) (n : nat)
+  | pApp (f : pattern) (arg : arg_pattern)
+  | pCase (c : pattern) (* Hole for return predicate *) (nbrs : nat) (* Number of branches *)
+  | pProj (c : pattern)
+.
+Derive NoConfusion for pattern.
+
 Module PCUICTerm <: Term.
 
   Definition term := term.
+  Definition pattern := pattern.
 
   Definition tRel := tRel.
   Definition tSort := tSort.
@@ -460,6 +487,7 @@ Module PCUICTerm <: Term.
   Definition lift := lift.
   Definition subst := subst.
   Definition closedn := closedn.
+  Definition closedu := closedu.
   Definition noccur_between := noccur_between.
   Definition subst_instance_constr := subst_instance.
 End PCUICTerm.
@@ -483,20 +511,10 @@ Fixpoint destArity Γ (t : term) :=
 
 (** Inductive substitution, to produce a constructors' type *)
 Definition inds ind u (l : list one_inductive_body) :=
-  let fix aux n :=
-      match n with
-      | 0 => []
-      | S n => tInd (mkInd ind n) u :: aux n
-      end
-  in aux (List.length l).
+  unfold_rev #|l| (fun n => tInd (mkInd ind n) u).
 
-Module PCUICTermUtils <: TermUtils PCUICTerm PCUICEnvironment.
-
-Definition destArity := destArity.
-Definition inds := inds.
-
-End PCUICTermUtils.
-
+Definition symbols_subst k n u m :=
+  list_make (fun i => tSymb k i u) n (m - n).
 
 Ltac unf_term := unfold PCUICTerm.term in *; unfold PCUICTerm.tRel in *;
                  unfold PCUICTerm.tSort in *; unfold PCUICTerm.tProd in *;
@@ -504,8 +522,7 @@ Ltac unf_term := unfold PCUICTerm.term in *; unfold PCUICTerm.tRel in *;
                  unfold PCUICTerm.tInd in *; unfold PCUICTerm.tProj in *;
                  unfold PCUICTerm.lift in *; unfold PCUICTerm.subst in *;
                  unfold PCUICTerm.closedn in *; unfold PCUICTerm.noccur_between in *;
-                 unfold PCUICTerm.subst_instance_constr in *;
-                 unfold PCUICTermUtils.destArity in *; unfold PCUICTermUtils.inds in *.
+                 unfold PCUICTerm.subst_instance_constr in *.
 
 
 Lemma context_assumptions_mapi_context f (ctx : context) :
@@ -516,10 +533,10 @@ Qed.
 #[global]
 Hint Rewrite context_assumptions_mapi_context : len.
 
-Module PCUICEnvTyping := EnvironmentTyping.EnvTyping PCUICTerm PCUICEnvironment PCUICTermUtils.
+Module PCUICEnvTyping := EnvironmentTyping.EnvTyping PCUICTerm PCUICEnvironment.
 (** Included in PCUICTyping only *)
 
-Module PCUICConversion := EnvironmentTyping.Conversion PCUICTerm PCUICEnvironment PCUICTermUtils PCUICEnvTyping.
+Module PCUICConversion := EnvironmentTyping.Conversion PCUICTerm PCUICEnvironment PCUICEnvTyping.
 
 Global Instance context_reflect`(ReflectEq term) :
   ReflectEq (list (BasicAst.context_decl term)) := _.
@@ -1239,15 +1256,6 @@ Include PCUICLookup.
 
 Derive NoConfusion for global_decl.
 
-Module PCUICGlobalMaps := EnvironmentTyping.GlobalMaps
-  PCUICTerm
-  PCUICEnvironment
-  PCUICTermUtils
-  PCUICEnvTyping
-  PCUICConversion
-  PCUICLookup
-.
-Include PCUICGlobalMaps.
 
 (** ** Entries
 

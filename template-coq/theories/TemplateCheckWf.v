@@ -22,6 +22,7 @@ Definition check_def (d : kername × global_decl) : TemplateMonad unit :=
     | None => ret tt
     end
   | InductiveDecl idecl => ret tt
+  | RewriteDecl _ => tmFail "CheckWf rewrite rules not implented; TODO"
   end.
 
 Definition is_nil {A} (l : list A) :=
@@ -52,10 +53,13 @@ Fixpoint wfterm (t : term) : bool :=
 
 From Coq Require Import ssrbool.
 
+Axiom wf_rewrite_rule : rewrite_decl -> bool.
+
 Definition wf_global_decl d :=
   match d with
   | ConstantDecl cb => wfterm cb.(cst_type) && option_default wfterm cb.(cst_body) true
   | InductiveDecl idecl => true
+  | RewriteDecl rew => wf_rewrite_rule rew
   end.
 Definition wf_global_declarations : global_declarations -> bool := forallb (wf_global_decl ∘ snd).
 Definition wf_global_env (g : global_env) := wf_global_declarations g.(declarations).

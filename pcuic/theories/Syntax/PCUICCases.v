@@ -28,9 +28,7 @@ Hint Rewrite inds_length : len.
 Lemma inds_spec ind u l :
   inds ind u l = List.rev (mapi (fun i _ => tInd {| inductive_mind := ind; inductive_ind := i |} u) l).
 Proof.
-  unfold inds, mapi. induction l using rev_ind.
-  - simpl. reflexivity.
-  - now rewrite app_length /= Nat.add_1_r IHl mapi_rec_app /= rev_app_distr /= Nat.add_0_r.
+  rewrite /inds unfold_rev_spec mapi_unfold //.
 Qed.
 
 Definition ind_predicate_context ind mdecl idecl : context :=

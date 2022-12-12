@@ -63,6 +63,9 @@ Fixpoint eqb_term (u v : term) : bool :=
 
   | tApp u v, tApp u' v' => eqb_term u u' && eqb_term v v'
 
+  | tSymb k n u, tSymb k' n' u' =>
+    eqb k k' && eqb n n' && eqb u u'
+
   | tConst c u, tConst c' u' =>
     eqb c c' && eqb u u'
 
@@ -358,10 +361,98 @@ Proof.
   destruct x, y; unfold eqb_mutual_inductive_body; finish_reflect.
 Qed.
 
+
+Definition eqb_symbol (x y : symbol) :=
+  let (namex, relx, typx) := x in
+  let (namey, rely, typy) := y in
+  eqb namex namey && eqb relx rely && eqb typx typy.
+
+#[global] Instance reflect_symbol : ReflectEq symbol.
+Proof.
+  refine {| eqb := eqb_symbol |}.
+  intros [] [].
+  unfold eqb_symbol; finish_reflect.
+Defined.
+
+Fixpoint eqb_arg_pattern x y :=
+  match x, y with
+  | pHole, pHole => true
+  | pRigid p, pRigid p' => eqb_rigid_arg_pattern p p'
+  | _, _ => false
+  end
+with eqb_rigid_arg_pattern x y :=
+  match x, y with
+  | pargApp f arg, pargApp f' arg' => eqb_rigid_arg_pattern f f' && eqb_arg_pattern arg arg'
+  | pConstr ind n, pConstr ind' n' =>
+      eqb ind ind' && eqb n n'
+  (* | pSymb k n, pSymb k' n' =>
+      eqb k k' && eqb n n' *)
+  | _, _ => false
+  end.
+
+#[global] Instance reflect_arg_pattern : ReflectEq arg_pattern.
+Proof.
+  refine {| eqb := eqb_arg_pattern |}.
+  intros x y.
+  induction x using arg_pattern_ind with (P0 := fun x => forall y, reflectProp (x = y) (eqb_rigid_arg_pattern x y)) in y |- *.
+  all: destruct y; try finish_reflect; cbn.
+  all: apply reflectProp_noConfusion; cbn.
+  1: easy.
+  2: apply reflectEq_andb.
+  destruct (IHx y); t'.
+  destruct (IHx0 arg); t'.
+Defined.
+
+Fixpoint eqb_pattern x y :=
+  match x, y with
+  | pSymb k n, pSymb k' n' => eqb k k' && eqb n n'
+  | pApp f arg, pApp f' arg' => eqb_pattern f f' && eqb arg arg'
+  | pCase c nbrs, pCase c' nbrs' => eqb_pattern c c' && eqb nbrs nbrs'
+  | pProj c, pProj c' => eqb_pattern c c'
+  | _, _ => false
+  end.
+
+#[global] Instance reflect_pattern : ReflectEq pattern.
+Proof.
+  refine {| eqb := eqb_pattern |}.
+  intros x y.
+  induction x in y |- *; destruct y; try finish_reflect; cbn.
+  all: apply reflectProp_noConfusion; cbn.
+  1: finish_reflect.
+  3: auto.
+  all: now apply reflectEq_andb_right.
+Defined.
+
+Definition eqb_rewrite_rule (x y : rewrite_rule) :=
+  let (ctxx, headx, elimsx, rhsx) := x in
+  let (ctxy, heady, elimsy, rhsy) := y in
+  eqb ctxx ctxy && eqb headx heady && eqb elimsx elimsy && eqb rhsx rhsy.
+
+#[global] Instance reflect_rewrite_rule : ReflectEq rewrite_rule.
+Proof.
+  refine {| eqb := eqb_rewrite_rule |}.
+  intros [] [].
+  unfold eqb_rewrite_rule; finish_reflect.
+Defined.
+
+Definition eqb_rewrite_decl (x y : rewrite_decl) :=
+  let (symbx, rulx, prulx, univx) := x in
+  let (symby, ruly, pruly, univy) := y in
+  eqb symbx symby && eqb rulx ruly && eqb prulx pruly && eqb univx univy.
+
+#[global] Instance reflect_rewrite_decl : ReflectEq rewrite_decl.
+Proof.
+  refine {| eqb := eqb_rewrite_decl |}.
+  intros [] [].
+  unfold eqb_rewrite_decl; finish_reflect.
+Defined.
+
+
 Definition eqb_global_decl x y :=
   match x, y with
   | ConstantDecl cst, ConstantDecl cst' => eqb cst cst'
   | InductiveDecl mib, InductiveDecl mib' => eqb mib mib'
+  | RewriteDecl rew, RewriteDecl rew' => eqb rew rew'
   | _, _ => false
   end.
 

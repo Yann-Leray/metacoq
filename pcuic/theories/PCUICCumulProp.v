@@ -575,6 +575,7 @@ Proof using Type.
     destruct X as [d' [Hnth [ctxrel cp]]].
     red in cp. rewrite H in cp. rewrite Hnth /=.
     destruct (decl_body d'); subst => //.
+  - econstructor; tea. eapply untyped_subslet_context; tea.
   - econstructor. eapply IHHred. constructor; simpl; auto => //.
   - econstructor. eapply IHHred. constructor; simpl => //.
   - intros h. constructor.
@@ -856,6 +857,7 @@ Proof using Type.
     all:try typeclasses eauto.
     apply IHT2.
   - constructor. now eapply cumul_prop_subst_instance_instance.
+  - constructor. now eapply cumul_prop_subst_instance_instance.
   - constructor. red. apply R_opt_variance_impl. intros x y; auto.
     now eapply cumul_prop_subst_instance_instance.
   - constructor. red. apply R_opt_variance_impl. intros x y; auto.
@@ -1094,11 +1096,11 @@ Proof using Hcf Hcf'.
   Σ ;;; Γ |- T ~~ T')%type
   (fun Σ Γ => wf_local Σ Γ)); auto;intros Σ wfΣ Γ wfΓ; intros.
 
-  1-13:match goal with
+  1-14:match goal with
   [ H : leq_term_napp _ _ _ _ |- _ ] => depelim H
   end; assert (wf_ext Σ) by (split; assumption).
 
-  15:{ assert (wf_ext Σ) by (split; assumption). specialize (X1 _ _ H X5 _ X6).
+  16:{ assert (wf_ext Σ) by (split; assumption). specialize (X1 _ _ H X5 _ X6).
        eapply cumul_prop_cum_l; tea.
        eapply cumulSpec_cumulAlgo_curry in X4; tea; fvs. }
 
@@ -1171,6 +1173,22 @@ Proof using Hcf Hcf'.
     eapply cumul_cumul_prop in cum; eauto.
     eapply cumul_prop_trans; eauto.
     eapply cumul_prop_tLetIn; auto; now symmetry.
+
+  - eapply inversion_Symb in X1 as (rdecl' & sdecl' & wf & declc & cu & cum); auto.
+    eapply cumul_cumul_prop in cum; eauto.
+    eapply cumul_prop_trans; eauto.
+    pose proof (declared_symbol_inj H declc) as []; subst rdecl' sdecl'.
+    unfold type_of_symbol.
+    destruct (cumul_prop_is_open cum) as [].
+    transitivity (subst0 (symbols_subst kn (S n) u #|symbols rdecl|) (symb_type sdecl)@[u0]).
+    + eapply @substitution_cumul_prop with (Γ' := []); tea.
+      { destruct H as [H Hnth]. apply nth_error_Some_length in Hnth. now apply symbols_subst_subslet. }
+      apply on_declared_symbol in H as [? HT]; tas.
+      eapply cumul_prop_subst_instance; tea.
+      rewrite /= on_free_vars_ctx_app. toProp; tas.
+      all: admit.
+    + eapply @substitution_untyped_cumul_prop_cumul; tea.
+      all: admit. Unshelve. all: admit.
 
   - eapply inversion_Const in X1 as [decl' [wf [declc [cu cum]]]]; auto.
     eapply cumul_cumul_prop in cum; eauto.
@@ -1327,6 +1345,6 @@ Proof using Hcf Hcf'.
   - depelim X2.
     eapply inversion_Prim in X1 as [prim_ty' [cdecl' []]]; tea.
     rewrite H in e. noconf e. eapply cumul_cumul_prop; eauto. pcuic.
-Qed.
+Admitted. (* Qed. *)
 
 End no_prop_leq_type.

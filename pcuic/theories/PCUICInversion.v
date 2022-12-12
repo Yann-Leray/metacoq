@@ -209,6 +209,18 @@ Section Inversion.
     all: unfold typing_size at 2; fold (typing_size h1); fold (typing_size h2); try fold (typing_size h3); lia.
   Qed.
 
+  Lemma inversion_Symb :
+    forall {Γ k n u T},
+      Σ ;;; Γ |- tSymb k n u : T ->
+      ∑ rdecl sdecl,
+        wf_local Σ Γ ×
+        declared_symbol Σ k n rdecl sdecl ×
+        (consistent_instance_ext Σ rdecl.(rew_universes) u) ×
+        Σ ;;; Γ ⊢ type_of_symbol rdecl sdecl k n u ≤ T.
+  Proof using wfΣ.
+    intros Γ k n u T h. invtac h.
+  Qed.
+
   Lemma inversion_Const :
     forall {Γ c u T},
       Σ ;;; Γ |- tConst c u : T ->

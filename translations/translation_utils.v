@@ -374,5 +374,6 @@ Definition TranslateRec {tsl : Translation} (ΣE : tsl_context) {A} (t : A) :=
            ret (Σ', E')
          end
       end
+    | RewriteDecl rew => tmFail "Translation of rewrite rules not implemented; TODO"
     end)
   (fst p).(declarations) ΣE.

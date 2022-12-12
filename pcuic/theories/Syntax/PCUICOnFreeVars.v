@@ -3,9 +3,9 @@ From Coq Require Import Morphisms.
 Require Import ssreflect ssrfun ssrbool.
 From MetaCoq.Utils Require Import utils MCPred.
 From MetaCoq.Common Require Import config.
-From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICCases PCUICInduction
-  PCUICLiftSubst PCUICUnivSubst
-  PCUICEquality PCUICSigmaCalculus PCUICClosed.
+From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICCases PCUICPattern PCUICInduction
+  PCUICLiftSubst PCUICUnivSubst PCUICGlobalMaps
+  PCUICEquality PCUICSigmaCalculus PCUICClosed PCUICTactics.
 
 Require Import Equations.Prop.DepElim.
 From Equations Require Import Equations.
@@ -87,7 +87,7 @@ Fixpoint on_free_vars (p : nat -> bool) (t : term) : bool :=
   | tProj _ c => on_free_vars p c
   | tFix mfix idx | tCoFix mfix idx =>
     List.forallb (test_def (on_free_vars p) (on_free_vars (shiftnP #|mfix| p))) mfix
-  | tVar _ | tSort _ | tConst _ _ | tInd _ _ | tConstruct _ _ _ => true
+  | tVar _ | tSort _ | tSymb _ _ _ | tConst _ _ | tInd _ _ | tConstruct _ _ _ => true
   | tPrim _ => true
   end.
 
@@ -630,6 +630,14 @@ Proof.
     ?andb_assoc /foroptb /=; try bool_congr.
 Qed.
 
+Lemma on_free_vars_mkLambda_or_LetIn P d t :
+  on_free_vars P (mkLambda_or_LetIn d t) =
+  on_free_vars_decl P d && on_free_vars (shiftnP 1 P) t.
+Proof.
+  destruct d as [na [b|] ty]; rewrite /mkLambda_or_LetIn /on_free_vars_decl /test_decl /=
+    ?andb_assoc /foroptb /=; try bool_congr.
+Qed.
+
 Lemma on_free_vars_ctx_all_term P ctx s :
   on_free_vars_ctx P ctx = on_free_vars P (it_mkProd_or_LetIn ctx (tSort s)).
 Proof.
@@ -640,6 +648,36 @@ Proof.
   rewrite List.rev_app_distr alli_app /= andb_true_r.
   rewrite IHctx it_mkProd_or_LetIn_app /= on_free_vars_mkProd_or_LetIn.
   now rewrite shiftnP_add.
+Qed.
+
+Lemma on_free_vars_it_mkProd_or_LetIn P ctx t :
+  on_free_vars P (it_mkProd_or_LetIn ctx t) =
+  on_free_vars_ctx P ctx && on_free_vars (shiftnP #|ctx| P) t.
+Proof.
+  rewrite /on_free_vars_ctx.
+  rewrite -{1}[P](shiftnP0 P). replace #|ctx| with (#|ctx| + 0) by lia.
+  generalize 0 as k.
+  induction ctx using rev_ind; simpl; auto; intros k.
+  rewrite List.rev_app_distr alli_app /= andb_true_r.
+  rewrite it_mkProd_or_LetIn_app /= on_free_vars_mkProd_or_LetIn shiftnP_add IHctx.
+  rewrite andb_assoc.
+  do 3 f_equal.
+  len.
+Qed.
+
+Lemma on_free_vars_it_mkLambda_or_LetIn P ctx t :
+  on_free_vars P (it_mkLambda_or_LetIn ctx t) =
+  on_free_vars_ctx P ctx && on_free_vars (shiftnP #|ctx| P) t.
+Proof.
+  rewrite /on_free_vars_ctx.
+  rewrite -{1}[P](shiftnP0 P). replace #|ctx| with (#|ctx| + 0) by lia.
+  generalize 0 as k.
+  induction ctx using rev_ind; simpl; auto; intros k.
+  rewrite List.rev_app_distr alli_app /= andb_true_r.
+  rewrite it_mkLambda_or_LetIn_app /= on_free_vars_mkLambda_or_LetIn shiftnP_add IHctx.
+  rewrite andb_assoc.
+  do 3 f_equal.
+  len.
 Qed.
 
 Definition on_free_vars_ctx_k P n ctx :=
@@ -970,7 +1008,7 @@ Lemma on_free_vars_ctx_on_ctx_free_vars {P Γ} :
   on_free_vars_ctx P Γ.
 Proof.
   induction Γ => /= //.
-  rewrite /on_free_vars_ctx /= alli_app /= andb_true_r; len.
+  rewrite /on_free_vars_ctx /= alli_app /= andb_true_r. len. cbn.
   setoid_rewrite <-(shiftnP_add 1 #|Γ|); rewrite addnP_shiftnP andb_comm.
   f_equal. rewrite /on_free_vars_ctx in IHΓ. rewrite -IHΓ.
   rewrite (alli_shift _ _ 1) /=.
@@ -1354,6 +1392,7 @@ Lemma term_on_free_vars_ind :
     (forall p (t u : term),
       on_free_vars p t -> P p t ->
       on_free_vars p u -> P p u -> P p (tApp t u)) ->
+    (forall p kn (n : nat) (u : list Level.t), P p (tSymb kn n u)) ->
     (forall p s (u : list Level.t), P p (tConst s u)) ->
     (forall p (i : inductive) (u : list Level.t), P p (tInd i u)) ->
     (forall p (i : inductive) (c : nat) (u : list Level.t), P p (tConstruct i c u)) ->
@@ -1596,6 +1635,86 @@ Proof.
   rewrite -shiftnP_add.
   eapply on_ctx_free_vars_fix_context => //.
   now rewrite on_free_vars_ctx_on_ctx_free_vars.
+Qed.
+
+
+Lemma on_free_vars_pattern_inv P lhs_pat lhs s :
+  pattern_matches lhs_pat lhs s ->
+  on_free_vars P lhs ->
+  forallb (on_free_vars P) s.(found_subst).
+Proof.
+  induction 1 using pattern_matches_ind => //.
+  all: rewrite !forallb_app /= ?andb_true_r; rtoProp.
+  2: {
+    intros (? & ? & ? & ? & ?).
+    repeat split.
+    + eauto.
+    + rewrite on_free_vars_it_mkProd_or_LetIn.
+      len. rewrite H1 andb_true_r.
+      erewrite on_free_vars_ctx_inst_case_context => //.
+    + rewrite forallb_map.
+      apply forallb_impl with (2 := H4); intros br _ H5.
+      rtoProp.
+      rewrite on_free_vars_it_mkLambda_or_LetIn.
+      len. rewrite H6 andb_true_r.
+      erewrite on_free_vars_ctx_inst_case_context => //.
+  }
+
+  intros []; split.
+  1: easy.
+  revert H2.
+  induction H0 using arg_pattern_matches_ind => //.
+  all: rewrite ?forallb_app /= ?andb_true_r; rtoProp => //.
+  intros []; now split.
+Qed.
+
+Lemma on_free_vars_rewrite_rule' P k ui rdecl decl lhs s s' :
+  on_rewrite_rule k (context_of_symbols (symbols rdecl)) decl ->
+  pattern_matches decl.(pat_lhs) lhs s ->
+  All2 (fun t u => on_free_vars P t -> on_free_vars P u) s.(found_subst) s' ->
+  let ss := symbols_subst k 0 ui #|rdecl.(symbols)| in
+  let rhs := subst (s' ++ ss) 0 decl.(rhs) in
+  on_free_vars P lhs ->
+  on_free_vars P rhs.
+Proof.
+  cbn.
+  intros [] Hmatch Hss' H.
+  apply pattern_matches_length in Hmatch as Hsize.
+  eapply on_free_vars_pattern_inv in Hmatch as X; tea.
+  eapply forallb_All, All2_All_mix_left in X; tea.
+  apply All2_impl with (2 := fun t u '(p, q) => q p), All2_right in X.
+  erewrite on_free_vars_ext.
+  1: eapply on_free_vars_subst_gen.
+  - rewrite /on_free_vars_terms forallb_app.
+    toProp.
+    1: apply All_forallb, X.
+    unfold symbols_subst. generalize 0 at 1.
+    induction (#|_| - _); intro; cbn; auto.
+  - eapply closedn_on_free_vars, rhsClosed.
+  - intro n.
+    rewrite app_length symbols_subst_length map_length Nat.sub_0_r.
+    unfold shiftnP, substP.
+    instantiate (1 := P); cbn.
+    nat_compare_specs; cbn.
+    all: rewrite -(All2_length Hss') -lhsHoles -Hsize in H0 |- *.
+    1: lia.
+    symmetry.
+    replace (_ + _ - _) with n by lia.
+    rewrite Nat.sub_0_r.
+    apply orb_diag.
+Qed.
+
+Lemma on_free_vars_rewrite_rule P k ui rdecl decl lhs s :
+  on_rewrite_rule k (context_of_symbols (symbols rdecl)) decl ->
+  pattern_matches decl.(pat_lhs) lhs s ->
+  let ss := symbols_subst k 0 ui #|rdecl.(symbols)| in
+  let rhs := subst (s.(found_subst) ++ ss) 0 decl.(rhs) in
+  on_free_vars P lhs ->
+  on_free_vars P rhs.
+Proof.
+  intros H Hm.
+  eapply on_free_vars_rewrite_rule'; tea.
+  apply All2_refl => //.
 Qed.
 
 #[global] Hint Resolve on_ctx_free_vars_fix_context : fvs.

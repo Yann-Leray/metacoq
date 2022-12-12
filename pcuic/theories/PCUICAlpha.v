@@ -673,6 +673,9 @@ Section Alpha.
         symmetry.
         eapply upto_names_impl_eq_term.
         eapply eq_term_upto_univ_subst ; now auto.
+    - intros kn n u rdecl sdecl ? ? hdecl hcons Δ v e e'; invs e.
+      eapply R_universe_instance_eq in H3. subst.
+      econstructor; eauto.
     - intros cst u decl ? ? hdecl hcons Δ v e e'; invs e.
       eapply R_universe_instance_eq in H2. subst.
       constructor; eauto.

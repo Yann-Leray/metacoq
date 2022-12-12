@@ -17,6 +17,7 @@ Section BDUnique.
 Context `{cf : checker_flags}.
 Context (Σ : global_env_ext).
 Context (wfΣ : wf Σ).
+Context (Hrew : type_preserving Σ).
 
 Let Pinfer Γ t T :=
   wf_local Σ Γ ->
@@ -51,13 +52,13 @@ Let PΓ (Γ : context) := True.
 Let PΓ_rel (Γ Γ' : context) := True.
 
 Theorem bidirectional_unique : env_prop_bd Σ Pcheck Pinfer Psort Pprod Pind PΓ PΓ_rel.
-Proof using wfΣ.
+Proof using wfΣ Hrew.
 
   apply bidir_ind_env.
 
   all: intros ; red ; auto.
-  1-9,11-13: intros ? T' ty_T' ; inversion_clear ty_T'.
-  14-17: intros.
+  1-10,12-14: intros ? T' ty_T' ; inversion_clear ty_T'.
+  15-18: intros.
 
   - rewrite H in H0.
     inversion H0. subst. clear H0.
@@ -109,8 +110,17 @@ Proof using wfΣ.
       eapply checking_typing ; tea.
       now eapply isType_tProd, validity, infering_prod_typing.
 
-  - unshelve epose proof (declared_constant_to_gen isdecl); eauto.
-    unshelve epose proof (declared_constant_to_gen H); eauto.
+  - pose proof (declared_symbol_to_gen (wfΣ := wfΣ) isdecl).
+    pose proof (declared_symbol_to_gen (wfΣ := wfΣ) H).
+    replace rdecl0 with rdecl by (eapply declared_symbol_inj ; eassumption).
+    replace sdecl0 with sdecl by (eapply declared_symbol_inj ; eassumption).
+    eexists ; split.
+    all: eapply closed_red_refl.
+    1,3: fvs.
+    all: now eapply closed_on_free_vars, declared_symbol_closed_type.
+
+  - pose proof (declared_constant_to_gen (wfΣ := wfΣ) isdecl).
+    pose proof (declared_constant_to_gen (wfΣ := wfΣ) H).
     replace decl0 with decl by (eapply declared_constant_inj ; eassumption).
     eexists ; split.
     all: eapply closed_red_refl.
@@ -118,8 +128,8 @@ Proof using wfΣ.
     all: rewrite on_free_vars_subst_instance.
     all: now eapply closed_on_free_vars, declared_constant_closed_type.
 
-  - unshelve epose proof (declared_inductive_to_gen isdecl); eauto.
-    unshelve epose proof (declared_inductive_to_gen H); eauto.
+  - pose proof (declared_inductive_to_gen (wfΣ := wfΣ) isdecl).
+    pose proof (declared_inductive_to_gen (wfΣ := wfΣ) H).
     replace idecl0 with idecl by (eapply declared_inductive_inj ; eassumption).
     eexists ; split.
     all: eapply closed_red_refl.
@@ -127,8 +137,8 @@ Proof using wfΣ.
     all: rewrite on_free_vars_subst_instance.
     all: now eapply closed_on_free_vars, declared_inductive_closed_type.
 
-  - unshelve epose proof (declared_constructor_to_gen isdecl); eauto.
-    unshelve epose proof (declared_constructor_to_gen H); eauto.
+  - pose proof (declared_constructor_to_gen (wfΣ := wfΣ) isdecl).
+    pose proof (declared_constructor_to_gen (wfΣ := wfΣ) H).
     replace cdecl0 with cdecl by (eapply declared_constructor_inj ; eassumption).
     replace mdecl0 with mdecl by (eapply declared_constructor_inj ; eassumption).
     eexists ; split.
@@ -136,8 +146,8 @@ Proof using wfΣ.
     1,3: fvs.
     all: now eapply closed_on_free_vars, declared_constructor_closed_type.
 
-  - unshelve epose proof (declared_projection_to_gen H1); eauto.
-    unshelve eapply declared_projection_to_gen in H; eauto.
+  - pose proof (declared_projection_to_gen (wfΣ := wfΣ) H1); eauto.
+    eapply @declared_projection_to_gen in H; eauto.
     eapply declared_projection_inj in H as (?&?&?&?); tea.
     subst.
     move: (X2) => tyc'.
@@ -202,8 +212,8 @@ Proof using wfΣ.
 
   - intros ? T' ty_T'.
     inversion ty_T' ; subst.
-    unshelve eapply declared_inductive_to_gen in H13; eauto.
-    unshelve eapply declared_inductive_to_gen in H; eauto.
+    eapply @declared_inductive_to_gen in H13; eauto.
+    eapply @declared_inductive_to_gen in H; eauto.
     move: (H) => /declared_inductive_inj /(_ H13) [? ?].
     subst.
     assert (op' : is_open_term Γ (mkApps ptm0 (skipn (ci_npar ci) args0 ++ [c]))).
@@ -238,7 +248,7 @@ Proof using wfΣ.
 
   - inversion X1; subst.
     rewrite H in H2; noconf H2.
-    unshelve eapply declared_constant_to_gen in H0, H3; eauto.
+    eapply @declared_constant_to_gen in H0, H3; eauto.
     have eq := (declared_constant_inj _ _ H0 H3); subst cdecl0.
     exists (tConst prim_ty []).
     split; eapply closed_red_refl; fvs.
@@ -295,7 +305,7 @@ Qed.
 
 End BDUnique.
 
-Theorem infering_unique `{checker_flags} {Σ} (wfΣ : wf Σ) {Γ} (wfΓ : wf_local Σ Γ) {t T T'} :
+Theorem infering_unique `{checker_flags} {Σ} (wfΣ : wf Σ) (Hrew : type_preserving Σ) {Γ} (wfΓ : wf_local Σ Γ) {t T T'} :
   Σ ;;; Γ |- t ▹ T -> Σ ;;; Γ |- t ▹ T' ->
   ∑ T'', Σ ;;; Γ ⊢ T ⇝ T'' × Σ ;;; Γ ⊢ T' ⇝ T''.
 Proof.
@@ -303,7 +313,7 @@ Proof.
   now eapply bidirectional_unique in ty'.
 Qed.
 
-Theorem infering_unique' `{checker_flags} {Σ} (wfΣ : wf Σ) {Γ} (wfΓ : wf_local Σ Γ) {t T T'} :
+Theorem infering_unique' `{checker_flags} {Σ} (wfΣ : wf Σ) (Hrew : type_preserving Σ) {Γ} (wfΓ : wf_local Σ Γ) {t T T'} :
   Σ ;;; Γ |- t ▹ T -> Σ ;;; Γ |- t ▹ T' ->
   Σ ;;; Γ ⊢ T = T'.
 Proof.
@@ -314,7 +324,7 @@ Proof.
   all: now eapply red_ws_cumul_pb.
 Qed.
 
-Theorem infering_checking `{checker_flags} {Σ} (wfΣ : wf Σ) {Γ} (wfΓ : wf_local Σ Γ) {t T T'} :
+Theorem infering_checking `{checker_flags} {Σ} (wfΣ : wf Σ) (Hrew : type_preserving Σ) {Γ} (wfΓ : wf_local Σ Γ) {t T T'} :
   is_open_term Γ T' -> Σ ;;; Γ |- t ▹ T -> Σ ;;; Γ |- t ◃ T' -> Σ ;;; Γ ⊢ T ≤ T'.
 Proof.
   intros ? ty ty'.
@@ -327,14 +337,14 @@ Proof.
   - now eapply ws_cumul_pb_eq_le.
 Qed.
 
-Theorem infering_sort_sort `{checker_flags} {Σ} (wfΣ : wf Σ) {Γ} (wfΓ : wf_local Σ Γ) {t u u'} :
+Theorem infering_sort_sort `{checker_flags} {Σ} (wfΣ : wf Σ) (Hrew : type_preserving Σ) {Γ} (wfΓ : wf_local Σ Γ) {t u u'} :
   Σ ;;; Γ |- t ▹□ u -> Σ ;;; Γ |- t ▹□ u' -> u = u'.
 Proof.
   intros ty ty'.
   now eapply bidirectional_unique in ty'.
 Qed.
 
-Theorem infering_sort_infering `{checker_flags} {Σ} (wfΣ : wf Σ)
+Theorem infering_sort_infering `{checker_flags} {Σ} (wfΣ : wf Σ) (Hrew : type_preserving Σ)
   {Γ} {wfΓ : wf_local Σ Γ} {t u T} :
   Σ ;;; Γ |- t ▹□ u -> Σ ;;; Γ |- t ▹ T ->
   Σ ;;; Γ ⊢ T ⇝ tSort u.
@@ -350,7 +360,7 @@ Proof.
   now etransitivity.
 Qed.
 
-Theorem infering_prod_prod `{checker_flags} {Σ} (wfΣ : wf Σ)
+Theorem infering_prod_prod `{checker_flags} {Σ} (wfΣ : wf Σ) (Hrew : type_preserving Σ)
   {Γ} (wfΓ : wf_local Σ Γ) {t na na' A A' B B'} :
   Σ ;;; Γ |- t ▹Π (na,A,B) -> Σ ;;; Γ |- t ▹Π (na',A',B') ->
   ∑ A'' B'',
@@ -361,7 +371,7 @@ Proof.
   now eapply bidirectional_unique in ty'.
 Qed.
 
-Theorem infering_prod_prod' `{checker_flags} {Σ} (wfΣ : wf Σ)
+Theorem infering_prod_prod' `{checker_flags} {Σ} (wfΣ : wf Σ) (Hrew : type_preserving Σ)
   {Γ} (wfΓ : wf_local Σ Γ) {t na na' A A' B B'} :
   Σ ;;; Γ |- t ▹Π (na,A,B) -> Σ ;;; Γ |- t ▹Π (na',A',B') ->
   [× na = na', Σ ;;; Γ ⊢ A = A' & Σ ;;; Γ,, vass na A ⊢ B = B'].
@@ -386,7 +396,7 @@ Proof.
   now constructor.
 Qed.
 
-Theorem infering_prod_infering `{checker_flags} {Σ} (wfΣ : wf Σ)
+Theorem infering_prod_infering `{checker_flags} {Σ} (wfΣ : wf Σ) (Hrew : type_preserving Σ)
   {Γ} (wfΓ : wf_local Σ Γ) {t na A B T} :
   Σ ;;; Γ |- t ▹Π(na,A,B) ->
   Σ ;;; Γ |- t ▹ T ->
@@ -406,7 +416,7 @@ Proof.
   now etransitivity.
 Qed.
 
-Theorem infering_ind_ind `{checker_flags} {Σ} (wfΣ : wf Σ)
+Theorem infering_ind_ind `{checker_flags} {Σ} (wfΣ : wf Σ) (Hrew : type_preserving Σ)
   {Γ} (wfΓ : wf_local Σ Γ) {t ind ind' u u' args args'} :
   Σ ;;; Γ |- t ▹{ind} (u,args) -> Σ ;;; Γ |- t ▹{ind'} (u',args') ->
   ∑ args'',
@@ -418,7 +428,7 @@ Proof.
   now eapply bidirectional_unique in ty'.
 Qed.
 
-Theorem infering_ind_ind' `{checker_flags} {Σ} (wfΣ : wf Σ)
+Theorem infering_ind_ind' `{checker_flags} {Σ} (wfΣ : wf Σ) (Hrew : type_preserving Σ)
   {Γ} (wfΓ : wf_local Σ Γ) {t ind ind' u u' args args'} :
   Σ ;;; Γ |- t ▹{ind} (u,args) -> Σ ;;; Γ |- t ▹{ind'} (u',args') ->
     [× ind = ind', u = u' &
@@ -433,7 +443,7 @@ Proof.
   all: now eapply red_terms_ws_cumul_pb_terms.
 Qed.
 
-Theorem infering_ind_infering `{checker_flags} {Σ} (wfΣ : wf Σ)
+Theorem infering_ind_infering `{checker_flags} {Σ} (wfΣ : wf Σ) (Hrew : type_preserving Σ)
   {Γ} (wfΓ : wf_local Σ Γ) {t ind u args T} :
   Σ ;;; Γ |- t ▹{ind} (u,args) ->
   Σ ;;; Γ |- t ▹ T ->
@@ -453,7 +463,7 @@ Proof.
   now etransitivity.
 Qed.
 
-Corollary principal_type `{checker_flags} {Σ} (wfΣ : wf Σ) {Γ t T} :
+Corollary principal_type `{checker_flags} {Σ} (wfΣ : wf Σ) (Hrew : type_preserving Σ) {Γ t T} :
   Σ ;;; Γ |- t : T ->
   ∑ T',
     (forall T'', Σ ;;; Γ |- t : T'' -> Σ ;;; Γ ⊢ T' ≤ T'') × Σ ;;; Γ |- t : T'.

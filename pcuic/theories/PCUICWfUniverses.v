@@ -294,7 +294,7 @@ Section CheckerFlags.
       | tProj _ t => on_universes fu fc t
       | tFix mfix _ | tCoFix mfix _ =>
         forallb (fun d => on_universes fu fc d.(dtype) && on_universes fu fc d.(dbody)) mfix
-      | tConst _ u | tInd _ u | tConstruct _ _ u =>
+      | tSymb _ _ u | tConst _ u | tInd _ u | tConstruct _ _ u =>
           forallb fu (map Universe.make u)
       | tEvar _ args => forallb (on_universes fu fc) args
       | _ => true
@@ -453,6 +453,14 @@ Qed.
       eapply wf_universe_subst_instance; eauto.
       destruct Σ; simpl in *.
       now move/wf_universe_instanceP: wft.
+    - apply forallb_All.
+      rewrite -forallb_map wf_universeb_instance_forall.
+      apply All_forallb in wft.
+      rewrite -forallb_map wf_universeb_instance_forall in wft.
+      apply/wf_universe_instanceP.
+      eapply wf_universe_subst_instance; eauto.
+      destruct Σ; simpl in *.
+      now move/wf_universe_instanceP: wft.
 
     - apply forallb_All.
       rewrite -forallb_map wf_universeb_instance_forall.
@@ -525,6 +533,8 @@ Qed.
     now move => ? _ /wf_universe_reflect /weaken_wf_universe /wf_universe_reflect.
   - eapply forallb_impl ; tea.
     now move => ? _ /wf_universe_reflect /weaken_wf_universe /wf_universe_reflect.
+  - eapply forallb_impl ; tea.
+    now move => ? _ /wf_universe_reflect /weaken_wf_universe /wf_universe_reflect.
   - red in X.
     solve_all.
     rewrite /test_branch in b |- *.
@@ -534,7 +544,7 @@ Qed.
   - red in X. solve_all.
   Qed.
 
-  Lemma wf_universes_weaken_full : weaken_env_prop_full cumulSpec0 (lift_typing typing) (fun Σ Γ t T =>
+  Lemma wf_universes_weaken_full : weaken_env_prop_full cumulSpec0 red (lift_typing typing) (fun Σ Γ t T =>
       wf_universes Σ t && wf_universes Σ T).
   Proof using Type.
     do 2 red. intros.
@@ -542,7 +552,7 @@ Qed.
   Qed.
 
   Lemma wf_universes_weaken :
-    weaken_env_prop cumulSpec0 (lift_typing typing)
+    weaken_env_prop cumulSpec0 red (lift_typing typing)
       (lift_typing (fun Σ Γ (t T : term) =>
         wf_universes Σ t && wf_universes Σ T)).
   Proof using Type.
@@ -939,6 +949,10 @@ Qed.
       apply All_forallb in H.
       rewrite -forallb_map wf_universeb_instance_forall in H.
       now move/wf_universe_instanceP: H.
+    - eapply wf_universe_instance_closed => //.
+      apply All_forallb in H.
+      rewrite -forallb_map wf_universeb_instance_forall in H.
+      now move/wf_universe_instanceP: H.
     - unfold test_predicate_ku in *; solve_all.
       eapply wf_universe_instance_closed => //.
       apply All_forallb in H0.
@@ -1051,6 +1065,21 @@ Qed.
     - rewrite wf_universes_subst. constructor. to_wfu; auto. constructor.
       now move/andP: H4 => [].
 
+    - assert (forallb (wf_universeb Σ) (map Universe.make u)).
+      { rewrite wf_universeb_instance_forall.
+        apply/wf_universe_instanceP.
+        eapply consistent_instance_ext_wf; eauto. }
+      apply/andP; split; tas.
+      pose proof (declared_symbol_inv _ _ _ _ _ _ wf_universes_weaken wf X H).
+      move: X1 => [s /andP[Hc _]].
+      eapply @declared_symbol_to_gen in H; tea.
+      unfold type_of_symbol.
+      rewrite wf_universes_subst.
+      { unfold symbols_subst. generalize (S n) at 1. induction (#|_| - _); intro; cbn; constructor; auto. }
+      eapply wf_universes_inst; eauto.
+      destruct H.
+      exact (weaken_lookup_on_global_env' Σ.1 _ _ wf H).
+      now eapply consistent_instance_ext_wf.
     - apply/andP; split.
       { rewrite wf_universeb_instance_forall.
         apply/wf_universe_instanceP.

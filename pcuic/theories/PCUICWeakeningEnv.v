@@ -1,7 +1,7 @@
 (* Distributed under the terms of the MIT license. *)
 From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import config.
-From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICTyping.
+From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICGlobalMaps.
 From Equations Require Import Equations.
 From MetaCoq Require Import LibHypsNaming.
 
@@ -259,16 +259,17 @@ Qed.
 Section ExtendsWf.
   Context {cf : checker_flags}.
   Context {Pcmp: global_env_ext -> context -> conv_pb -> term -> term -> Type}.
+  Context {red : global_env -> context -> term -> term -> Type}.
   Context {P: global_env_ext -> context -> term -> typ_or_sort -> Type}.
 
-  Let wf := on_global_env Pcmp P.
+  Let wf := on_global_env Pcmp red P.
 
   Lemma extends_lookup Σ Σ' c decl :
   wf Σ' ->
   extends Σ Σ' ->
   lookup_env Σ c = Some decl ->
   lookup_env Σ' c = Some decl.
-Proof using P Pcmp cf.
+Proof using P red Pcmp cf.
   cbv [wf on_global_env].
   intros; eapply lookup_env_extends_NoDup; tea.
   repeat match goal with H : _ × _ |- _ => destruct H end.
@@ -276,11 +277,45 @@ Proof using P Pcmp cf.
 Qed.
 Hint Resolve extends_lookup : extends.
 
+Lemma weakening_env_declared_rules :
+  forall (Σ : global_env) k (rdecl : rewrite_decl),
+    declared_rules Σ k rdecl ->
+    forall Σ' : global_env, wf Σ' -> extends Σ Σ' -> declared_rules Σ' k rdecl.
+Proof using P red Pcmp cf.
+  intros Σ k rdecl H0 Σ' X2 H2.
+  unfold declared_rules in *.
+  eapply lookup_globals_In in H0.
+  eapply lookup_globals_In.
+  destruct H2 as [? H2 _].
+  specialize (H2 k). destruct H2 as [decls Hdecls].
+  rewrite /lookup_envs in Hdecls. rewrite Hdecls.
+  apply in_or_app. now right.
+Qed.
+Hint Extern 0 => eapply weakening_env_declared_rules : extends.
+
+Lemma weakening_env_declared_rule:
+  forall (Σ : global_env) k r rdecl decl,
+    declared_rule Σ k r rdecl decl ->
+    forall Σ' : global_env, wf Σ' -> extends Σ Σ' -> declared_rule Σ' k r rdecl decl.
+Proof using P red Pcmp cf.
+  intros Σ k r rdecl decl [Hrdecl Hdecl] Σ' X2 H2. split; eauto with extends.
+Qed.
+Hint Extern 0 => eapply weakening_env_declared_rule : extends.
+
+Lemma weakening_env_declared_symbol:
+  forall (Σ : global_env) k n rdecl sdecl,
+    declared_symbol Σ k n rdecl sdecl ->
+    forall Σ' : global_env, wf Σ' -> extends Σ Σ' -> declared_symbol Σ' k n rdecl sdecl.
+Proof using P red Pcmp cf.
+  intros Σ k n rdecl sdecl [Hrdecl Hsdecl] Σ' X2 H2. split; eauto with extends.
+Qed.
+Hint Extern 0 => eapply weakening_env_declared_symbol : extends.
+
 Lemma weakening_env_declared_constant :
   forall (Σ : global_env) cst (decl : constant_body),
     declared_constant Σ cst decl ->
     forall Σ' : global_env, wf Σ' -> extends Σ Σ' -> declared_constant Σ' cst decl.
-Proof using P Pcmp cf.
+Proof using P red Pcmp cf.
   intros Σ cst decl H0 Σ' X2 H2.
   unfold declared_constant in *.
   eapply lookup_globals_In in H0.
@@ -297,7 +332,7 @@ Lemma weakening_env_declared_minductive `{CF:checker_flags}:
   forall (Σ : global_env) ind decl,
     declared_minductive Σ ind decl ->
     forall Σ' : global_env, wf Σ' -> extends Σ Σ' -> declared_minductive Σ' ind decl.
-Proof using P Pcmp cf.
+Proof using P red Pcmp cf.
   intros Σ cst decl H0 Σ' X2 H2.
   unfold declared_minductive in *.
   eapply lookup_globals_In in H0.
@@ -314,7 +349,7 @@ Lemma weakening_env_declared_inductive:
   forall (H : checker_flags) (Σ : global_env) ind mdecl decl,
     declared_inductive Σ mdecl ind decl ->
     forall Σ' : global_env, wf Σ' -> extends Σ Σ' -> declared_inductive Σ' mdecl ind decl.
-Proof using P Pcmp cf.
+Proof using P red Pcmp cf.
   intros H Σ cst decl H0 [Hmdecl Hidecl] Σ' X2 H2. split; eauto with extends.
 Qed.
 
@@ -325,7 +360,7 @@ Lemma weakening_env_declared_constructor :
     declared_constructor Σ idecl ind mdecl decl ->
     forall Σ' : global_env, wf Σ' -> extends Σ Σ' ->
     declared_constructor Σ' idecl ind mdecl decl.
-Proof using P Pcmp cf.
+Proof using P red Pcmp cf.
   intros H Σ cst mdecl idecl cdecl [Hidecl Hcdecl] Σ' X2 H2.
   split; eauto with extends.
 Qed.
@@ -336,7 +371,7 @@ Lemma weakening_env_declared_projection :
     declared_projection Σ idecl ind mdecl cdecl pdecl ->
     forall Σ' : global_env, wf Σ' -> extends Σ Σ' ->
     declared_projection Σ' idecl ind mdecl cdecl pdecl.
-Proof using P Pcmp cf.
+Proof using P red Pcmp cf.
   intros H Σ cst mdecl idecl cdecl pdecl [Hidecl Hcdecl] Σ' X2 H2.
   split; eauto with extends.
 Qed.
@@ -358,7 +393,7 @@ Lemma weaken_lookup_on_global_env' Σ c decl :
   wf Σ ->
   lookup_env Σ c = Some decl ->
   on_udecl_prop Σ (universes_decl_of_decl decl).
-Proof using P Pcmp cf.
+Proof using P red Pcmp cf.
   intros [onu wfΣ] HH.
   destruct Σ as [univs Σ]; cbn in *.
   induction wfΣ; simpl. 1: discriminate.
@@ -487,7 +522,7 @@ Qed.
 
 Lemma strictly_extends_decls_wf Σ Σ' :
   wf Σ' -> strictly_extends_decls Σ Σ' -> wf Σ.
-Proof using P Pcmp cf.
+Proof using P red Pcmp cf.
   intros [onu ond] [eq [Σ'' eq']].
   split => //.
   - red. rewrite eq. apply onu.
@@ -501,18 +536,20 @@ Qed.
 
 End ExtendsWf.
 
-Arguments weaken_env_prop_full_gen {cf} (Pcmp P R)%function_scope _%function_scope.
-Arguments weaken_env_prop_gen {cf} (Pcmp P R)%function_scope _%function_scope.
-Arguments weaken_env_prop_full {cf} (Pcmp P)%function_scope _%function_scope.
-Arguments weaken_env_decls_prop_full {cf} (Pcmp P)%function_scope _%function_scope.
-Arguments weaken_env_strictly_on_decls_prop_full {cf} (Pcmp P)%function_scope _%function_scope.
-Arguments weaken_env_strictly_decls_prop_full {cf} (Pcmp P)%function_scope _%function_scope.
-Arguments weaken_env_prop {cf} (Pcmp P)%function_scope _%function_scope.
-Arguments weaken_env_decls_prop {cf} (Pcmp P)%function_scope _%function_scope.
-Arguments weaken_env_strictly_on_decls_prop {cf} (Pcmp P)%function_scope _%function_scope.
-Arguments weaken_env_strictly_decls_prop {cf} (Pcmp P)%function_scope _%function_scope.
+Arguments weaken_env_prop_full_gen {cf} (Pcmp red P R)%function_scope _%function_scope.
+Arguments weaken_env_prop_gen {cf} (Pcmp red P R)%function_scope _%function_scope.
+Arguments weaken_env_prop_full {cf} (Pcmp red P)%function_scope _%function_scope.
+Arguments weaken_env_decls_prop_full {cf} (Pcmp red P)%function_scope _%function_scope.
+Arguments weaken_env_strictly_on_decls_prop_full {cf} (Pcmp red P)%function_scope _%function_scope.
+Arguments weaken_env_strictly_decls_prop_full {cf} (Pcmp red P)%function_scope _%function_scope.
+Arguments weaken_env_prop {cf} (Pcmp red P)%function_scope _%function_scope.
+Arguments weaken_env_decls_prop {cf} (Pcmp red P)%function_scope _%function_scope.
+Arguments weaken_env_strictly_on_decls_prop {cf} (Pcmp red P)%function_scope _%function_scope.
+Arguments weaken_env_strictly_decls_prop {cf} (Pcmp red P)%function_scope _%function_scope.
 
 #[global] Hint Resolve extends_lookup : extends.
+#[global] Hint Resolve weakening_env_declared_rule : extends.
+#[global] Hint Resolve weakening_env_declared_symbol : extends.
 #[global] Hint Resolve weakening_env_declared_constant : extends.
 #[global] Hint Resolve weakening_env_declared_minductive : extends.
 #[global] Hint Resolve weakening_env_declared_inductive : extends.
@@ -523,22 +560,22 @@ Arguments weaken_env_strictly_decls_prop {cf} (Pcmp P)%function_scope _%function
 (* we export disabling this warning here so these coercions don't result in warnings, and then we re-enable it later to not suppress other warnings *)
 #[export] Set Warnings Append "-ambiguous-paths".
 Import CMorphisms CRelationClasses.
-Global Coercion weaken_env_prop_full_to_decls {cf Pcmp P P0} : @weaken_env_prop_full cf Pcmp P P0 -> @weaken_env_decls_prop_full cf Pcmp P P0.
+Global Coercion weaken_env_prop_full_to_decls {cf Pcmp red P P0} : @weaken_env_prop_full cf Pcmp red P P0 -> @weaken_env_decls_prop_full cf Pcmp red P P0.
 Proof. eapply weaken_env_prop_full_gen_impl; repeat intro; tc; reflexivity. Qed.
-Global Coercion weaken_env_prop_full_to_strictly_on_decls {cf Pcmp P P0} : @weaken_env_prop_full cf Pcmp P P0 -> @weaken_env_strictly_on_decls_prop_full cf Pcmp P P0.
+Global Coercion weaken_env_prop_full_to_strictly_on_decls {cf Pcmp red P P0} : @weaken_env_prop_full cf Pcmp red P P0 -> @weaken_env_strictly_on_decls_prop_full cf Pcmp red P P0.
 Proof. eapply weaken_env_prop_full_gen_impl; repeat intro; tc; reflexivity. Qed.
-Global Coercion weaken_env_prop_full_decls_to_strictly_decls {cf Pcmp P P0} : @weaken_env_decls_prop_full cf Pcmp P P0 -> @weaken_env_strictly_decls_prop_full cf Pcmp P P0.
+Global Coercion weaken_env_prop_full_decls_to_strictly_decls {cf Pcmp red P P0} : @weaken_env_decls_prop_full cf Pcmp red P P0 -> @weaken_env_strictly_decls_prop_full cf Pcmp red P P0.
 Proof. eapply weaken_env_prop_full_gen_impl; repeat intro; tc; reflexivity. Qed.
-Global Coercion weaken_env_prop_full_strictly_on_decls_to_strictly_decls {cf Pcmp P P0} : @weaken_env_strictly_on_decls_prop_full cf Pcmp P P0 -> @weaken_env_strictly_decls_prop_full cf Pcmp P P0.
+Global Coercion weaken_env_prop_full_strictly_on_decls_to_strictly_decls {cf Pcmp red P P0} : @weaken_env_strictly_on_decls_prop_full cf Pcmp red P P0 -> @weaken_env_strictly_decls_prop_full cf Pcmp red P P0.
 Proof. eapply weaken_env_prop_full_gen_impl; repeat intro; tc; reflexivity. Qed.
 
-Global Coercion weaken_env_prop_to_decls {cf Pcmp P P0} : @weaken_env_prop cf Pcmp P P0 -> @weaken_env_decls_prop cf Pcmp P P0.
+Global Coercion weaken_env_prop_to_decls {cf Pcmp red P P0} : @weaken_env_prop cf Pcmp red P P0 -> @weaken_env_decls_prop cf Pcmp red P P0.
 Proof. eapply weaken_env_prop_gen_impl; repeat intro; tc; reflexivity. Qed.
-Global Coercion weaken_env_prop_to_strictly_on_decls {cf Pcmp P P0} : @weaken_env_prop cf Pcmp P P0 -> @weaken_env_strictly_on_decls_prop cf Pcmp P P0.
+Global Coercion weaken_env_prop_to_strictly_on_decls {cf Pcmp red P P0} : @weaken_env_prop cf Pcmp red P P0 -> @weaken_env_strictly_on_decls_prop cf Pcmp red P P0.
 Proof. eapply weaken_env_prop_gen_impl; repeat intro; tc; reflexivity. Qed.
-Global Coercion weaken_env_prop_decls_to_strictly_decls {cf Pcmp P P0} : @weaken_env_decls_prop cf Pcmp P P0 -> @weaken_env_strictly_decls_prop cf Pcmp P P0.
+Global Coercion weaken_env_prop_decls_to_strictly_decls {cf Pcmp red P P0} : @weaken_env_decls_prop cf Pcmp red P P0 -> @weaken_env_strictly_decls_prop cf Pcmp red P P0.
 Proof. eapply weaken_env_prop_gen_impl; repeat intro; tc; reflexivity. Qed.
-Global Coercion weaken_env_prop_strictly_on_decls_to_strictly_decls {cf Pcmp P P0} : @weaken_env_strictly_on_decls_prop cf Pcmp P P0 -> @weaken_env_strictly_decls_prop cf Pcmp P P0.
+Global Coercion weaken_env_prop_strictly_on_decls_to_strictly_decls {cf Pcmp red P P0} : @weaken_env_strictly_on_decls_prop cf Pcmp red P P0 -> @weaken_env_strictly_decls_prop cf Pcmp red P P0.
 Proof. eapply weaken_env_prop_gen_impl; repeat intro; tc; reflexivity. Qed.
 #[export] Set Warnings Append "ambiguous-paths".
 

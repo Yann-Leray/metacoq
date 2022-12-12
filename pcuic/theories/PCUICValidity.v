@@ -25,7 +25,7 @@ Arguments Nat.sub : simpl never.
 Section Validity.
   Context `{cf : config.checker_flags}.
 
-  Lemma isType_weaken_full : weaken_env_prop_full cumulSpec0 (lift_typing typing) (fun Σ Γ t T => isType Σ Γ T).
+  Lemma isType_weaken_full : weaken_env_prop_full cumulSpec0 red (lift_typing typing) (fun Σ Γ t T => isType Σ Γ T).
   Proof using Type.
     do 2 red. intros.
     apply infer_typing_sort_impl with id X2; intros Hs.
@@ -36,7 +36,7 @@ Section Validity.
   Hint Resolve isType_weaken_full : pcuic.
 
   Lemma isType_weaken :
-    weaken_env_prop cumulSpec0 (lift_typing typing)
+    weaken_env_prop cumulSpec0 red (lift_typing typing)
       (lift_typing (fun Σ Γ (_ T : term) => isType Σ Γ T)).
   Proof using Type.
     do 2 red. intros.
@@ -58,7 +58,7 @@ Section Validity.
   Qed.
 
   Lemma weaken_env_prop_isType :
-    weaken_env_prop cumulSpec0 (lift_typing typing)
+    weaken_env_prop cumulSpec0 red (lift_typing typing)
     (lift_typing
         (fun (Σ0 : PCUICEnvironment.global_env_ext)
           (Γ0 : PCUICEnvironment.context) (_ T : term) =>
@@ -100,15 +100,25 @@ Section Validity.
     rewrite (subst_instance_destArity []) eq. intuition auto.
   Qed.
 
+  Lemma isType_weakening0 {Σ Γ Γ' T} :
+    wf Σ.1 ->
+    wf_local Σ Γ' ->
+    isType Σ Γ T ->
+    isType Σ (Γ' ,,, Γ) T.
+  Proof using Type.
+    intros wfΣ wfΓ HT.
+    apply infer_typing_sort_impl with id HT; intros Hs.
+    eapply weaken_ctx; eauto.
+  Qed.
+
+
   Lemma isType_weakening {Σ Γ T} :
     wf Σ.1 ->
     wf_local Σ Γ ->
     isType Σ [] T ->
     isType Σ Γ T.
   Proof using Type.
-    intros wfΣ wfΓ HT.
-    apply infer_typing_sort_impl with id HT; intros Hs.
-    eapply (weaken_ctx (Γ:=[])); eauto.
+    apply (isType_weakening0 (Γ := [])).
   Qed.
 
   Lemma nth_error_All_local_env {P : context -> term -> typ_or_sort -> Type} {Γ n d} :
@@ -278,6 +288,22 @@ Section Validity.
       all:eauto with fvs.
       do 2 constructor.
       apply leq_universe_product.
+
+    - rewrite /type_of_symbol.
+      apply on_declared_symbol in H as HT; tas.
+      unshelve eapply declared_symbol_to_gen in H as Hg; eauto.
+      eapply (isType_subst_instance_decl (decl := RewriteDecl _)) in HT; eauto.
+      2: apply Hg.
+      eapply isType_weakening0 in HT; tea.
+      eapply isType_subst in HT.
+      apply HT.
+      destruct H.
+      apply on_declared_rules in H as Hr.
+      destruct Hr as [? _].
+      apply symbols_subst_subslet; tas.
+      + apply nth_error_Some_length in H0; lia.
+      + apply wf.
+
 
     - destruct decl as [ty [b|] univs]; simpl in *.
       * eapply declared_constant_inv in X; eauto.

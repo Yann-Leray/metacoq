@@ -2,7 +2,7 @@
 From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import config.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICOnOne PCUICAstUtils PCUICTactics PCUICLiftSubst PCUICTyping
-     PCUICReduction PCUICEquality PCUICUnivSubstitutionConv
+     PCUICPattern PCUICReduction PCUICEquality PCUICUnivSubstitutionConv
      PCUICSigmaCalculus PCUICContextReduction
      PCUICParallelReduction PCUICParallelReductionConfluence PCUICClosedConv PCUICClosedTyp
      PCUICRedTypeIrrelevance PCUICOnFreeVars PCUICInstDef PCUICInstConv PCUICWeakeningConv PCUICWeakeningTyp.
@@ -836,6 +836,98 @@ Proof.
   eapply eq_context_upto_univ_subst_instance; tc. tea.
 Qed.*)
 
+Lemma eq_context_upto_univ_inst_case_context Σ Re :
+  RelationClasses.Reflexive Re ->
+  RelationClasses.Transitive Re ->
+  SubstUnivPreserving Re ->
+  forall pars pars' puinst puinst' ctx ctx',
+    All2 (eq_term_upto_univ Σ Re Re) pars pars' ->
+    R_universe_instance Re puinst puinst' ->
+    eq_context_gen eq eq ctx ctx' ->
+    eq_context_upto Σ Re Re (inst_case_context pars puinst ctx) (inst_case_context pars' puinst' ctx').
+Proof.
+  intros refl tr hRe ?????? eqpars ru eqctx.
+  unfold inst_case_predicate_context, inst_case_context.
+  eapply eq_context_upto_subst_context; tc; tas.
+  1: eapply eq_context_upto_univ_subst_instance'; tas; tc.
+  now apply All2_rev.
+Qed.
+
+Lemma eq_term_arg_pattern_matches Σ Re t t' p s :
+  eq_term_upto_univ Σ Re Re t t' ->
+  arg_pattern_matches p t s -> ∑ s', arg_pattern_matches p t' s' × All2 (eq_term_upto_univ Σ Re Re) s s'.
+Proof.
+  intros X H.
+  revert p t s H Re t' X.
+  set (P := fun p t s => forall Re t', eq_term_upto_univ Σ Re Re t t' -> ∑ s', arg_pattern_matches p t' s' × All2 (eq_term_upto_univ Σ Re Re) s s').
+  set (P' := fun p t s => forall Re Rle n t', eq_term_upto_univ_napp Σ Re Rle n t t' -> ∑ s', rigid_arg_pattern_matches p t' s' × All2 (eq_term_upto_univ Σ Re Re) s s').
+  eapply (arg_pattern_matches_mutual_ind P P').
+  all: subst P P'; cbn.
+  all: intros; eauto.
+  - eexists; split.
+    1: reflexivity.
+    repeat constructor; tas.
+  - depelim X1.
+    eapply X in X1_1 as (s1' & H1 & h1).
+    eapply X0 in X1_2 as (s2' & H2 & h2).
+    exists (s1' ++ s2'); split.
+    2: now apply All2_app.
+    unfold rigid_arg_pattern_matches, arg_pattern_matches in *; cbn in *.
+    rewrite H1 H2 //.
+  - depelim X.
+    exists []; split => //.
+    unfold rigid_arg_pattern_matches in *; cbn in *.
+    rewrite !eqb_refl //.
+Qed.
+
+Lemma eq_term_pattern_matches_arg Σ Re Rle n t t' p s :
+  RelationClasses.Reflexive Re ->
+  RelationClasses.Reflexive Rle ->
+  RelationClasses.Transitive Re ->
+  RelationClasses.Transitive Rle ->
+  SubstUnivPreserving Re ->
+  SubstUnivPreserving Rle ->
+  RelationClasses.subrelation Re Rle ->
+  eq_term_upto_univ_napp Σ Re Rle n t t' ->
+  pattern_matches p t s ->
+  ∑ s', pattern_matches p t' s' × All2 (eq_term_upto_univ Σ Re Re) (found_subst s) (found_subst s') × R_universe_instance Re (found_usubst s) (found_usubst s').
+Proof.
+  intros HRe HRle HTe HTle HUe HUle Hsub X H.
+  revert HRe HRle HTe HTle HUe HUle Hsub X.
+  induction H using pattern_matches_ind in t', Re, Rle, n |- *; intros ??????? X.
+  - depelim X.
+    eexists; split.
+    { rewrite /pattern_matches /= !eqb_refl //. }
+    repeat constructor.
+    assumption.
+  - depelim X.
+    eapply IHpattern_matches in X1 as (s1' & H1 & h1 & hu); tas.
+    eapply eq_term_arg_pattern_matches in X2 as (s2' & H2 & h2); tea.
+    exists (s1' ++f s2'); repeat split; tas.
+    { rewrite /pattern_matches /= H1 H2 //. }
+    apply All2_app => //.
+  - depelim X.
+    apply All2_length in a as Hlbrs.
+    eapply IHpattern_matches in X as (sc' & Hc & hc & hu); tas.
+    2: { now intros ???. }
+    destruct e as (epars & euint & epctx & epret).
+    eexists; repeat split.
+    { rewrite /pattern_matches /= Hc Hlbrs eqb_refl flagCase //. }
+    2: assumption.
+    repeat apply All2_app; tas.
+    + constructor => //.
+      apply eq_term_upto_univ_it_mkProd_or_LetIn; tas.
+      now apply eq_context_upto_univ_inst_case_context; tas.
+    + rewrite /s'.
+      solve_all.
+      apply eq_term_upto_univ_it_mkLambda_or_LetIn; tas.
+      now apply eq_context_upto_univ_inst_case_context; tas.
+  - depelim X.
+    eapply IHpattern_matches in X as (sc' & Hc & hc & hu); tas; tc.
+    eexists; repeat (split; tea).
+Qed.
+
+
 Lemma red1_eq_term_upto_univ_l {Σ Σ' : global_env} Re Rle napp Γ u v u' :
   RelationClasses.Reflexive Re ->
   RelationClasses.Reflexive Rle ->
@@ -861,7 +953,7 @@ Proof.
   ].
   (* tLambda and tProd *)
   idtac.
-  10,15:solve [
+  11,16:solve [
     dependent destruction e ;
     edestruct (IHh Rle) as [? [? ?]] ; [ .. | tea | ] ; eauto;
     clear h;
@@ -1022,6 +1114,15 @@ Proof.
     + constructor. eassumption.
     + eapply eq_term_upto_univ_leq ; eauto.
       eapply eq_term_eq_term_napp; auto. typeclasses eauto.
+  - eapply eq_term_pattern_matches_arg with (8 := e) in H0 as (s' & H0 & hs & hu); tea; tc.
+    eexists; split.
+    1: now econstructor.
+    apply eq_term_upto_univ_substs; tea; tc.
+    1: reflexivity.
+    apply All2_app => //.
+    unfold ss, symbols_subst. clear ss rhs0.
+    rewrite Nat.sub_0_r. generalize 0 at 2 3. induction #|_| => //=; constructor => //.
+    constructor => //.
   - dependent destruction e.
     edestruct IHh as [? [? ?]] ; [ .. | eassumption | ] ; eauto.
     clear h.
@@ -1478,7 +1579,6 @@ Proof.
     + constructor. all: eauto.
 Qed.
 
-
 Lemma Forall2_flip {A} (R : A -> A -> Prop) (x y : list A) :
   Forall2 (flip R) y x -> Forall2 R x y.
 Proof.
@@ -1606,9 +1706,6 @@ End RedEq.
 
 
 
-Polymorphic Derive Signature for Relation.clos_refl_trans.
-
-Derive Signature for red1.
 
 Lemma local_env_telescope P Γ Γ' Δ Δ' :
   All2_telescope (on_decls P) Γ Γ' Δ Δ' ->
@@ -1960,6 +2057,11 @@ Section RedPred.
     all:repeat inv_on_free_vars_xpredT.
     all:try solve [econstructor; pcuic;
       (eapply All_All2_refl, All_refl || eapply OnOne2_All2 || idtac); eauto 7 using pred1_refl, pred1_ctx_over_refl with fvs ].
+    - destruct H.
+      eapply pred_rewrite; tea.
+      + eapply pred1_ctx_refl.
+      + instantiate (1 := r + #|prules rdecl|). rewrite nth_error_app_ge. 2: relativize (_ - _); tea. all: lia.
+      + eapply All2_refl; eauto using pred1_refl.
     - eapply OnOne2_prod_inv in X as [].
       eapply OnOne2_apply in o0 => //.
       eapply OnOne2_apply_All in o0 => //. 2:solve_all.
@@ -2066,6 +2168,26 @@ Section RedPred.
   Qed.
 
 End RedPred.
+
+(* Fake params cheating for rewrite rules substitutions *)
+Lemma on_free_vars_ctx_fake_params P n :
+  on_free_vars_ctx P (fake_params n).
+  rewrite /fake_params /on_free_vars_ctx /=.
+  generalize 0 as i.
+  induction n => //=.
+  rewrite List.rev_app_distr //=.
+Qed.
+
+Lemma untyped_subslet_fake_params Γ s0 Δ0 s :
+  untyped_subslet Γ s0 Δ0 ->
+  untyped_subslet Γ (s ++ s0) (Δ0 ,,, fake_params #|s|).
+Proof.
+  rewrite /fake_params list_make_unfold.
+  generalize 0 as n.
+  induction s => //=.
+  constructor => //.
+  now eapply IHs.
+Qed.
 
 Section PredRed.
   Context {cf : checker_flags}.
@@ -2210,6 +2332,60 @@ Section PredRed.
       cbn in H1. repeat inv_on_free_vars_xpredT.
       eapply red_mkApps; [|solve_all]. auto.
       eapply red1_red. econstructor; eauto.
+
+    - (* Rewrite rules *)
+      set rhs00 := subst0 (found_subst s ++ ss) (rhs decl).
+      assert (onΓ : on_ctx_free_vars xpredT Γ) by now eapply on_free_vars_ctx_on_ctx_free_vars_xpredT.
+      transitivity rhs00.
+      { destruct (nth_error_appP (prules rdecl) (rules rdecl) r) => //.
+        all: injection H0 as [= ->].
+        2: {
+          do 2 econstructor; tea.
+          now split.
+        }
+        eapply PCUICWeakeningEnvTyp.on_declared_rules in H as H'; tea.
+        destruct H' as (? & ? & ? & pred_red).
+        eapply All_nth_error in pred_red; tea.
+        unfold prule_red in pred_red.
+        specialize (pred_red Γ _ _ H1).
+        fold ss rhs00 in pred_red. clear H1.
+        induction pred_red in H3 |- *.
+        2: { specialize (IHpred_red1 H3). etransitivity; tea. apply IHpred_red2. eapply red_on_free_vars; tea. }
+        destruct r0; tas.
+        unfold red_rules in r0.
+        destruct r0 as (u & v & π & ? & -> & ->).
+        eapply red_context_zip.
+        inv r0. do 2 econstructor; eauto. 1: split; tea.
+      }
+      eapply on_free_vars_pattern_inv in H1 as H1'; tea.
+      eapply PCUICWeakeningEnvTyp.on_declared_rule_prule in H0 as H'; tea.
+      destruct H'.
+      eapply (PCUICSubstitution.red_red (Γ' := []) (P := xpredT)); tea. cbn -[on_ctx_free_vars].
+      * rewrite on_ctx_free_vars_app addnP_xpredT.
+        apply on_free_vars_ctx_on_ctx_free_vars_xpredT in H2. rewrite H2 andb_true_r.
+        instantiate (1 := context_of_symbols (symbols rdecl) ,,, fake_params #|found_subst s|).
+        erewrite <- shiftnP_xpredT, on_free_vars_ctx_on_ctx_free_vars, on_free_vars_ctx_app; toProp; tea.
+        {
+          eapply PCUICWeakeningEnvTyp.on_declared_rules in H as (onctx & ? & ? & ?); tea.
+          unfold on_context in onctx.
+          eapply wf_local_closed_context in onctx.
+          eapply on_free_vars_ctx_impl with (2 := onctx) => //.
+        }
+        (* admit. *) apply on_free_vars_ctx_fake_params.
+      * erewrite <- shiftnP_xpredT.
+        now apply closedn_on_free_vars.
+      * apply All2_app.
+        + solve_all.
+        + now apply All2_refl.
+      * apply All_app_inv.
+        + solve_all.
+        + unfold ss, symbols_subst. cbn.
+          generalize 0 at 1.
+          induction (_ - 0); intro; cbn; constructor; auto.
+      * assert (untyped_subslet Γ ss (context_of_symbols (symbols rdecl))).
+        { unfold ss, symbols_subst. clear. rewrite Nat.sub_0_r. generalize 0.
+          induction (symbols rdecl); intro; cbn; constructor => //. }
+        (* admit. *) now apply untyped_subslet_fake_params.
 
     - eapply PCUICSubstitution.red_abs_alt; eauto with fvs.
     - now eapply red_app.

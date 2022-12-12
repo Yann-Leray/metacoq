@@ -4,8 +4,8 @@ From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import config Universes uGraph.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICOnOne PCUICAstUtils PCUICInduction
      PCUICLiftSubst PCUICEquality PCUICUnivSubst
-     PCUICCases PCUICCumulativity PCUICTyping
-     PCUICReduction PCUICWeakeningEnv
+     PCUICCases PCUICPattern PCUICCumulativity PCUICTyping
+     PCUICReduction PCUICWeakeningEnv PCUICWeakeningEnvTyp
      PCUICClosed PCUICPosition PCUICGuardCondition.
 
 Require Import Equations.Prop.DepElim.
@@ -1127,6 +1127,25 @@ Proof.
   now rewrite subst_instance_lift.
 Qed.
 
+Lemma subst_instance_symbols_subst u kn i ui n :
+  subst_instance u (symbols_subst kn i ui n)
+  = symbols_subst kn i (subst_instance u ui) n.
+Proof.
+  unfold symbols_subst.
+  generalize i at 1 3.
+  induction (n - i); cbnr.
+  intro; f_equal. apply IHn0.
+Qed.
+
+Lemma subst_instance_found_subst u k i s nsymbols :
+  subst_instance u (found_subst s ++ symbols_subst k i (found_usubst s) nsymbols)
+  = (subst_instance u s).(found_subst) ++ symbols_subst k i (subst_instance u s).(found_usubst) nsymbols.
+Proof.
+  rewrite /subst_instance /subst_instance_list map_app.
+  f_equal.
+  apply subst_instance_symbols_subst.
+Qed.
+
 Lemma subst_instance_inds u0 ind u bodies :
   subst_instance u0 (inds ind u bodies)
   = inds ind (subst_instance u0 u) bodies.
@@ -1347,12 +1366,58 @@ Lemma subst_instance_predicate_set_preturn u p pret :
   set_preturn (subst_instance u p) (subst_instance u pret).
 Proof. reflexivity. Qed.
 
-Lemma red1_subst_instance Σ Γ u s t :
+
+Lemma subst_instance_symb_hd u t :
+  symb_hd t@[u] = symb_hd t.
+Proof.
+  induction t => //.
+Qed.
+
+Lemma subst_instance_pattern_matches u p t s :
+  pattern_matches p t s ->
+  pattern_matches p t@[u] s@[u].
+Proof.
+  rewrite /subst_instance /subst_instance_found_substitution
+    /subst_instance /subst_instance_list.
+  induction 1 using pattern_matches_ind; rewrite /pattern_matches //=.
+  - rewrite !eqb_refl //.
+  - rewrite IHpattern_matches.
+    assert (arg_pattern_matches parg arg@[u] s2@[u]) as ->.
+    2: { destruct s1 as [fs fus]; rewrite /found_substitution_app /found_substitution_map /= -map_app //. }
+    clear -H0.
+    induction H0 using arg_pattern_matches_ind; rewrite /arg_pattern_matches //=.
+    + rewrite /arg_pattern_matches /= in IHarg_pattern_matches1.
+      rewrite IHarg_pattern_matches1 IHarg_pattern_matches2 -map_app //.
+    + rewrite !eqb_refl //.
+  - len.
+    change [subst_instance_constr u (preturn p)] with ([preturn p]@[u]).
+    rewrite IHpattern_matches eqb_refl /=.
+    destruct s as [fs fus]; cbn.
+    rewrite /found_substitution_app /found_substitution_map /=.
+    rewrite flagCase.
+    do 2 f_equal.
+    rewrite !map_app.
+    f_equal.
+    + f_equal. apply (f_equal2 cons); auto.
+      rewrite subst_instance_it_mkProd_or_LetIn /=.
+      f_equal.
+      rewrite inst_case_context_subst_instance /inst_case_predicate_context.
+      f_equal.
+    + solve_all.
+      apply All_refl; intro br.
+      rewrite subst_instance_it_mkLambda_or_LetIn /=.
+      f_equal.
+      rewrite inst_case_context_subst_instance /inst_case_branch_context.
+      f_equal.
+Qed.
+
+Lemma red1_subst_instance {cf : checker_flags} Σ Γ u s t :
+  wf Σ ->
   red1 Σ Γ s t ->
   red1 Σ (subst_instance u Γ)
        (subst_instance u s) (subst_instance u t).
 Proof.
-  intros X0. pose proof I as X.
+  intros wfΣ X0. pose proof I as X.
   intros. induction X0 using red1_ind_all.
   all: try (cbn; econstructor; eauto; fail).
   - cbn. rewrite subst_instance_subst. econstructor.
@@ -1365,7 +1430,6 @@ Proof.
     reflexivity.
   - cbn. rewrite subst_instance_mkApps. cbn.
     rewrite iota_red_subst_instance.
-    change (bcontext br) with (bcotext (map_branch (subst_instance u) br)).
     eapply red_iota; eauto with pcuic.
     * rewrite nth_error_map H //.
     * simpl. now len.
@@ -1403,6 +1467,13 @@ Proof.
   - cbn. rewrite subst_instance_two. econstructor; eauto.
   - cbn. rewrite !subst_instance_mkApps.
     econstructor. now rewrite nth_error_map H.
+  - apply on_declared_rule in H as H'; tas.
+    destruct H' as [? ? ?].
+    unfold rhs0, ss.
+    rewrite subst_instance_subst (closedu_subst_instance _ (rhs decl)); tas.
+    rewrite subst_instance_found_subst.
+    eapply red_rewrite; tea.
+    eapply subst_instance_pattern_matches; assumption.
   - cbn.
     rewrite [map_predicate _ _ _ _ (set_pparams _ _)]subst_instance_predicate_set_pparams.
     econstructor; eauto.
@@ -1445,12 +1516,13 @@ Proof.
 Qed.
 
 Lemma subst_instance_ws_cumul_pb {cf : checker_flags} (Σ : global_env_ext) Γ u A B univs :
-valid_constraints (global_ext_constraints (Σ.1, univs))
-                  (subst_instance_cstrs u Σ) ->
+  wf Σ ->
+  valid_constraints (global_ext_constraints (Σ.1, univs))
+                    (subst_instance_cstrs u Σ) ->
   Σ ;;; Γ |- A = B ->
   (Σ.1,univs) ;;; subst_instance u Γ |- subst_instance u A = subst_instance u B.
 Proof.
-  intros HH X0. induction X0.
+  intros wfΣ HH X0. induction X0.
   - econstructor.
     eapply eq_term_subst_instance; tea.
   - econstructor 2. 1: eapply red1_subst_instance; cbn; eauto. eauto.
@@ -1458,13 +1530,14 @@ Proof.
 Qed.
 
 Lemma cumul_subst_instance {cf : checker_flags} (Σ : global_env_ext) Γ u A B univs :
+  wf Σ ->
   valid_constraints (global_ext_constraints (Σ.1, univs))
                     (subst_instance_cstrs u Σ) ->
   Σ ;;; Γ |- A <= B ->
   (Σ.1,univs) ;;; subst_instance u Γ
                    |- subst_instance u A <= subst_instance u B.
 Proof.
-  intros HH X0. induction X0.
+  intros wfΣ HH X0. induction X0.
   - econstructor.
     eapply leq_term_subst_instance; tea.
   - econstructor 2. 1: eapply red1_subst_instance; cbn; eauto. eauto.
@@ -1886,6 +1959,18 @@ Section SubstIdentity.
       now rewrite in_global_ext_subst_abs_level.
   Qed.
 
+  Lemma consistent_instance_ext_subst_abs_symbols Σ decl kn i u n :
+    wf_ext_wk Σ ->
+    consistent_instance_ext Σ decl u ->
+    subst_instance (abstract_instance Σ.2) (symbols_subst kn i u n) =
+      (symbols_subst kn i u n).
+  Proof using Type.
+    intros wf cu.
+    unfold symbols_subst. generalize (n-i). clear n. intro n. revert n i.
+    induction n; simpl; auto. intro i; rewrite IHn; f_equal.
+    now rewrite [subst_instance_instance _ _](consistent_instance_ext_subst_abs _ _ _ wf cu).
+  Qed.
+
   Lemma consistent_instance_ext_subst_abs_inds Σ decl ind u bodies :
     wf_ext_wk Σ ->
     consistent_instance_ext Σ decl u ->
@@ -1961,6 +2046,10 @@ Section SubstIdentity.
     - intuition auto. noconf a; noconf b; noconf b0.
       rewrite subst_instance_subst /= /subst1.
       repeat (f_equal; simpl; auto).
+
+    - rewrite /type_of_symbol subst_instance_subst subst_instance_two.
+      erewrite consistent_instance_ext_subst_abs; eauto. f_equal.
+      eapply consistent_instance_ext_subst_abs_symbols; eauto.
 
     - rewrite /type_of_constructor subst_instance_subst subst_instance_two.
       erewrite consistent_instance_ext_subst_abs; eauto. f_equal.

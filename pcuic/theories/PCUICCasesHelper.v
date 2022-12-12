@@ -568,6 +568,7 @@ Lemma type_Case_subst_helper
   (indices : list term)
   (ps : Universe.t) (Σ : global_env_ext) Γ :
   wf_ext Σ ->
+  type_preserving Σ ->
 
   declared_inductive Σ ind mib oib ->
 
@@ -603,7 +604,7 @@ Lemma type_Case_subst_helper
 
   Σ ;;; Γ |- make_case ind mib oib pparams puinst discr rettyp brs : subst_rettyp.
 Proof.
-  move=> wfΣ inddecl pparamslen discrtyp p predctx predWty elimok finok brslen brsok substrettyp.
+  move=> wfΣ tpΣ inddecl pparamslen discrtyp p predctx predWty elimok finok brslen brsok substrettyp.
 
   set ci := {| ci_ind := ind ; ci_npar := ind_npars mib ; ci_relevance := ind_relevance oib |}.
 
@@ -701,6 +702,7 @@ Lemma type_Case_simple_subst_helper
   (indices : list term)
   (ps : Universe.t) (Σ : global_env_ext) Γ :
   wf_ext Σ ->
+  type_preserving Σ ->
 
   declared_inductive Σ ind mib oib ->
 
@@ -737,7 +739,7 @@ Lemma type_Case_simple_subst_helper
 
   Σ ;;; Γ |- make_case ind mib oib pparams puinst discr rettyp' brs : rettyp.
 Proof.
-  move=> wfΣ inddecl pparamslen discrtyp rettyp' p predctx predWty elimok finok brslen brsok.
+  move=> wfΣ tpΣ inddecl pparamslen discrtyp rettyp' p predctx predWty elimok finok brslen brsok.
 
   set ci := {| ci_ind := ind ; ci_npar := ind_npars mib ; ci_relevance := ind_relevance oib |}.
 

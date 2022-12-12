@@ -210,6 +210,7 @@ Section Lemmata.
   Qed.
 
   Context (hΣ : wf Σ).
+  Context (Hrew : type_preserving Σ).
 
   Lemma validity_wf {Γ t T} :
     ∥ Σ ;;; Γ |- t : T ∥ -> welltyped Σ Γ T.
@@ -267,7 +268,7 @@ Section Lemmata.
       welltyped Σ Γ u ->
       cored Σ Γ v u ->
       welltyped Σ Γ v.
-  Proof using hΣ.
+  Proof using hΣ Hrew.
     intros Γ u v h r.
     revert h. induction r ; intros h.
     - destruct h as [A h]. exists A.
@@ -917,7 +918,7 @@ Section Lemmata.
       welltyped Σ Γ u ->
       ∥ red (fst Σ) Γ u v ∥ ->
       welltyped Σ Γ v.
-  Proof using hΣ.
+  Proof using hΣ Hrew.
     intros Γ u v h [r].
     revert h. induction r using red_rect' ; intros h.
     - assumption.

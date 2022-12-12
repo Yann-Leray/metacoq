@@ -882,7 +882,7 @@ Proof.
   destruct b; simpl; try discriminate.
   intros _ red.
   depelim red.
-  symmetry in H; apply mkApps_Fix_spec in H. simpl in H. intuition.
+  all: solve_discr.
   constructor. constructor.
 Qed.
 
@@ -1695,7 +1695,7 @@ Proof.
   - now rewrite !(subst_instance_smash _ (expand_lets_ctx _ _)).
 Qed.
 
-Lemma red_subst_instance {cf:checker_flags} (Σ : global_env) (Γ : context) (u : Instance.t) (s t : term) :
+Lemma red_subst_instance {cf:checker_flags} (Σ : global_env) (wfΣ : wf Σ) (Γ : context) (u : Instance.t) (s t : term) :
   red Σ Γ s t ->
   red Σ (subst_instance u Γ) (subst_instance u s)
             (subst_instance u t).
@@ -1703,7 +1703,7 @@ Proof.
   intros H; apply clos_rt_rt1n in H.
   apply clos_rt1n_rt.
   induction H. constructor.
-  eapply red1_subst_instance in r.
+  eapply red1_subst_instance in r; tas.
   econstructor 2. eapply r. auto.
 Qed.
 
@@ -2074,7 +2074,7 @@ Proof.
   { rewrite closedu_subst_instance_app //.
     rewrite H0 //. rewrite eqi' //.
     erewrite subst_instance_id_mdecl => //. eauto. }
-  eapply (subst_instance_ws_cumul_pb (Σ, v) _ (u' ++ u)) in cum; auto.
+  eapply (subst_instance_ws_cumul_pb (Σ, v) _ _ (u' ++ u)) in cum; auto.
   rewrite !subst_instance_two in cum.
   rewrite subst_instance_two_context in cum.
   now rewrite subsu subsu' in cum.

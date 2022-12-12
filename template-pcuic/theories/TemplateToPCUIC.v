@@ -60,12 +60,33 @@ Section Trans.
     {| bcontext := bctx;
        bbody := bbody |}.
 
+  Definition trans_predicate_branches (trans: Ast.term -> term) ci p brs :=
+    let p' := Ast.map_predicate id trans trans p in
+    let brs' := List.map (Ast.map_branch trans) brs in
+    match TransLookup.lookup_inductive Σ ci.(ci_ind) with
+    | Some (mdecl, idecl) =>
+      let tp := trans_predicate ci.(ci_ind) mdecl idecl p'.(Ast.pparams) p'.(Ast.puinst) p'.(Ast.pcontext) p'.(Ast.preturn) in
+      let tbrs :=
+        map2 (fun cdecl br => trans_branch ci.(ci_ind) mdecl cdecl br.(Ast.bcontext) br.(Ast.bbody))
+                  idecl.(ind_ctors) brs' in
+      (tp, tbrs)
+    | None =>
+      (** We build an ill-formed case if the term + environment are not well-formed.
+          But we still give the right length to the context so that all syntactic operations
+          still work. *)
+      ({| pparams := p'.(Ast.pparams);
+                  puinst := p'.(Ast.puinst);
+                  pcontext := map (fun na => vass na (tSort Universe.type0)) p'.(Ast.pcontext);
+                  preturn := p'.(Ast.preturn) |}, [])
+    end.
+
   Fixpoint trans (t : Ast.term) : term :=
   match t with
   | Ast.tRel n => tRel n
   | Ast.tVar n => tVar n
   | Ast.tEvar ev args => tEvar ev (List.map trans args)
   | Ast.tSort u => tSort u
+  (* | Ast.tSymb k n u => tSymb k n u *)
   | Ast.tConst c u => tConst c u
   | Ast.tInd c u => tInd c u
   | Ast.tConstruct c k u => tConstruct c k u
@@ -75,25 +96,8 @@ Section Trans.
   | Ast.tCast c kind t => tApp (tLambda (mkBindAnn nAnon Relevant) (trans t) (tRel 0)) (trans c)
   | Ast.tLetIn na b t b' => tLetIn na (trans b) (trans t) (trans b')
   | Ast.tCase ci p c brs =>
-    let p' := Ast.map_predicate id trans trans p in
-    let brs' := List.map (Ast.map_branch trans) brs in
-    match TransLookup.lookup_inductive Σ ci.(ci_ind) with
-    | Some (mdecl, idecl) =>
-      let tp := trans_predicate ci.(ci_ind) mdecl idecl p'.(Ast.pparams) p'.(Ast.puinst) p'.(Ast.pcontext) p'.(Ast.preturn) in
-      let tbrs :=
-        map2 (fun cdecl br => trans_branch ci.(ci_ind) mdecl cdecl br.(Ast.bcontext) br.(Ast.bbody))
-                  idecl.(ind_ctors) brs' in
-      tCase ci tp (trans c) tbrs
-    | None =>
-      (** We build an ill-formed case if the term + environment are not well-formed.
-          But we still give the right length to the context so that all syntactic operations
-          still work. *)
-      tCase ci {| pparams := p'.(Ast.pparams);
-                  puinst := p'.(Ast.puinst);
-                  pcontext := map (fun na => vass na (tSort Universe.type0)) p'.(Ast.pcontext);
-                  preturn := p'.(Ast.preturn) |}
-          (trans c) []
-    end
+    let (p', brs') := trans_predicate_branches trans ci p brs in
+    tCase ci p' (trans c) brs'
   | Ast.tProj p c => tProj p (trans c)
   | Ast.tFix mfix idx =>
     let mfix' := List.map (map_def trans trans) mfix in
@@ -147,10 +151,33 @@ Section Trans.
       ind_universes := md.(Ast.Env.ind_universes);
       ind_variance := md.(Ast.Env.ind_variance) |}.
 
+  Axiom trans_pattern : Ast.pattern -> pattern.
+
+  Definition trans_rewrite_rule r :=
+    {| pat_holes := r.(Ast.Env.pat_holes);
+       pat_head := r.(Ast.Env.pat_head);
+       pat_lhs := trans_pattern r.(Ast.Env.pat_lhs);
+       rhs := trans r.(Ast.Env.rhs)
+    |}.
+
+  Definition trans_symbol s :=
+    {| symb_name := s.(Ast.Env.symb_name);
+       symb_rel := s.(Ast.Env.symb_rel);
+       symb_type := trans s.(Ast.Env.symb_type)
+    |}.
+
+  Definition trans_rewrite_body rew :=
+    {| symbols := List.map trans_symbol rew.(Ast.Env.symbols);
+        rules := List.map trans_rewrite_rule rew.(Ast.Env.rules);
+        prules := List.map trans_rewrite_rule rew.(Ast.Env.prules);
+        rew_universes := rew.(Ast.Env.rew_universes)
+    |}.
+
   Definition trans_global_decl (d : Ast.Env.global_decl) :=
     match d with
     | Ast.Env.ConstantDecl bd => ConstantDecl (trans_constant_body bd)
     | Ast.Env.InductiveDecl bd => InductiveDecl (trans_minductive_body bd)
+    | Ast.Env.RewriteDecl bd => RewriteDecl (trans_rewrite_body bd)
     end.
 End Trans.
 

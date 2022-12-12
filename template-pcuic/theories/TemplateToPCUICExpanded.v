@@ -200,12 +200,12 @@ Proof with eauto using expanded.
     forward IHexp; eauto.
     eapply expanded_mkApps; eauto. 2:solve_all.
     destruct f7; cbn in *; eauto.
-    destruct TransLookup.lookup_inductive as [[] | ]; cbn; eauto.
+    destruct trans_predicate_branches; cbn; eauto.
   - wf_inv wf []. eapply forall_decls_declared_constructor in H; eauto. 2: now eapply template_to_pcuic_env.
     eapply expanded_tConstruct_app with (args := []).
     eauto. cbn. unfold trans_local. now rewrite context_assumptions_map. econstructor.
   - wf_inv wf (mdecl' & idecl' & []). eapply forall_decls_declared_inductive in d; eauto. 2: now eapply template_to_pcuic_env.
-    unfold Σ'.
+    unfold Σ', trans_predicate_branches.
     erewrite trans_lookup_inductive, declared_inductive_lookup; eauto.
     econstructor; eauto. cbn.
     + solve_all.
@@ -249,7 +249,7 @@ Lemma template_wf_cons_inv {cf} univs retro (Σ : Ast.Env.global_declarations) d
     Ast.Env.retroknowledge := retro |} ->
   let Σ' := {| Ast.Env.universes := univs; Ast.Env.declarations := Σ;
     Ast.Env.retroknowledge := retro |} in
-  Typing.wf Σ' × Typing.on_global_decl Typing.cumul_gen (WfAst.wf_decl_pred) (Σ', Ast.universes_decl_of_decl d.2) d.1 d.2
+  Typing.wf Σ' × Typing.on_global_decl Typing.cumul_gen Typing.red (WfAst.wf_decl_pred) (Σ', Ast.universes_decl_of_decl d.2) d.1 d.2
   × ST.on_udecl univs (Ast.universes_decl_of_decl d.2).
 Proof.
   intros wf; split.
@@ -327,7 +327,7 @@ Proof.
     rewrite trans_global_env_cons. set (Σ' := trans_global_env _ ).
     cbv zeta. constructor. apply IHetaenv.
     cbn -[add_global_decl trans_global_env].
-    destruct decl as [kn []]; cbn in *; depelim H => //.
+    destruct decl as [kn []]; cbn in *; try depelim H => //.
     * unfold trans_constant_body; cbn.
       constructor. cbn. destruct p.
       red in o.
@@ -355,7 +355,8 @@ Proof.
           move: b.(Typing.on_cargs) => onargs.
           eapply @wf_context_sorts in onargs; tea.
           cbn. split => /= //. exact w. }
-Qed.
+    * admit.
+Admitted.
 
 Import TemplateProgram.
 

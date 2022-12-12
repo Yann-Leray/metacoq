@@ -24,6 +24,7 @@ Section Principality.
   Context {cf : checker_flags}.
   Context (Σ : global_env_ext).
   Context (wfΣ : wf_ext Σ).
+  Context (Hrew : type_preserving Σ).
 
   Ltac pih :=
     lazymatch goal with
@@ -73,7 +74,7 @@ Section Principality.
 
   Theorem principal_type {Γ u A} : Σ ;;; Γ |- u : A ->
     ∑ C, (forall B, Σ ;;; Γ |- u : B -> Σ ;;; Γ ⊢ C ≤ B × Σ ;;; Γ |- u : C).
-  Proof using wfΣ.
+  Proof using wfΣ Hrew.
     intros hA. pose wfΣ' := wfΣ.1.
     induction u in Γ, A, hA |- * using term_forall_list_ind.
     - apply inversion_Rel in hA as iA. 2: auto.
@@ -186,6 +187,12 @@ Section Principality.
         eapply isType_tProd in t0 as [? ?]; eauto. }
       transitivity dom' => //. transitivity A''.
       all:apply ws_cumul_pb_eq_le; symmetry => //.
+
+    - eapply inversion_Symb in hA as (rdecl & sdecl & ?) => //; auto.
+      repeat outtimes.
+      eexists; int inversion_Symb.
+      destruct hB as (rdecl' & sdecl' & wfΓ & declc' & cu & cum).
+      now eapply (declared_symbol_inj d) in declc' as []; subst.
 
     - eapply inversion_Const in hA as [decl ?] => //; auto.
       repeat outtimes.
@@ -352,7 +359,7 @@ Section Principality.
   (** A weaker version that is often convenient to use. *)
   Lemma common_typing {Γ u A B} : Σ ;;; Γ |- u : A -> Σ ;;; Γ |- u : B ->
     ∑ C, Σ ;;; Γ ⊢ C ≤ A × Σ ;;; Γ ⊢ C ≤ B × Σ ;;; Γ |- u : C.
-  Proof using wfΣ.
+  Proof using wfΣ Hrew.
     intros hA hB.
     destruct (principal_type hA) as [P HP]; eauto.
     exists P; split; eauto.
@@ -361,7 +368,7 @@ Section Principality.
 
 End Principality.
 
-Lemma principal_type_ind {cf:checker_flags} {Σ Γ c ind u u' args args'} {wfΣ: wf_ext Σ} :
+Lemma principal_type_ind {cf:checker_flags} {Σ Γ c ind u u' args args'} {wfΣ: wf_ext Σ} {Hrew : type_preserving Σ} :
   Σ ;;; Γ |- c : mkApps (tInd ind u) args ->
   Σ ;;; Γ |- c : mkApps (tInd ind u') args' ->
   (∑ ui',
@@ -372,7 +379,7 @@ Lemma principal_type_ind {cf:checker_flags} {Σ Γ c ind u u' args args'} {wfΣ:
   ws_cumul_pb_terms Σ Γ args args'.
 Proof.
   intros h h'.
-  destruct (common_typing _ wfΣ h h') as [C [l [r ty]]].
+  destruct (common_typing _ wfΣ _ h h') as [C [l [r ty]]].
   eapply ws_cumul_pb_Ind_r_inv in l as [ui' [l' [red Ru eqargs]]]; auto.
   eapply ws_cumul_pb_Ind_r_inv in r as [ui'' [l'' [red' Ru' eqargs']]]; auto.
   destruct (closed_red_confluence red red') as [nf [redl redr]].
@@ -465,6 +472,7 @@ Qed.
 
 Lemma typing_leq_term {cf:checker_flags} (Σ : global_env_ext) Γ t t' T T' :
   wf Σ.1 ->
+  type_preserving Σ ->
   on_udecl Σ.1 Σ.2 ->
   Σ ;;; Γ |- t : T ->
   Σ ;;; Γ |- t' : T' ->
@@ -473,14 +481,14 @@ Lemma typing_leq_term {cf:checker_flags} (Σ : global_env_ext) Γ t t' T T' :
     inductives in different sorts. *)
   Σ ;;; Γ |- t' : T.
 Proof.
-  intros wfΣ onu Ht.
-  revert Σ wfΣ Γ t T Ht onu t' T'.
+  intros wfΣ Hrew onu Ht.
+  revert Σ wfΣ Γ t T Ht Hrew onu t' T'.
   eapply (typing_ind_env
   (fun Σ Γ t T =>
-    forall (onu : on_udecl Σ.1 Σ.2),
+    forall (Hrew : type_preserving Σ) (onu : on_udecl Σ.1 Σ.2),
     forall t' T' : term, Σ ;;; Γ |- t' : T' -> leq_term empty_global_env Σ t' t -> Σ;;; Γ |- t' : T)
-  (fun Σ Γ => wf_local Σ Γ)); auto;intros Σ wfΣ Γ wfΓ; intros.
-    1-13:match goal with
+  (fun Σ Γ => type_preserving Σ -> wf_local Σ Γ)); auto;intros Σ wfΣ Γ wfΓ; intros.
+    1-14:match goal with
     [ H : leq_term _ _ _ _ |- _ ] => depelim H
     end.
   all:try solve [econstructor; eauto].
@@ -491,14 +499,14 @@ Proof.
     apply cumul_Sort. now apply leq_universe_super.
 
   - eapply inversion_Prod in X4 as [s1' [s2' [Ha [Hb Hs]]]]; auto.
-    specialize (X1 onu _ _ Ha).
+    specialize (X1 _ onu _ _ Ha).
     specialize (X1 (eq_term_empty_leq_term X5_1)).
     apply eq_term_empty_eq_term in X5_1.
     eapply context_conversion in Hb. 3:{ constructor. apply conv_ctx_refl. constructor.
       eassumption. constructor. eauto. }
     all:eauto.
     2:{ constructor; eauto. now exists s1. }
-    specialize (X3 onu _ _ Hb X5_2).
+    specialize (X3 _ onu _ _ Hb X5_2).
     econstructor; eauto.
     apply leq_term_empty_leq_term in X5_2.
     eapply context_conversion; eauto.
@@ -508,11 +516,11 @@ Proof.
     constructor. now symmetry.
 
   - eapply inversion_Lambda in X4 as (s & B & dom & codom & cum); auto.
-    specialize (X1 onu _ _ dom (eq_term_empty_leq_term X5_1)).
+    specialize (X1 _ onu _ _ dom (eq_term_empty_leq_term X5_1)).
     apply eq_term_empty_eq_term in X5_1.
     assert(conv_context cumulAlgo_gen Σ (Γ ,, vass na ty) (Γ ,, vass n t)).
     { repeat constructor; pcuic. }
-    specialize (X3 onu t0 B).
+    specialize (X3 _ onu t0 B).
     forward X3 by eapply context_conversion; eauto; pcuic.
     eapply (type_ws_cumul_pb (pb:=Conv)).
     * econstructor. eauto. instantiate (1 := bty).
@@ -527,14 +535,14 @@ Proof.
       now len in X2; len.
 
   - eapply inversion_LetIn in X6 as (s1' & A & dom & bod & codom & cum); auto.
-    specialize (X1 onu _ _ dom (eq_term_empty_leq_term X7_2)).
-    specialize (X3 onu _ _ bod (eq_term_empty_leq_term X7_1)).
+    specialize (X1 _ onu _ _ dom (eq_term_empty_leq_term X7_2)).
+    specialize (X3 _ onu _ _ bod (eq_term_empty_leq_term X7_1)).
     apply eq_term_empty_eq_term in X7_1.
     apply eq_term_empty_eq_term in X7_2.
     assert(Σ ⊢ Γ ,, vdef na t ty = Γ ,, vdef n b b_ty).
     { constructor. eapply ws_cumul_ctx_pb_refl. fvs. constructor => //.
       constructor; fvs. constructor; fvs. }
-    specialize (X5 onu u A).
+    specialize (X5 _ onu u A).
     forward X5 by eapply closed_context_conversion; eauto; pcuic.
     specialize (X5 X7_3).
     eapply leq_term_empty_leq_term in X7_3.
@@ -554,8 +562,8 @@ Proof.
   - eapply inversion_App in X6 as (na' & A' & B' & hf & ha & cum); auto.
     unfold leq_term in X1.
     eapply eq_term_upto_univ_empty_impl in X7_1.
-    specialize (X3 onu _ _ hf X7_1). all:try typeclasses eauto.
-    specialize (X5 onu _ _ ha (eq_term_empty_leq_term X7_2)).
+    specialize (X3 _ onu _ _ hf X7_1). all:try typeclasses eauto.
+    specialize (X5 _ onu _ _ ha (eq_term_empty_leq_term X7_2)).
     eapply leq_term_empty_leq_term in X7_1.
     eapply eq_term_empty_eq_term in X7_2.
     eapply type_ws_cumul_pb.
@@ -568,6 +576,17 @@ Proof.
       eapply (substitution_ws_cumul_pb_subst_conv (Γ0 := [vass na A]) (Γ1 := [vass na A]) (Δ := [])); pcuic.
       constructor. 2:constructor.
       constructor; fvs.
+
+  - eapply inversion_Symb in X1 as (rdecl' & sdecl' & wfΓ' & declc & cu & cum); auto.
+    eapply type_Cumul'; eauto.
+    econstructor; eauto.
+    eapply validity; eauto.
+    econstructor; eauto.
+    eapply eq_term_upto_univ_cumulSpec.
+    pose proof (declared_symbol_inj H declc) as []; subst rdecl' sdecl'.
+    eapply eq_term_upto_univ_substs; tc.
+    eapply PCUICUnivSubstitutionConv.eq_term_upto_univ_subst_instance; eauto; typeclasses eauto.
+    admit.
 
   - eapply inversion_Const in X1 as [decl' [wf [declc [cu cum]]]]; auto.
     eapply type_Cumul'; eauto.
@@ -642,7 +661,7 @@ Proof.
     unshelve epose proof (decli'_ := declared_inductive_to_gen decli'); eauto.
     destruct (declared_inductive_inj isdecl_ decli'_). subst mdecl' idecl'.
     destruct data.
-    unshelve epose proof (X7 _ _ _ scrut_ty (eq_term_empty_leq_term X10)); tea.
+    unshelve epose proof (X7 _ _ _ _ scrut_ty (eq_term_empty_leq_term X10)); tea.
     pose proof (eq_term_empty_eq_term X10).
     destruct e as [eqpars [eqinst [eqpctx eqpret]]].
     eapply eq_term_empty_eq_term in eqpret.
@@ -662,8 +681,8 @@ Proof.
       rewrite /pre_case_predicate_context_gen.
       eapply eq_context_upto_inst_case_context => //.
       eapply All2_app. 2:constructor; pcuic.
-      specialize (X3 _ _ scrut_ty (eq_term_empty_leq_term X10)).
-      unshelve epose proof (principal_type_ind scrut_ty X3) as [_ indconv]; tea.
+      specialize (X0 _ _ scrut_ty (eq_term_empty_leq_term X10)).
+      unshelve epose proof (principal_type_ind scrut_ty X0) as [_ indconv]; tea.
       split; auto.
       eapply All2_app_inv in indconv as [convpars convinds] => //.
       exact (All2_length eqpars).
@@ -671,10 +690,10 @@ Proof.
 
   - eapply inversion_Proj in X3 as (u' & mdecl' & idecl' & cdecl' & pdecl' & args' & inv); auto.
     intuition auto.
-    specialize (X3 _ _ a0 (eq_term_empty_leq_term X4)).
+    specialize (X2 _ _ a0 (eq_term_empty_leq_term X4)).
     eapply eq_term_empty_eq_term in X4.
     assert (wf_ext Σ) by (split; assumption).
-    pose proof (principal_type_ind X3 a0) as [Ruu' X3'].
+    pose proof (principal_type_ind X2 a0) as [Ruu' X3'].
     eapply (type_ws_cumul_pb (pb:=Conv)).
     * clear a0.
       econstructor; eauto.
@@ -696,14 +715,14 @@ Proof.
         move=> i //. }
       eapply (substitution_ws_cumul_pb_subst_conv (Γ0 := ctx) (Γ1 := ctx) (Δ := [])); eauto.
       + eapply PCUICInductives.projection_subslet; eauto.
-        eapply validity in X3; auto.
+        eapply validity in X2; auto.
       + split.
         eapply PCUICWeakeningTyp.weaken_wf_local; tea.
         eapply wf_projection_context; tea.
-        eapply validity in X3.
-        now eapply (isType_mkApps_Ind_inv _ a) in X3 as [? [? []]].
+        eapply validity in X2.
+        now eapply (isType_mkApps_Ind_inv _ a) in X2 as [? [? []]].
         eapply PCUICInductives.projection_subslet; eauto.
-        eapply validity in X3; auto.
+        eapply validity in X2; auto.
       + constructor. constructor; fvs.
         eapply All2_rev. eapply ws_cumul_pb_terms_refl => //; fvs.
       + rewrite /ctx; eapply ws_cumul_pb_refl => //.
@@ -719,8 +738,8 @@ Proof.
     eapply PCUICValidity.validity; eauto.
     econstructor. 3:eapply H0. all:eauto.
     eapply (All_impl X0); pcuicfo.
-    apply infer_typing_sort_impl with id X2; now intros [].
-    eapply (All_impl X1); pcuicfo; now destruct X2.
+    apply infer_typing_sort_impl with id X; now intros [].
+    eapply (All_impl X1); pcuicfo; now destruct X.
     eapply All2_nth_error in a; eauto.
     destruct a as [[[eqty _] _] _].
     constructor. eapply eq_term_empty_leq_term in eqty.
@@ -732,8 +751,8 @@ Proof.
     eapply PCUICValidity.validity; eauto.
     eapply type_CoFix. 3:eapply H0. all:eauto.
     eapply (All_impl X0); pcuicfo.
-    apply infer_typing_sort_impl with id X2; now intros [].
-    eapply (All_impl X1); pcuicfo; now destruct X2.
+    apply infer_typing_sort_impl with id X; now intros [].
+    eapply (All_impl X1); pcuicfo; now destruct X.
     eapply All2_nth_error in a; eauto.
     destruct a as [[[eqty _] _] _].
     constructor. apply eq_term_empty_leq_term in eqty.
@@ -748,13 +767,13 @@ Proof.
 Qed.
 
 Lemma typing_eq_term {cf:checker_flags} (Σ : global_env_ext) Γ t t' T T' :
-  wf_ext Σ ->
+  wf_ext Σ -> type_preserving Σ ->
   Σ ;;; Γ |- t : T ->
   Σ ;;; Γ |- t' : T' ->
   eq_term empty_global_env Σ t t' ->
   Σ ;;; Γ |- t' : T.
 Proof.
-  intros wfΣ ht ht' eq.
+  intros wfΣ Hrew ht ht' eq.
   eapply typing_leq_term; eauto. apply wfΣ.
   now eapply eq_term_empty_leq_term.
 Qed.

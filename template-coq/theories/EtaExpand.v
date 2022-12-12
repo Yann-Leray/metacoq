@@ -204,10 +204,13 @@ Definition eta_minductive_decl Σ mdecl :=
      ind_universes := mdecl.(ind_universes);
      ind_variance := mdecl.(ind_variance); |}.
 
+Axiom eta_rewrite_decl : GlobalEnvMap.t -> rewrite_decl -> rewrite_decl.
+
 Definition eta_global_declaration (Σ : GlobalEnvMap.t) decl : global_decl :=
   match decl with
   | ConstantDecl cb => ConstantDecl (eta_global_decl Σ cb)
   | InductiveDecl idecl => InductiveDecl (eta_minductive_decl Σ idecl)
+  | RewriteDecl rew => RewriteDecl (eta_rewrite_decl Σ rew)
   end.
 
 Definition eta_global_declarations (Σ : GlobalEnvMap.t) (decls : global_declarations) :=
@@ -405,10 +408,13 @@ Record expanded_minductive_decl Σ mdecl :=
   { expanded_params : expanded_context Σ [] mdecl.(ind_params);
     expanded_ind_bodies : Forall (expanded_inductive_decl Σ mdecl) mdecl.(ind_bodies) }.
 
+Axiom expanded_rewrite_decl : global_env -> Ast.Env.rewrite_decl -> Prop.
+
 Definition expanded_decl Σ d :=
   match d with
   | Ast.Env.ConstantDecl cb => expanded_constant_decl Σ cb
   | Ast.Env.InductiveDecl idecl => expanded_minductive_decl Σ idecl
+  | Ast.Env.RewriteDecl rew => expanded_rewrite_decl Σ rew
   end.
 
 Inductive expanded_global_declarations (univs : ContextSet.t) (retro : Environment.Retroknowledge.t) : forall (Σ : Ast.Env.global_declarations), Prop :=
@@ -814,7 +820,7 @@ Qed.
  = mkApps (tInd ind u) (to_extended_list_k (ind_params mdecl) #|arity| ++
                        map (subst s (#|arity| + #|ind_params mdecl|)) (map (subst_instance u) args)).
 Proof.
- intros.
+ intros head **.
  rewrite subst_instance_mkApps, subst_mkApps.
  f_equal.
  - subst head. unfold subst_instance. cbn[subst_instance_constr].
@@ -1275,6 +1281,8 @@ Proof.
   intros neq. auto.
   case: eqb_spec. intros ->. intros [= <- <-] => //.
   intros neq. auto.
+  case: eqb_spec. intros ->. intros [= <- <-] => //.
+  intros neq. auto.
 Qed.
 
 Lemma lookup_global_map_on_snd f decls kn : lookup_global (map (on_snd f) decls) kn = option_map f (lookup_global decls kn).
@@ -1370,6 +1378,7 @@ Proof.
   solve_all. destruct H; split.
   eapply expanded_context_env_irrel; tea.
   eapply expanded_env_irrel; tea.
+  todo "rewrite_decl".
 Qed.
 
 Coercion wf_ext_wf : wf_ext >-> wf.
@@ -1460,7 +1469,7 @@ Proof. now rewrite /eta_context; len. Qed.
 Lemma eta_expand_global_decl_expanded {cf : checker_flags} (Σ : global_env_ext) (Σg : global_env_ext_map) kn d :
   repr_decls Σg Σ ->
   Typing.wf_ext Σ ->
-  on_global_decl cumul_gen (lift_typing typing) Σ kn d ->
+  on_global_decl cumul_gen red (lift_typing typing) Σ kn d ->
   expanded_decl Σ (eta_global_declaration Σg d).
 Proof.
   intros hrepr wf ond.
@@ -1490,6 +1499,7 @@ Proof.
     clear. induction (arities_context _); constructor; auto.
     specialize (H _ hrepr).
     now rewrite map_repeat in H.
+  - todo "rewrite_decl".
 Qed.
 
 Lemma eta_context_assumptions Σ n Γ : context_assumptions Γ = context_assumptions (eta_context Σ n Γ).

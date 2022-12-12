@@ -2,10 +2,10 @@
 From Coq Require Import RelationClasses.
 From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import config.
-From MetaCoq.PCUIC Require Import PCUICAst PCUICOnOne PCUICAstUtils PCUICInduction PCUICCases
+From MetaCoq.PCUIC Require Import PCUICAst PCUICOnOne PCUICAstUtils PCUICInduction PCUICCases PCUICPattern
      PCUICLiftSubst PCUICEquality PCUICReduction PCUICCumulativitySpec PCUICCumulativity PCUICPosition PCUICUnivSubst
      PCUICNamelessDef PCUICGuardCondition PCUICClosedConv PCUICClosedTyp PCUICUnivSubstitutionConv
-     PCUICClosed PCUICSigmaCalculus PCUICTyping (* for context manipulations *).
+     PCUICClosed PCUICSigmaCalculus (* for context manipulations *) PCUICTyping PCUICWeakeningEnvTyp.
 Require Import Equations.Prop.DepElim.
 Require Import ssreflect.
 
@@ -106,6 +106,8 @@ Proof.
       f_equal.
       * eapply H0 ; eauto.
       * eapply IHl ; assumption.
+  - f_equal ; try solve [ ih ].
+    eapply eq_univ_make. assumption.
   - f_equal ; try solve [ ih ].
     eapply eq_univ_make. assumption.
   - f_equal ; try solve [ ih ].
@@ -846,6 +848,19 @@ Proof.
     + unfold map_decl_anon. cbn. rewrite nl_lift. reflexivity.
 Qed.
 
+Lemma nl_declared_rule {cf} Σ {wfΣ : wf Σ} k r rdecl decl :
+  declared_rule Σ k r rdecl decl ->
+  declared_rule (nl_global_env Σ) k r
+    (nl_rewrite_decl rdecl) (nl_rewrite_rule decl).
+Proof.
+  intros []. split.
+  - eapply declared_rules_from_gen. eapply declared_rules_to_gen in H.
+    unfold declared_rules_gen.
+    rewrite nl_lookup_env H.
+    simpl. reflexivity.
+  - simpl. now rewrite nth_error_map H0.
+  Unshelve. all:eauto.
+Qed.
 
 Lemma nl_declared_inductive {cf} Σ {wfΣ : wf Σ} ind mdecl idecl :
   declared_inductive Σ ind mdecl idecl ->
@@ -1034,6 +1049,16 @@ Lemma nl_expand_lets_ctx Γ Δ :
 Proof.
   rewrite /expand_lets_ctx /expand_lets_k_ctx.
   now rewrite nl_subst_context nl_extended_subst nl_lift_context nl_context_assumptions; len.
+Qed.
+
+Lemma nl_symbols_subst kn i ui n :
+ map nl (symbols_subst kn i ui n) =
+  symbols_subst kn i ui n.
+Proof.
+  rewrite /symbols_subst.
+  generalize i at 1 3; induction (n - i); cbn; auto.
+  intro.
+  f_equal; auto.
 Qed.
 
 Lemma nl_inds ind puinst bodies :
@@ -1261,6 +1286,41 @@ Proof.
   - rewrite closed_nl //.
 Qed.
 
+Lemma nl_pattern_matches p t s :
+  pattern_matches p t s ->
+  pattern_matches p (nl t) (found_substitution_map (map nl) id s).
+Proof.
+  induction 1 using pattern_matches_ind; rewrite /pattern_matches //=.
+  - rewrite !eqb_refl //.
+  - rewrite IHpattern_matches.
+    assert (arg_pattern_matches parg (nl arg) (map nl s2)) as ->.
+    2: { rewrite found_substitution_map_app //. }
+    clear -H0.
+    induction H0 using arg_pattern_matches_ind; rewrite /arg_pattern_matches //=.
+    + rewrite /arg_pattern_matches /= in IHarg_pattern_matches1.
+      rewrite IHarg_pattern_matches1 IHarg_pattern_matches2 -map_app //.
+    + rewrite !eqb_refl //.
+  - len.
+    rewrite IHpattern_matches eqb_refl !found_substitution_map_app /=.
+    rewrite flagCase.
+    do 2 f_equal.
+    + f_equal. apply (f_equal2 cons); auto.
+      rewrite nl_it_mkProd_or_LetIn /=.
+      f_equal.
+      rewrite nl_inst_case_context //.
+    + solve_all.
+      apply All_refl; intro br.
+      rewrite nl_it_mkLambda_or_LetIn /=.
+      f_equal.
+      rewrite nl_inst_case_context //.
+Qed.
+
+Lemma nl_symb_hd t :
+  symb_hd (nl t) = symb_hd t.
+Proof.
+  induction t => //.
+Qed.
+
 Lemma nl_red1 :
   forall {cf} Σ {wfΣ : wf Σ} Γ M N,
     red1 Σ Γ M N ->
@@ -1341,6 +1401,17 @@ Proof.
       * discriminate.
   - rewrite nl_mkApps. cbn. constructor.
     rewrite nth_error_map H. reflexivity.
+  - unfold rhs0.
+    apply nl_pattern_matches in H0.
+    rewrite map_app.
+    set s' := found_substitution_map (map nl) id s.
+    change (found_usubst s) with (found_usubst s') in ss.
+    change (map nl (found_subst s)) with (found_subst s').
+    change #|symbols rdecl| with #|symbols (nl_rewrite_decl rdecl)| in ss.
+    rewrite nl_symbols_subst.
+    change (nl (rhs decl)) with (rhs (nl_rewrite_rule decl)).
+    eapply red_rewrite; tea.
+    now apply nl_declared_rule.
   - rewrite nl_pred_set_pparams.
     econstructor; tea.
     eapply OnOne2_map, OnOne2_impl. 1: eassumption.

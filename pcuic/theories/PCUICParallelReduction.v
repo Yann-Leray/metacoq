@@ -2,8 +2,8 @@
 Require Import RelationClasses CRelationClasses.
 From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import config.
-From MetaCoq.PCUIC Require Import PCUICUtils PCUICOnOne PCUICAst PCUICAstUtils PCUICTactics PCUICDepth PCUICCases
-     PCUICLiftSubst PCUICUnivSubst PCUICReduction PCUICTyping
+From MetaCoq.PCUIC Require Import PCUICUtils PCUICOnOne PCUICAst PCUICAstUtils PCUICTactics PCUICDepth PCUICCases PCUICPattern
+     PCUICLiftSubst PCUICUnivSubst PCUICReduction PCUICTyping PCUICGlobalMaps PCUICWeakeningEnvTyp
      PCUICSigmaCalculus PCUICWeakeningEnvConv PCUICInduction
      PCUICRenameDef PCUICRenameConv PCUICInstDef PCUICInstConv PCUICOnFreeVars
      PCUICWeakeningConv PCUICWeakeningTyp PCUICSubstitution.
@@ -249,8 +249,8 @@ Section ParallelReduction.
 
   (** Let *)
   | pred_zeta na d0 d1 t0 t1 b0 b1 :
-    pred1 Γ Γ' t0 t1 ->
-    pred1 Γ Γ' d0 d1 -> pred1 (Γ ,, vdef na d0 t0) (Γ' ,, vdef na d1 t1) b0 b1 ->
+    pred1 Γ Γ' d0 d1 -> pred1 Γ Γ' t0 t1 ->
+    pred1 (Γ ,, vdef na d0 t0) (Γ' ,, vdef na d1 t1) b0 b1 ->
     pred1 Γ Γ' (tLetIn na d0 t0 b0) (subst10 d1 b1)
 
   (** Local variables *)
@@ -274,7 +274,7 @@ Section ParallelReduction.
       pred1_ctx_over Γ Γ' (inst_case_branch_context p0 br)
         (inst_case_context params' p0.(puinst) br'.(bcontext)) ×
       on_Trel_eq (pred1 (Γ ,,, inst_case_branch_context p0 br)
-        (Γ' ,,, inst_case_context params' (puinst p0) (bcontext br))) bbody bcontext br br') brs0 brs1 ->
+        (Γ' ,,, inst_case_context params' (puinst p0) (bcontext br'))) bbody bcontext br br') brs0 brs1 ->
     pred1 Γ Γ'
       (tCase ci p0 (mkApps (tConstruct ci.(ci_ind) c u) args0) brs0)
       (iota_red ci.(ci_npar) (set_pparams p0 params') args1 br)
@@ -341,6 +341,21 @@ Section ParallelReduction.
     All2 (pred1 Γ Γ') args0 args1 ->
     nth_error args1 (p.(proj_npars) + p.(proj_arg)) = Some arg1 ->
     pred1 Γ Γ' (tProj p (mkApps (tConstruct p.(proj_ind) 0 u) args0)) arg1
+
+  (** Rewrite rule *)
+  | pred_rewrite k rdecl r decl lhs s s' :
+    pred1_ctx Γ Γ' ->
+    declared_rules Σ k rdecl ->
+    nth_error (prules rdecl ++ rules rdecl) r = Some decl ->
+    pattern_matches decl.(pat_lhs) lhs s ->
+    All2 (pred1 Γ Γ') s.(found_subst) s' ->
+    let ss := symbols_subst k 0 s.(found_usubst) #|rdecl.(symbols)| in
+    let rhs := subst (s' ++ ss) 0 decl.(rhs) in
+    pred1 Γ Γ' lhs rhs
+
+  | pred_symb k n u :
+    pred1_ctx Γ Γ' ->
+    pred1 Γ Γ' (tSymb k n u) (tSymb k n u)
 
   (** Congruences *)
   | pred_abs na M M' N N' :
@@ -548,6 +563,20 @@ Section ParallelReduction.
           All2 (P Γ Γ') args0 args1 ->
           nth_error args1 (p.(proj_npars) + p.(proj_arg)) = Some arg1 ->
           P Γ Γ' (tProj p (mkApps (tConstruct p.(proj_ind) 0 u) args0)) arg1) ->
+      (forall (Γ Γ' : context) k rdecl r decl lhs s (s' : list term),
+          pred1_ctx Γ Γ' ->
+          Pctx Γ Γ' ->
+          declared_rules Σ k rdecl ->
+          nth_error (prules rdecl ++ rules rdecl) r = Some decl ->
+          pattern_matches decl.(pat_lhs) lhs s ->
+          All2 (P' Γ Γ') s.(found_subst) s' ->
+          let ss := symbols_subst k 0 s.(found_usubst) #|rdecl.(symbols)| in
+          let rhs := subst (s' ++ ss) 0 decl.(rhs) in
+          P Γ Γ' lhs rhs) ->
+      (forall (Γ Γ' : context) k n (u : Instance.t),
+          pred1_ctx Γ Γ' ->
+          Pctx Γ Γ' ->
+          P Γ Γ' (tSymb k n u) (tSymb k n u)) ->
       (forall (Γ Γ' : context) (na : aname) (M M' N N' : term),
           pred1 Γ Γ' M M' ->
           P Γ Γ' M M' -> pred1 (Γ,, vass na M) (Γ' ,, vass na M') N N' ->
@@ -619,7 +648,7 @@ Section ParallelReduction.
     intros P Pctx Pctxover P' Hctx Hctxover. intros.
     assert (forall (Γ Γ' : context) (t t0 : term), pred1 Γ Γ' t t0 -> P Γ Γ' t t0).
     intros.
-    rename X20 into pr. revert Γ Γ' t t0 pr.
+    rename X22 into pr. revert Γ Γ' t t0 pr.
     fix aux 5. intros Γ Γ' t t'.
     move aux at top.
     destruct 1; match goal with
@@ -629,18 +658,20 @@ Section ParallelReduction.
                 | |- P _ _ (tCase _ _ (mkApps (tCoFix _ _) _) _) _ => idtac
                 | |- P _ _ (tProj _ (mkApps (tCoFix _ _) _)) _ => idtac
                 | |- P _ _ (tRel _) _ => idtac
+                | |- P _ _ (tSymb _ _ _) _ => idtac
                 | |- P _ _ (tConst _ _) _ => idtac
                 | |- P _ _ (tCase _ _ ?c _) (tCase _ _ ?c _) => idtac
+                | lhs := _, rhs := _ |- _ => idtac
                 | H : _ |- _ => eapply H; eauto
                 end.
     - simpl. apply X1; auto.
-      clear X1 X2 X3 X4 X5 X6 X7 X8 X9 X10 X11 X12 X13 X14 X15 X16 X17 X18 X19.
+      clear X1 X2 X3 X4 X5 X6 X7 X8 X9 X10 X11 X12 X13 X14 X15 X16 X17 X18 X19 X20 X21.
       apply Hctx.
       apply (on_contexts_impl a). intros. eapply X1.
       apply (on_contexts_impl a). intros. eapply (aux _ _ _ _ X1).
     - simpl. apply X2; auto.
-      apply Hctx, (on_contexts_impl a). exact a. intros. apply (aux _ _ _ _ X20).
-    - apply Hctx, (on_contexts_impl a). exact a. intros. apply (aux _ _ _ _ X20).
+      apply Hctx, (on_contexts_impl a). exact a. intros. apply (aux _ _ _ _ X22).
+    - apply Hctx, (on_contexts_impl a). exact a. intros. apply (aux _ _ _ _ X22).
     - eapply (All2_All2_prop (P:=pred1) (Q:=P') a0 ((extendP aux) Γ Γ')).
     - eapply (All2_All2_prop a1 (extendP aux Γ Γ')).
     - eapply (All2_branch_prop
@@ -648,7 +679,7 @@ Section ParallelReduction.
         (pred1_ctx_over Γ Γ') (inst_case_branch_context p0 br)
           (inst_case_context params' (puinst p0) (bcontext br')) *
         (pred1 (Γ,,, inst_case_branch_context p0 br)
-           (Γ',,, inst_case_context params' (puinst p0) (bcontext br))
+           (Γ',,, inst_case_context params' (puinst p0) (bcontext br'))
            (bbody br) (bbody br') × bcontext br = bcontext br'))
         (Q:=fun Γ Γ' br0 br' =>
         Pctxover Γ Γ' (inst_case_branch_context p0 br0)
@@ -661,7 +692,7 @@ Section ParallelReduction.
         apply (on_contexts_impl a aux).
         apply (Hctx _ _ a), (on_contexts_impl a aux).
         apply (on_contexts_impl a3 (extend_over aux Γ Γ')).
-      * apply (extendP aux _ _). rewrite -e1. exact p.
+      * apply (extendP aux _ _). exact p.
     - eapply X4; eauto.
       * apply (Hctx _ _ a), (on_contexts_impl a aux).
       * apply (Hctxover _ _ _ _ a (on_contexts_impl a aux)
@@ -707,7 +738,11 @@ Section ParallelReduction.
     - eapply X8; eauto.
       apply (Hctx _ _ a), (on_contexts_impl a aux).
     - apply (Hctx _ _ a), (on_contexts_impl a aux).
-    - eapply (All2_All2_prop (P:=pred1) (Q:=P) a0). intros. apply (aux _ _ _ _ X20).
+    - eapply (All2_All2_prop (P:=pred1) (Q:=P) a0). intros. apply (aux _ _ _ _ X22).
+    - eapply X10; tea.
+      + apply (Hctx _ _ a), (on_contexts_impl a aux).
+      + apply (All2_All2_prop (P:=pred1) (Q:=P') a0 (extendP aux _ _)).
+    - eapply X11; tea. apply (Hctx _ _ a), (on_contexts_impl a aux).
     - apply (Hctx _ _ a), (on_contexts_impl a aux).
     - apply (All2_All2_prop (P:=pred1) (Q:=P') a0 (extendP aux _ _)).
     - apply (Hctxover _ _ _ _ a (on_contexts_impl a aux)
@@ -730,12 +765,12 @@ Section ParallelReduction.
       + apply (Hctxover _ _ _ _ a (on_contexts_impl a aux)
           (Hctx _ _ a (on_contexts_impl a aux)) a3 (on_contexts_impl a3 (extend_over aux Γ Γ'))).
       + apply (extendP aux _ _). exact p.
-    - eapply X15 => //.
+    - eapply X17 => //.
       * eapply (Hctx _ _ a), (on_contexts_impl a aux).
       * apply (Hctxover _ _ _ _ a (on_contexts_impl a aux)
          (Hctx _ _ a (on_contexts_impl a aux)) a0 (on_contexts_impl a0 (extend_over aux Γ Γ'))).
       * eapply (All2_All2_prop2_eq (Q:=P') (f:=dtype) (g:=dbody) a1 (extendP aux)).
-    - eapply X16; tas.
+    - eapply X18; tas.
       * eapply (Hctx _ _ a), (on_contexts_impl a aux).
       * apply (Hctxover _ _ _ _ a (on_contexts_impl a aux)
         (Hctx _ _ a (on_contexts_impl a aux)) a0 (on_contexts_impl a0 (extend_over aux Γ Γ'))).
@@ -746,10 +781,10 @@ Section ParallelReduction.
     - split => //.
       intros.
       eapply Hctxover; eauto.
-      { eapply (on_contexts_impl X21 X20). }
+      { eapply (on_contexts_impl X23 X22). }
       eapply Hctx; eauto.
-      { eapply (on_contexts_impl X21 X20). }
-      eapply (on_contexts_impl X22 (extend_over X20 Γ Γ')).
+      { eapply (on_contexts_impl X23 X22). }
+      eapply (on_contexts_impl X24 (extend_over X22 Γ Γ')).
   Defined.
 
   Lemma pred1_pred1_ctx {Γ Δ t u} : pred1 Γ Δ t u -> pred1_ctx Γ Δ.
@@ -757,7 +792,7 @@ Section ParallelReduction.
     intros H; revert Γ Δ t u H.
     refine (fst (pred1_ind_all_ctx _ (fun Γ Γ' => pred1_ctx Γ Γ')
       (fun Γ Γ' Δ Δ' => True)
-      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _)); intros *.
+      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _)); intros *.
     all:try intros **; rename_all_hyps;
       try solve [specialize (forall_Γ _ X3); eauto]; eauto;
         try solve [eexists; split; constructor; eauto].
@@ -852,10 +887,25 @@ Section ParallelReduction.
   Lemma pred1_refl Γ t : pred1 Γ Γ t t.
   Proof using Type*. apply pred1_refl_gen, pred1_ctx_refl. Qed.
 
-  Lemma pred1_ctx_over_refl Γ Δ : All2_fold (on_decls (on_decls_over pred1 Γ Γ)) Δ Δ.
-  Proof using.
+  Lemma pred1_ctx_over_refl_gen Γ Γ' Δ :
+    pred1_ctx Γ Γ' ->
+    pred1_ctx_over Γ Γ' Δ Δ.
+  Proof using Type.
+    intros H.
     induction Δ as [|[na [b|] ty] Δ]; constructor; auto.
-    all:constructor; apply pred1_refl.
+    all:constructor; apply pred1_refl_gen, All2_fold_app => //.
+  Qed.
+
+  Lemma pred1_ctx_over_refl Γ Δ : pred1_ctx_over Γ Γ Δ Δ.
+  Proof using. apply pred1_ctx_over_refl_gen, pred1_ctx_refl. Qed.
+
+  Lemma pred1_ctx_app_refl_gen Γ Γ' Δ :
+    pred1_ctx Γ Γ' ->
+    pred1_ctx (Γ ,,, Δ) (Γ' ,,, Δ).
+  Proof using Type.
+    intros H.
+    apply on_contexts_app => //.
+    apply pred1_ctx_over_refl_gen => //.
   Qed.
 
 End ParallelReduction.
@@ -1079,7 +1129,7 @@ Qed.
   Proof using cf.
     set (Pctx := fun (Γ Γ' : context) => pred1_ctx Σ Γ Γ').
 
-    refine (pred1_ind_all_ctx Σ _ Pctx _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _); intros *; intros;
+    refine (pred1_ind_all_ctx Σ _ Pctx _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _); intros *; intros;
       subst Pctx;
     rename_all_hyps; try subst Γ Γ';
     lazymatch goal with
@@ -1100,12 +1150,12 @@ Qed.
     unfold All2_prop_eq, All2_prop, on_Trel, id in *.
     all:try inv_on_free_vars.
     all:try solve [econstructor; eauto].
-    12:{
+    13:{
       econstructor; eauto.
       eapply forall_P0; eauto with pcuic.
       repeat (econstructor; eauto).
     }
-    15:{
+    16:{
       econstructor; eauto.
       rewrite !rename_fix_context. eapply forall_P; tea; eauto with fvs.
       red in X3 |- *.
@@ -1344,6 +1394,23 @@ Qed.
       eapply (PCUICClosedTyp.declared_constant_closed_body). all: eauto.
     - rewrite rename_mkApps. simpl. cbn in H0; inv_on_free_vars.
       econstructor; tea. 2:erewrite nth_error_map, heq_nth_error; reflexivity.
+      solve_all.
+    - eapply on_declared_rule_prule in H as H'; tea.
+      destruct H' as [? _ _ ? _].
+      apply pattern_matches_length in H1 as Hsize.
+      rewrite /rhs0 !rename_subst0 map_app.
+      eapply (rename_pattern_matches P f) in H1 as H1'; tea.
+      set s1 := found_substitution_map (map (rename f)) id s.
+      change (found_usubst s) with (found_usubst s1) in ss.
+      change (map (rename f) (found_subst s)) with (found_subst s1).
+      replace (map (rename f) ss) with ss.
+      apply All2_length in X1 as Hlen.
+      2: { rewrite /ss /symbols_subst. generalize 0 at 1 3. induction (#|_| - _); cbnr. intros; f_equal; auto. }
+      rewrite (rename_closedn _ _ (rhs decl)).
+      1: now replace #|_| with (#|context_of_symbols (symbols rdecl)| + pat_holes decl) by (unfold ss; autorewrite with len; lia).
+      eapply pred_rewrite; tea.
+      eapply on_free_vars_pattern_inv in H2; tea.
+      unfold s1, found_substitution_map in H2 |- *; cbn in *.
       solve_all.
     - constructor; eauto.
       eapply forall_P1; tea.
@@ -1994,7 +2061,7 @@ Section ParallelSubstitution.
   Proof.
     intros Pover.
     refine (pred1_ind_all_ctx Σ _ (fun Γ Γ' => pred1_ctx Σ Γ Γ')
-       _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _); subst Pover;
+       _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _); subst Pover;
       try (intros until Δ; intros Δ' σ τ ons onis Hrel); trivial; repeat inv_on_free_vars.
 
     (* induction redst using ; sigma; intros Δ Δ' σ τ Hσ Hτ Hrel. *)
@@ -2311,6 +2378,29 @@ Section ParallelSubstitution.
       eapply All2_map. solve_all.
       rewrite nth_error_map. now rewrite H.
 
+    - (* Rewrite rule *)
+      eapply on_declared_rule_prule in H as H'; tea.
+      destruct H' as [? _ _ ? _].
+      apply pattern_matches_length in H1 as Hsize.
+      rewrite /rhs inst_subst0 map_app.
+      eapply (inst_pattern_matches _ σ) in H1 as H1'; tea.
+      set s1 := found_substitution_map (map (inst σ)) id s.
+      change (found_usubst s) with (found_usubst s1) in ss.
+      change (map (inst _) (found_subst s)) with (found_subst s1).
+      replace (map (inst _) ss) with ss.
+      2: { rewrite /ss /symbols_subst. generalize 0 at 1 3. induction (#|_| - _); cbnr. intros; f_equal; auto. }
+      apply All2_length in X1 as Hlen.
+      rewrite (inst_closed _ _ (rhs decl)).
+      1: now replace #|_| with (#|context_of_symbols (symbols rdecl)| + pat_holes decl) by (unfold ss; autorewrite with len; lia).
+      eapply pred_rewrite; tea.
+      { now eapply pred1_subst_pred1_ctx in Hrel. }
+      eapply on_free_vars_pattern_inv in H1; tea.
+      eapply on_free_vars_pattern_inv in H1'; tea.
+      unfold s1, found_substitution_map in H1, H1' |- *; cbn in *.
+      solve_all.
+
+    - eapply pred1_refl_gen. now apply pred1_subst_pred1_ctx in Hrel.
+
     - (* Lambda congruence *)
       sigma. econstructor. pcuic. eapply X2; tea.
       now rewrite -up_Up.
@@ -2575,10 +2665,34 @@ Section ParallelSubstitution.
     rewrite /substP /shiftnP. intros i. destruct Nat.ltb => //.
   Qed.
 
+  Lemma substitution0_pred1 {wfΣ : wf Σ} Γ Δ Γ' Δ' s s' N N' :
+    psubst Σ Γ Γ' s s' Δ Δ' ->
+    on_ctx_free_vars xpredT Γ ->
+    All (on_free_vars xpredT) s ->
+    on_free_vars xpredT N ->
+    pred1 Σ (Γ ,,, Δ) (Γ' ,,, Δ') N N' ->
+    pred1 Σ Γ Γ' (subst s 0 N) (subst s' 0 N').
+  Proof.
+    intros psub onΓ ons onN redN.
+    pose proof (@substitution_let_pred1 _ Γ Δ [] Γ' Δ' [] s s' N N') as H.
+    assert (#|Γ| = #|Γ'|).
+    { eapply psubst_length in psub as (? & ? & ?).
+      apply pred1_pred1_ctx in redN. eapply All2_fold_length in redN.
+      rewrite !app_context_length in redN. lia. }
+    do 3 forward H by auto.
+    forward H. {
+      apply pred1_pred1_ctx in redN.
+      eapply on_contexts_app_inv in redN; auto.
+      now apply redN.
+    }
+    do 5 forward H by eauto with fvs.
+    simpl in H. now apply H.
+  Qed.
+
   Hint Constructors psubst : pcuic.
   Hint Transparent vass vdef : pcuic.
 
-  Lemma substitution0_pred1 {wfΣ : wf Σ} {Γ Δ M M' na na' A A' N N'} :
+  Lemma substitution01_pred1 {wfΣ : wf Σ} {Γ Δ M M' na na' A A' N N'} :
     on_ctx_free_vars xpredT Γ ->
     on_free_vars xpredT M ->
     on_free_vars xpredT N ->
@@ -2587,21 +2701,14 @@ Section ParallelSubstitution.
     pred1 Σ Γ Δ (subst1 M 0 N) (subst1 M' 0 N').
   Proof.
     intros onΓ onM onN redM redN.
-    pose proof (@substitution_let_pred1 wfΣ Γ [vass na A] [] Δ [vass na' A'] [] [M] [M'] N N') as H.
-    forward H. { constructor; auto with pcuic.
-      apply pred1_pred1_ctx in redN.
-      depelim redN. pcuic. now depelim a. }
-    forward H. { apply pred1_pred1_ctx in redM. apply (on_contexts_length redM). }
-    forward H by reflexivity.
-    forward H. { constructor; pcuic.
-      apply pred1_pred1_ctx in redN. now depelim redN. }
-    forward H => //.
-    forward H. now constructor.
-    do 2 forward H => //.
-    apply (H redN).
+    eapply substitution0_pred1 with (Δ := [_]) (Δ' := [_]); eauto with fvs.
+    repeat (constructor; tas).
+    cbn.
+    apply pred1_pred1_ctx in redN.
+    depelim redN. now depelim a.
   Qed.
 
-  Lemma substitution0_let_pred1 {wfΣ : wf Σ} {Γ Δ na na' M M' A A' N N'} :
+  Lemma substitution01_let_pred1 {wfΣ : wf Σ} {Γ Δ na na' M M' A A' N N'} :
     on_ctx_free_vars xpredT Γ ->
     on_free_vars xpredT M ->
     on_free_vars xpredT N ->
@@ -2610,20 +2717,785 @@ Section ParallelSubstitution.
     pred1 Σ Γ Δ (subst1 M 0 N) (subst1 M' 0 N').
   Proof.
     intros onΓ onM onN redM redN.
-    pose proof (@substitution_let_pred1 wfΣ Γ [vdef na M A] [] Δ [vdef na' M' A'] [] [M] [M'] N N') as H.
-    forward H. {
-      pose proof (psubst_vdef Σ Γ Δ [] [] [] [] na na' M M' A A').
-      rewrite !subst_empty in X. apply X; pcuic.
-      apply pred1_pred1_ctx in redN.
-      depelim redN. pcuic. now depelim a. }
-    forward H. { apply pred1_pred1_ctx in redM. apply (on_contexts_length redM). }
-    forward H by reflexivity.
-    forward H. { constructor; pcuic.
-      apply pred1_pred1_ctx in redN. now depelim redN. }
-    forward H => //.
-    forward H. now constructor.
-    do 2 forward H => //.
-    apply (H redN).
+    eapply substitution0_pred1 with (Δ := [_]) (Δ' := [_]); eauto with fvs.
+    pose proof (psubst_vdef Σ Γ Δ [] [] [] [] na na' M M' A A') as X.
+    rewrite !subst_empty /snoc in X. eapply X; auto.
+    1: constructor.
+    cbn.
+    apply pred1_pred1_ctx in redN.
+    depelim redN. now depelim a.
   Qed.
 
 End ParallelSubstitution.
+
+Section Congruences.
+  Context (Σ : global_env).
+
+  Inductive pred_context :=
+  | pCtxRel       : nat -> pred_context
+  | pCtxVar       : ident -> pred_context
+  | pCtxSort      : Universe.t -> pred_context
+  | pCtxSymb      : kername -> nat -> Instance.t -> pred_context
+  | pCtxConst     : kername -> Instance.t -> pred_context
+  | pCtxInd       : inductive -> Instance.t -> pred_context
+  | pCtxConstruct : inductive -> nat -> Instance.t -> pred_context
+  | pCtxPrim      : prim_val -> pred_context
+  | pCtxEvar      : nat -> list (pred_context) -> pred_context
+  | pCtxProd      : aname -> pred_context -> pred_context -> pred_context
+  | pCtxLambda    : aname -> pred_context -> pred_context -> pred_context
+  | pCtxLetIn     : aname -> pred_context -> pred_context -> pred_context -> pred_context
+  | pCtxApp       : pred_context -> pred_context -> pred_context
+  | pCtxCase      : case_info -> list pred_context -> Instance.t -> context -> pred_context ->
+                    pred_context -> list (context × pred_context) -> pred_context
+  | pCtxProj      : projection -> pred_context -> pred_context
+  | pCtxFix       : mfixpoint pred_context -> nat -> pred_context
+  | pCtxCoFix     : mfixpoint pred_context -> nat -> pred_context
+
+  | pCtx_beta     : aname -> pred_context -> pred_context -> pred_context -> pred_context
+  | pCtx_zeta     : aname -> pred_context -> pred_context -> pred_context -> pred_context
+  | pCtx_zetan    : nat -> term -> pred_context
+  | pCtx_delta    : kername -> Instance.t -> term -> pred_context
+  | pCtx_iota     : case_info -> nat -> Instance.t -> list pred_context ->
+                      list pred_context -> Instance.t -> context -> term ->
+                    list (context × pred_context) -> branch term -> pred_context
+  | pCtx_fix      : mfixpoint pred_context -> nat -> list pred_context -> nat -> term -> pred_context
+  | pCtx_cofixcase: case_info -> list pred_context -> Instance.t -> context -> pred_context -> list (context × pred_context) ->
+                    mfixpoint pred_context -> nat -> list pred_context -> nat -> term -> pred_context
+  | pCtx_cofixproj: projection -> mfixpoint pred_context -> nat -> list pred_context -> nat -> term -> pred_context
+  | pCtx_projiota : projection -> Instance.t -> list pred_context -> term -> pred_context
+  | pCtx_rewrite  : term -> term -> list pred_context -> pred_context.
+
+
+  Section FillContext.
+    Variant side := Left | Right.
+
+    Definition take_side_list {A B} pred_context_side (s: side) (l: list A) : list B :=
+      List.map (pred_context_side s) l.
+
+    Definition take_side_def pred_context_side (s: side) (d : def pred_context) : def term :=
+      {| dname := dname d; rarg := rarg d; dtype := pred_context_side s (dtype d); dbody := pred_context_side s (dbody d) |}.
+    Definition take_side_mfixpoint pred_context_side (s: side) := take_side_list (take_side_def pred_context_side) s.
+
+    Definition take_side_predicate {A} pred_context_side (s: side) pars puinst pctx (pret : A) : predicate term :=
+      {| pparams := take_side_list pred_context_side s pars; puinst := puinst; pcontext := pctx; preturn := pred_context_side s pret |}.
+
+    Definition take_side_predicate_iota pred_context_side (s: side) (pars : list pred_context) puinst pctx pret : predicate term :=
+      {| pparams := take_side_list pred_context_side s pars; puinst := puinst; pcontext := pctx; preturn := pret |}.
+
+    Definition take_side_branch {A} pred_context_side (s: side) (b : context × A) : branch term :=
+      {| bcontext := fst b; bbody := pred_context_side s (snd b) |}.
+    Definition take_side_branches {A} pred_context_side (s: side) := take_side_list (take_side_branch (A := A) pred_context_side) s.
+
+    Fixpoint pred_context_side (s: side) (ctx : pred_context) :=
+      match ctx with
+      | pCtxRel n => tRel n
+      | pCtxVar i => tVar i
+      | pCtxSort s => tSort s
+      | pCtxSymb k n u => tSymb k n u
+      | pCtxConst c u => tConst c u
+      | pCtxInd ind ui => tInd ind ui
+      | pCtxConstruct ind n ui => tConstruct ind n ui
+      | pCtxPrim prim => tPrim prim
+      | pCtxEvar n l => tEvar n (take_side_list pred_context_side s l)
+      | pCtxProd na ty t => tProd na (pred_context_side s ty) (pred_context_side s t)
+      | pCtxLambda na ty b => tLambda na (pred_context_side s ty) (pred_context_side s b)
+      | pCtxLetIn na ty b t => tLetIn na (pred_context_side s ty) (pred_context_side s b) (pred_context_side s t)
+      | pCtxApp t u => tApp (pred_context_side s t) (pred_context_side s u)
+      | pCtxCase ci pars puinst pctx pret c brs =>
+          tCase ci
+            (take_side_predicate pred_context_side s pars puinst pctx pret)
+            (pred_context_side s c)
+            (take_side_branches pred_context_side s brs)
+      | pCtxProj p c => tProj p (pred_context_side s c)
+      | pCtxFix mfix n => tFix (take_side_mfixpoint pred_context_side s mfix) n
+      | pCtxCoFix mfix n => tCoFix (take_side_mfixpoint pred_context_side s mfix) n
+
+      | pCtx_beta na t b a => match s with
+        | Left => tApp (tLambda na (pred_context_side Left t) (pred_context_side Left b)) (pred_context_side Left a)
+        | Right => subst10 (pred_context_side Right a) (pred_context_side Right b)
+        end
+      | pCtx_zeta na d t b => match s with
+        | Left => tLetIn na (pred_context_side Left d) (pred_context_side Left t) (pred_context_side Left b)
+        | Right => subst10 (pred_context_side Right d) (pred_context_side Right b)
+        end
+      | pCtx_zetan i body => match s with
+        | Left => tRel i
+        | Right => lift0 (S i) body
+        end
+      | pCtx_delta c u body => match s with
+        | Left => tConst c u
+        | Right => body@[u]
+        end
+      | pCtx_iota ci c u args pars puinst pctx pret brs br => match s with
+        | Left => tCase ci
+            (take_side_predicate_iota pred_context_side Left pars puinst pctx pret)
+            (mkApps (tConstruct ci.(ci_ind) c u) (take_side_list pred_context_side Left args))
+            (take_side_branches pred_context_side Left brs)
+        | Right => iota_red ci.(ci_npar) (take_side_predicate_iota pred_context_side Right pars puinst pctx pret) (take_side_list pred_context_side Right args) br
+        end
+      | pCtx_fix mfix idx args narg fn => match s with
+        | Left => mkApps (tFix (take_side_mfixpoint pred_context_side Left mfix) idx) (take_side_list pred_context_side Left args)
+        | Right => mkApps fn (take_side_list pred_context_side Right args)
+        end
+      | pCtx_cofixcase ci pars puinst pctx pret brs mfix idx args narg fn => match s with
+        | Left => tCase ci
+            (take_side_predicate pred_context_side Left pars puinst pctx pret)
+            (mkApps (tCoFix (take_side_mfixpoint pred_context_side Left mfix) idx) (take_side_list pred_context_side Left args))
+            (take_side_branches pred_context_side Left brs)
+        | Right => tCase ci
+          (take_side_predicate pred_context_side Right pars puinst pctx pret)
+          (mkApps fn (take_side_list pred_context_side Right args))
+          (take_side_branches pred_context_side Right brs)
+        end
+      | pCtx_cofixproj p mfix idx args narg fn => match s with
+        | Left => tProj p (mkApps (tCoFix (take_side_mfixpoint pred_context_side Left mfix) idx) (take_side_list pred_context_side Left args))
+        | Right => tProj p (mkApps fn (take_side_list pred_context_side Right args))
+        end
+      | pCtx_projiota p u args arg => match s with
+        | Left => tProj p (mkApps (tConstruct p.(proj_ind) 0 u) (take_side_list pred_context_side Left args))
+        | Right => arg
+        end
+      | pCtx_rewrite lhs rhs _ => match s with
+        | Left => lhs
+        | Right => rhs
+        end
+      end.
+
+  End FillContext.
+
+  Definition All2_list {A B T} {P : A -> B -> Type} (f : forall t t', P t t' -> T) :=
+    fix aux {l l'} (a : All2 P l l') :=
+    match a with
+    | All2_nil => []
+    | All2_cons _ _ _ _ r tl => f _ _ r :: aux tl
+    end.
+  Arguments All2_list {_ _ _ _} _ {_ _} _.
+
+  Definition extract_brs {A B P C T Γ Γ'} (f : forall (Γ Γ' : B) t t', P Γ Γ' t t' -> T) (br br' : branch term) (a: A br br' × P (Γ br) (Γ' br br') (bbody br) (bbody br') × C br br') : context × T :=
+    (bcontext br, f _ _ _ _ (fst (snd a))).
+
+  Definition extract_mfixpoint {B P C T Γ Γ' Γ0 Γ0'} (f : forall (Γ Γ' : B) t t', P Γ Γ' t t' -> T) (d d' : def term)
+    (a: P Γ Γ' (dtype d) (dtype d') × P (Γ0 d) (Γ0' d') (dbody d) (dbody d') × C d d') : def T :=
+    {| dname := dname d; rarg := rarg d; dtype := f _ _ _ _ a.1; dbody := f _ _ _ _ a.2.1 |}.
+
+  Fixpoint pred1_pred_context {Γ Γ' : context} {t t' : term} (p : pred1 Σ Γ Γ' t t') {struct p} : pred_context :=
+    match p with
+    | pred_beta na _ _ _ _ _ _ p0 p1 p2 =>
+        pCtx_beta na (pred1_pred_context p0)
+          (pred1_pred_context p1)
+          (pred1_pred_context p2)
+    | pred_zeta na _ _ _ _ _ _ p0 p1 p2 =>
+        pCtx_zeta na (pred1_pred_context p0)
+          (pred1_pred_context p1)
+          (pred1_pred_context p2)
+    | pred_rel_def_unfold i body _ _ => pCtx_zetan i body
+    | pred_rel_refl i _ => pCtxRel i
+    | pred_iota ci c u args0 args1 p0 params' brs0 brs1 br _ a _ _ a0 a1 =>
+        pCtx_iota ci c u (All2_list (@pred1_pred_context Γ Γ') a)
+          (All2_list (@pred1_pred_context Γ Γ') a0)
+          (puinst p0) (pcontext p0) (preturn p0)
+          (All2_list (extract_brs (@pred1_pred_context)) a1) br
+    | pred_fix mfix0 mfix1 idx args0 args1 narg fn _ _ a _ _ a0 =>
+        pCtx_fix (All2_list (extract_mfixpoint (@pred1_pred_context)) a) idx
+          (All2_list (@pred1_pred_context Γ Γ') a0) narg fn
+    | pred_cofix_case ci p0 p1 mfix0 mfix1 idx args0 args1 narg fn
+      brs0 brs1 _ _ a _ a0 a1 _ _ _ p2 a2 =>
+        pCtx_cofixcase ci (All2_list (@pred1_pred_context Γ Γ') a1)
+          (puinst p0) (pcontext p0)
+          (pred1_pred_context p2)
+          (All2_list (extract_brs (@pred1_pred_context)) a2)
+          (All2_list (extract_mfixpoint (@pred1_pred_context)) a) idx
+          (All2_list (@pred1_pred_context Γ Γ') a0) narg fn
+    | pred_cofix_proj p0 mfix0 mfix1 idx args0 args1 narg fn _ _ a _ a0 =>
+        pCtx_cofixproj p0
+          (All2_list (extract_mfixpoint (@pred1_pred_context)) a) idx
+          (All2_list (@pred1_pred_context Γ Γ') a0) narg fn
+    | pred_delta c decl body _ u _ _ => pCtx_delta c u body
+    | pred_const c u _ => pCtxConst c u
+    | pred_proj p0 u args0 args1 arg1 _ a _ =>
+        pCtx_projiota p0 u (All2_list (@pred1_pred_context Γ Γ') a) arg1
+    | pred_rewrite k rdecl r decl lhs s s' _ _ _ _ a ss _ =>
+        pCtx_rewrite lhs
+          (subst0
+              (s' ++ symbols_subst k 0 (found_usubst s) #|symbols rdecl|)
+              (rhs decl))
+          (All2_list (@pred1_pred_context Γ Γ') a)
+    | pred_symb k n u _ => pCtxSymb k n u
+    | pred_abs na M M' N N' p0 p1 =>
+        pCtxLambda na (pred1_pred_context p0) (pred1_pred_context p1)
+    | pred_app M0 M1 N1 N2 p0 p1 =>
+        pCtxApp (pred1_pred_context p0) (pred1_pred_context p1)
+    | pred_letin na d0 d1 t0 t1 b0 b1 p0 p1 p2 =>
+        pCtxLetIn na (pred1_pred_context p0) (pred1_pred_context p1) (pred1_pred_context p2)
+    | pred_case ci p0 p1 c0 c1 _ _ _ a _ _ _ p2 a0 p3 =>
+        pCtxCase ci (All2_list (@pred1_pred_context Γ Γ') a)
+          (puinst p0) (pcontext p0)
+          (pred1_pred_context p2)
+          (pred1_pred_context p3)
+          (All2_list (extract_brs (@pred1_pred_context)) a0)
+    | pred_proj_congr p c c' p1 =>
+        pCtxProj p (pred1_pred_context p1)
+    | pred_fix_congr _ _ idx _ _ a =>
+        pCtxFix (All2_list (extract_mfixpoint (@pred1_pred_context)) a) idx
+    | pred_cofix_congr _ _ idx _ _ a =>
+        pCtxCoFix (All2_list (extract_mfixpoint (@pred1_pred_context)) a) idx
+    | pred_prod na _ _ _ _ p0 p1 =>
+        pCtxProd na (pred1_pred_context p0) (pred1_pred_context p1)
+    | evar_pred ev _ _ _ a =>
+        pCtxEvar ev (All2_list (@pred1_pred_context Γ Γ') a)
+    | pred_atom_refl t _ i =>
+      match t return pred_atom t -> pred_context with
+            | tVar i => fun _ => pCtxVar i
+            | tSort u => fun _ => pCtxSort u
+            | tInd ind ui => fun _ => pCtxInd ind ui
+            | tConstruct ind n ui => fun _ => pCtxConstruct ind n ui
+            | tPrim prim => fun _ => pCtxPrim prim
+            | _ => fun i => False_rect _ (notF i)
+            end i
+    end.
+
+  Inductive All_ctx_strict P (Γ Γ' : context) : pred_context -> Type :=
+  | AllpCtxRel n : All_ctx_strict P Γ Γ' (pCtxRel n)
+  | AllpCtxVar i : All_ctx_strict P Γ Γ' (pCtxVar i)
+  | AllpCtxSort s : All_ctx_strict P Γ Γ' (pCtxSort s)
+  | AllpCtxSymb k n u : All_ctx_strict P Γ Γ' (pCtxSymb k n u)
+  | AllpCtxConst c u : All_ctx_strict P Γ Γ' (pCtxConst c u)
+  | AllpCtxInd ind ui : All_ctx_strict P Γ Γ' (pCtxInd ind ui)
+  | AllpCtxConstruct ind n u : All_ctx_strict P Γ Γ' (pCtxConstruct ind n u)
+  | AllpCtxPrim prim : All_ctx_strict P Γ Γ' (pCtxPrim prim)
+  | AllpCtxEvar ev l : All (All_ctx P Γ Γ') l -> All_ctx_strict P Γ Γ' (pCtxEvar ev l)
+  | AllpCtxProd na M N :
+      All_ctx P Γ Γ' M -> All_ctx P (Γ ,, vass na (pred_context_side Left M)) (Γ' ,, vass na (pred_context_side Right M)) N ->
+      All_ctx_strict P Γ Γ' (pCtxProd na M N)
+  | AllpCtxLambda na M N :
+      All_ctx P Γ Γ' M -> All_ctx P (Γ ,, vass na (pred_context_side Left M)) (Γ' ,, vass na (pred_context_side Right M)) N ->
+      All_ctx_strict P Γ Γ' (pCtxLambda na M N)
+  | AllpCtxLetIn na D T B :
+      All_ctx P Γ Γ' D -> All_ctx P Γ Γ' T -> All_ctx P (Γ ,, vdef na (pred_context_side Left D) (pred_context_side Left T)) (Γ' ,, vdef na (pred_context_side Right D) (pred_context_side Right T)) B ->
+      All_ctx_strict P Γ Γ' (pCtxLetIn na D T B)
+  | AllpCtxApp M N :
+      All_ctx P Γ Γ' M -> All_ctx P Γ Γ' N ->
+      All_ctx_strict P Γ Γ' (pCtxApp M N)
+  | AllpCtxCase ci pars puinst pctx pret c brs :
+      All (All_ctx P Γ Γ') pars ->
+      let pars_side s := take_side_list pred_context_side s pars in
+      All_ctx P (Γ ,,, inst_case_context (pars_side Left) puinst pctx) (Γ' ,,, inst_case_context (pars_side Right) puinst pctx) pret ->
+      All_ctx P Γ Γ' c ->
+      All (fun br => All_ctx P (Γ ,,, inst_case_context (pars_side Left) puinst (fst br)) (Γ' ,,, inst_case_context (pars_side Right) puinst (fst br)) (snd br)) brs ->
+      All_ctx_strict P Γ Γ' (pCtxCase ci pars puinst pctx pret c brs)
+  | AllpCtxProj p c : All_ctx P Γ Γ' c -> All_ctx_strict P Γ Γ' (pCtxProj p c)
+  | AllpCtxFix mfix idx :
+      All (fun m => All_ctx P Γ Γ' (dtype m) × All_ctx P (Γ ,,, fix_context (take_side_mfixpoint pred_context_side Left mfix)) (Γ' ,,, fix_context (take_side_mfixpoint pred_context_side Right mfix)) (dbody m)) mfix ->
+      All_ctx_strict P Γ Γ' (pCtxFix mfix idx)
+  | AllpCtxCoFix mfix idx :
+      All (fun m => All_ctx P Γ Γ' (dtype m) × All_ctx P (Γ ,,, fix_context (take_side_mfixpoint pred_context_side Left mfix)) (Γ' ,,, fix_context (take_side_mfixpoint pred_context_side Right mfix)) (dbody m)) mfix ->
+      All_ctx_strict P Γ Γ' (pCtxCoFix mfix idx)
+
+  | AllpCtx_beta na T B A :
+      All_ctx P Γ Γ' T -> All_ctx P (Γ ,, vass na (pred_context_side Left T)) (Γ' ,, vass na (pred_context_side Right T)) B ->
+      All_ctx P Γ Γ' A ->
+      All_ctx_strict P Γ Γ' (pCtx_beta na T B A)
+  | AllpCtx_zeta na D T B :
+      All_ctx P Γ Γ' D -> All_ctx P Γ Γ' T ->
+      All_ctx P (Γ ,, vdef na (pred_context_side Left D) (pred_context_side Left T)) (Γ' ,, vdef na (pred_context_side Right D) (pred_context_side Right T)) B ->
+      All_ctx_strict P Γ Γ' (pCtx_zeta na D T B)
+  | AllpCtx_zetan n body :
+      All_ctx_strict P Γ Γ' (pCtx_zetan n body)
+  | AllpCtx_delta k ui body :
+      All_ctx_strict P Γ Γ' (pCtx_delta k ui body)
+  | AllpCtx_iota ci c ui args pars puinst pctx pret brs br :
+      All (All_ctx P Γ Γ') args ->
+      All (All_ctx P Γ Γ') pars ->
+      let pars_side s := take_side_list pred_context_side s pars in
+      All (fun br => All_ctx P (Γ ,,, inst_case_context (pars_side Left) puinst (fst br)) (Γ' ,,, inst_case_context (pars_side Right) puinst (fst br)) (snd br)) brs ->
+      All_ctx_strict P Γ Γ' (pCtx_iota ci c ui args pars puinst pctx pret brs br)
+  | AllpCtx_fix mfix idx args narg fn :
+      All (All_ctx P Γ Γ') args ->
+      All (fun m => All_ctx P Γ Γ' (dtype m) × All_ctx P (Γ ,,, fix_context (take_side_mfixpoint pred_context_side Left mfix)) (Γ' ,,, fix_context (take_side_mfixpoint pred_context_side Right mfix)) (dbody m)) mfix ->
+      All_ctx_strict P Γ Γ' (pCtx_fix mfix idx args narg fn)
+  | AllpCtx_cofixcase ci pars puinst pctx pret brs mfix idx args narg fn :
+      All (All_ctx P Γ Γ') pars ->
+      let pars_side s := take_side_list pred_context_side s pars in
+      All (fun br => All_ctx P (Γ ,,, inst_case_context (pars_side Left) puinst (fst br)) (Γ' ,,, inst_case_context (pars_side Right) puinst (fst br)) (snd br)) brs ->
+      All (fun m => All_ctx P Γ Γ' (dtype m) × All_ctx P (Γ ,,, fix_context (take_side_mfixpoint pred_context_side Left mfix)) (Γ' ,,, fix_context (take_side_mfixpoint pred_context_side Right mfix)) (dbody m)) mfix ->
+      All (All_ctx P Γ Γ') args ->
+      All_ctx_strict P Γ Γ' (pCtx_cofixcase ci pars puinst pctx pret brs mfix idx args narg fn)
+  | AllpCtx_cofixproj p mfix idx args narg fn :
+      All (fun m => All_ctx P Γ Γ' (dtype m) × All_ctx P (Γ ,,, fix_context (take_side_mfixpoint pred_context_side Left mfix)) (Γ' ,,, fix_context (take_side_mfixpoint pred_context_side Right mfix)) (dbody m)) mfix ->
+      All (All_ctx P Γ Γ') args ->
+      All_ctx_strict P Γ Γ' (pCtx_cofixproj p mfix idx args narg fn)
+  | AllpCtx_projiota p u args arg :
+      All (All_ctx P Γ Γ') args ->
+      All_ctx_strict P Γ Γ' (pCtx_projiota p u args arg)
+  | AllpCtx_rewrite lhs rhs fs :
+      All (All_ctx P Γ Γ') fs ->
+      All_ctx_strict P Γ Γ' (pCtx_rewrite lhs rhs fs)
+
+  with All_ctx P (Γ Γ' : context) : pred_context -> Type :=
+    AllP ctx : All_ctx_strict P Γ Γ' ctx -> P Γ Γ' (pred_context_side Left ctx) (pred_context_side Right ctx) -> All_ctx P Γ Γ' ctx.
+
+  Derive Signature for All_ctx All_ctx_strict.
+
+  Lemma All_ctx_to_P {P Γ Γ' ctx} : All_ctx P Γ Γ' ctx -> P Γ Γ' (pred_context_side Left ctx) (pred_context_side Right ctx).
+  Proof. now destruct 1. Defined.
+
+  Lemma All_ctx_to_strict {P Γ Γ' ctx} : All_ctx P Γ Γ' ctx -> All_ctx_strict P Γ Γ' ctx.
+  Proof. now destruct 1. Defined.
+
+  Lemma All2_take_side_list {A T} {P : A -> A -> Type} {f : forall t t', P t t' -> T} {f' : side -> T -> A} :
+    (forall t u (X : P t u) s,
+    f' s (f _ _ X) = match s with Left => t | Right => u end) ->
+    forall l l' (a: All2 P l l') s,
+    take_side_list f' s (All2_list f a) = match s with Left => l | Right => l' end.
+  Proof.
+    unfold take_side_list.
+    intros aux **.
+    induction a; cbn.
+    1: now destruct s.
+    destruct s; rewrite IHa; cbn; f_equal.
+    all: now eapply aux.
+  Defined.
+
+  Definition extract_take_side_branch {A B T P Γ Γ'} {f : forall (Γ Γ' : B) t t', P Γ Γ' t t' -> T} {f' : side -> _ -> term} :
+    (forall Γ Γ' t u (X : P Γ Γ' t u) s,
+    f' s (f _ _ _ _ X) = match s with Left => t | Right => u end) ->
+    forall br br' (a: A br br' × P (Γ br) (Γ' br br') (bbody br) (bbody br') × on_Trel eq bcontext br br') s,
+    take_side_branch f' s (extract_brs f br br' a) = match s with Left => br | Right => br' end.
+  Proof.
+    unfold take_side_branch, extract_brs; cbn.
+    intros aux **.
+    pose proof (aux _ _ _ _ a.2.1) as ->.
+    destruct s; [now destruct br|destruct br']; cbn.
+    pose proof a.2.2 as -> => //.
+  Defined.
+
+  Definition extract_take_side_def {B P Γ Γ' Γ0 Γ0'} {f : forall (Γ Γ' : B) t t', P Γ Γ' t t' -> _} {f' : side -> _ -> term} :
+    (forall Γ Γ' t u (X : P Γ Γ' t u) s,
+    f' s (f _ _ _ _ X) = match s with Left => t | Right => u end) ->
+    forall d d' (a: P Γ Γ' (dtype d) (dtype d') × P (Γ0 d) (Γ0' d') (dbody d) (dbody d') × on_Trel eq (fun x => (dname x, rarg x)) d d') s,
+    take_side_def f' s (extract_mfixpoint f d d' a) = match s with Left => d | Right => d' end.
+  Proof.
+    unfold extract_mfixpoint, take_side_def; cbn.
+    intros aux **.
+    pose proof (aux _ _ _ _ a.1) as ->.
+    pose proof (aux _ _ _ _ a.2.1) as ->.
+    destruct s; [now destruct d|destruct d']; cbn.
+    pose proof (X := a.2.2).
+    noconf X.
+    reflexivity.
+  Defined.
+
+  Definition lock {A} (a: A) := a.
+
+  Lemma pred1_pred_context_side Γ Γ' t u (X : pred1 Σ Γ Γ' t u) s :
+    pred_context_side s (pred1_pred_context X) = match s with Left => t | Right => u end.
+  Proof.
+    revert Γ Γ' t u X s.
+    fix aux 5.
+    intros.
+    destruct X; cbn; eauto.
+    all: try solve [destruct s; eauto].
+    all: repeat match goal with H : pred1 Σ ?Γ ?Γ' ?t ?u |- _ => pose proof (aux _ _ _ _ H); change (lock (pred1 Σ Γ Γ' t u)) in H end; unfold lock in *.
+    all: destruct s; [repeat match goal with H : forall s: side, _ |- _ => specialize (H Left) end | repeat match goal with H : forall s: side, _ |- _ => specialize (H Right) end].
+    all: cbn in *; eauto.
+    all: try congruence.
+    all: repeat f_equal.
+    all: unfold take_side_predicate_iota, take_side_predicate.
+    all: try match goal with |- mk_predicate _ _ _ _ = set_pparams ?p _ => destruct p; unfold set_pparams; cbn in *; try f_equal end.
+    all: try match goal with |- mk_predicate _ _ _ _ = ?p => destruct p; unfold set_pparams; cbn in *; try f_equal end.
+    all: tas.
+    all: try solve [ eapply All2_take_side_list, aux ].
+    all: try solve [ eapply All2_take_side_list, extract_take_side_branch, aux ].
+    all: try solve [ eapply All2_take_side_list, extract_take_side_def, aux ].
+
+    1,2: destruct t => //.
+  Qed.
+
+  Lemma All_ctx_pred1_pred_P P Γ Γ' t u (H : pred1 Σ Γ Γ' t u) :
+    All_ctx P Γ Γ' (pred1_pred_context H) -> P Γ Γ' t u.
+  Proof.
+    intro X. apply All_ctx_to_P in X.
+    rewrite !pred1_pred_context_side in X => //.
+  Qed.
+
+  Lemma pred1_pred_context_side_list Γ Γ' l l' (a : All2 _ l l') s :
+    take_side_list pred_context_side s (All2_list (@pred1_pred_context Γ Γ') a) = match s with Left => l | Right => l' end.
+  Proof.
+    eapply All2_take_side_list.
+    apply pred1_pred_context_side.
+  Defined.
+
+  Lemma pred1_pred_context_side_branches A Γ Γ' l l' (a : All2 (fun br br' => A br br' × pred1 Σ (Γ br) (Γ' br br') (bbody br) (bbody br') × on_Trel eq bcontext br br') l l') s :
+    take_side_branches pred_context_side s (All2_list (extract_brs (@pred1_pred_context)) a) = match s with Left => l | Right => l' end.
+  Proof.
+    eapply All2_take_side_list.
+    eapply extract_take_side_branch.
+    apply pred1_pred_context_side.
+  Defined.
+
+  Lemma pred1_pred_context_side_mfixpoint Γ Γ' Γ0 Γ0' l l' (a : All2 (fun d d' => pred1 Σ Γ Γ' (dtype d) (dtype d') × pred1 Σ (Γ0 d) (Γ0' d') (dbody d) (dbody d') × on_Trel eq (fun x => (dname x, rarg x)) d d') l l') s :
+    take_side_mfixpoint pred_context_side s (All2_list (extract_mfixpoint (@pred1_pred_context)) a) = match s with Left => l | Right => l' end.
+  Proof.
+    eapply All2_take_side_list.
+    eapply extract_take_side_def.
+    apply pred1_pred_context_side.
+  Defined.
+
+  Definition extendP' {A B C D T} {P: A -> B -> C -> D -> Type} {Q : A -> B -> T -> Type} {f : forall Γ Γ' t t', P Γ Γ' t t' -> T }
+    (aux : forall Γ Γ' t t' (p: P Γ Γ' t t'), Q Γ Γ' (f _ _ _ _ p)) :
+  (forall Γ Γ' t t', P Γ Γ' t t' -> (∑ p : P Γ Γ' t t', Q Γ Γ' (f _ _ _ _ p))).
+  Proof.
+    intros. exists X. apply aux.
+  Defined.
+
+  Lemma All2_list_impl {A T} {P0 : A -> A -> Type} {P Q} {f : forall t t', P0 t t' -> T} {l l'} {a: All2 P0 l l'} :
+    All P (All2_list f a) ->
+    (forall t u (X : P0 t u), P (f _ _ X) -> Q (f _ _ X)) ->
+    All Q (All2_list f a).
+  Proof.
+    intros H HPQ.
+    induction a in H |- * => //=.
+    inv H.
+    constructor; auto.
+  Defined.
+
+  Lemma All2_list_refl {A T} {P0 : A -> A -> Type} {P} {f : forall t t', P0 t t' -> T} :
+    (forall t u (X : P0 t u), P (f _ _ X)) ->
+    forall l l' (a: All2 P0 l l'),
+    All P (All2_list f a).
+  Proof.
+    intros aux **.
+    induction a; constructor; tas.
+    now apply aux.
+  Defined.
+
+  Definition extract_brs_refl {A T P0 P Γ Γ' pars puinst} {f : forall Γ Γ' t t', P0 Γ Γ' t t' -> T} :
+    (forall Γ Γ' t u (X : P0 Γ Γ' t u), P Γ Γ' (f _ _ _ _ X)) ->
+    forall br br' (a: A br br' × P0 (Γ br) (Γ' ,,, inst_case_context pars puinst (bcontext br')) (bbody br) (bbody br') × on_Trel eq bcontext br br'),
+    P (Γ br) (Γ' ,,, inst_case_context pars puinst (bcontext br)) (extract_brs (Γ' := fun _ br => Γ' ,,, inst_case_context _ _ (bcontext br)) f br br' a).2.
+  Proof.
+    unfold extract_brs; cbn.
+    intros aux **.
+    rewrite a.2.2.
+    apply aux.
+  Defined.
+
+  Definition extract_mfixpoint_refl {B T P0 P Γ Γ' Γ0 Γ0'} {f : forall (Γ Γ' : B) t t', P0 Γ Γ' t t' -> T} :
+    (forall Γ Γ' t u (X : P0 Γ Γ' t u), P Γ Γ' (f _ _ _ _ X)) ->
+    forall d d' (a: P0 Γ Γ' (dtype d) (dtype d') × P0 (Γ0 d) (Γ0' d') (dbody d) (dbody d') × on_Trel eq (fun x => (dname x, rarg x)) d d'),
+    let df := extract_mfixpoint f d d' a in
+    P Γ Γ' df.(dtype) × P (Γ0 d) (Γ0' d') df.(dbody).
+  Proof.
+    unfold extract_mfixpoint; cbn.
+    intros aux **.
+    split; apply aux.
+  Defined.
+
+  #[local] Notation "'L'" := (pred_context_side Left) (at level 9, only parsing).
+  #[local] Notation "'R'" := (pred_context_side Right) (at level 9, only parsing).
+
+  Lemma pred1_struct_ind_all_ctx :
+    forall (P : forall (Γ Γ' : context) (t t' : term), Type)
+           (Pctx : forall (Γ Γ' : context), Type)
+           (Pctxover : forall (Γ Γ' Δ Δ' : context), Type),
+      let P' Γ Γ' ctx := ((∑ p : pred1 Σ Γ Γ' (L ctx) (R ctx), pred1_pred_context p = ctx) × All_ctx P Γ Γ' ctx)%type in
+      let P'' Γ Γ' t t' := ∑ ctx, L ctx = t × R ctx = t' × All_ctx P Γ Γ' ctx in
+      let Pa Γ Γ' ctx := P Γ Γ' (L ctx) (R ctx) in
+      (forall Γ Γ', pred1_ctx Σ Γ Γ' -> on_contexts P'' Γ Γ' -> Pctx Γ Γ') ->
+      (forall Γ Γ' Δ Δ', pred1_ctx Σ Γ Γ' -> on_contexts P'' Γ Γ' ->
+        Pctx Γ Γ' ->
+        pred1_ctx_over Σ Γ Γ' Δ Δ' ->
+        on_contexts_over P'' Γ Γ' Δ Δ' ->
+        Pctxover Γ Γ' Δ Δ') ->
+      (forall (Γ Γ' : context) (na : aname) b t a,
+          P' (Γ ,, vass na (L t)) (Γ' ,, vass na (R t)) b ->
+          P' Γ Γ' t -> P' Γ Γ' a ->
+          Pa Γ Γ' (pCtx_beta na t b a)) ->
+      (forall (Γ Γ' : context) (na : aname) d t b,
+          P' Γ Γ' d -> P' Γ Γ' t ->
+          P' (Γ ,, vdef na (L d) (L t)) (Γ' ,, vdef na (R d) (R t)) b ->
+          Pa Γ Γ' (pCtx_zeta na d t b)) ->
+      (forall (Γ Γ' : context) (i : nat) (body : term),
+          pred1_ctx Σ Γ Γ' ->
+          Pctx Γ Γ' ->
+          option_map decl_body (nth_error Γ' i) = Some (Some body) ->
+          Pa Γ Γ' (pCtx_zetan i body)) ->
+      (forall Γ Γ' ci c u args pars puinst pctx pret brs br,
+          pred1_ctx Σ Γ Γ' ->
+          Pctx Γ Γ' ->
+          All (P' Γ Γ') args ->
+          All (P' Γ Γ') pars ->
+          let pars_side s := take_side_list pred_context_side s pars in
+          let inst_case_side s ctx := inst_case_context (pars_side s) puinst ctx in
+          All (fun br =>
+            pred1_ctx_over Σ Γ Γ' (inst_case_side Left br.1) (inst_case_side Right br.1) ×
+            Pctxover Γ Γ' (inst_case_side Left br.1) (inst_case_side Right br.1) ×
+            P' (Γ ,,, inst_case_side Left br.1) (Γ' ,,, inst_case_side Right br.1) br.2) brs ->
+          nth_error (take_side_branches pred_context_side Right brs) c = Some br ->
+          #|args| = (ci.(ci_npar) + context_assumptions br.(bcontext))%nat ->
+          Pa Γ Γ' (pCtx_iota ci c u args pars puinst pctx pret brs br)) ->
+
+      (forall (Γ Γ' : context) mfix (idx : nat) args (narg : nat) (fn : term),
+          pred1_ctx Σ Γ Γ' ->
+          Pctx Γ Γ' ->
+          let mfixc s := fix_context (take_side_mfixpoint pred_context_side s mfix) in
+          pred1_ctx_over Σ Γ Γ' (mfixc Left) (mfixc Right) ->
+          Pctxover Γ Γ' (mfixc Left) (mfixc Right) ->
+          All (fun m =>
+            P' Γ Γ' m.(dtype) ×
+            P' (Γ ,,, mfixc Left) (Γ' ,,, mfixc Right) (dbody m)) mfix ->
+          unfold_fix (take_side_mfixpoint pred_context_side Right mfix) idx = Some (narg, fn) ->
+          is_constructor narg (take_side_list pred_context_side Left args) = true ->
+          All (P' Γ Γ') args ->
+          Pa Γ Γ' (pCtx_fix mfix idx args narg fn)) ->
+
+      (forall (Γ Γ' : context) ci pars puinst pctx pret brs mfix idx args narg fn,
+          pred1_ctx Σ Γ Γ' ->
+          Pctx Γ Γ' ->
+          let mfixc s := fix_context (take_side_mfixpoint pred_context_side s mfix) in
+          pred1_ctx_over Σ Γ Γ' (mfixc Left) (mfixc Right) ->
+          Pctxover Γ Γ' (mfixc Left) (mfixc Right) ->
+          All (fun m =>
+            P' Γ Γ' m.(dtype) ×
+            P' (Γ ,,, mfixc Left) (Γ' ,,, mfixc Right) (dbody m)) mfix ->
+          unfold_cofix (take_side_mfixpoint pred_context_side Right mfix) idx = Some (narg, fn) ->
+          All (P' Γ Γ') args ->
+          All (P' Γ Γ') pars ->
+          let pars_side s := take_side_list pred_context_side s pars in
+          let inst_case_side s ctx := inst_case_context (pars_side s) puinst ctx in
+          Pctxover Γ Γ' (inst_case_side Left pctx) (inst_case_side Right pctx) ->
+          P' (Γ ,,, inst_case_side Left pctx) (Γ' ,,, inst_case_side Right pctx) pret ->
+          All (fun br =>
+            pred1_ctx_over Σ Γ Γ' (inst_case_side Left br.1) (inst_case_side Right br.1) ×
+            Pctxover Γ Γ' (inst_case_side Left br.1) (inst_case_side Right br.1) ×
+            P' (Γ ,,, inst_case_side Left br.1) (Γ' ,,, inst_case_side Right br.1) br.2) brs ->
+          Pa Γ Γ' (pCtx_cofixcase ci pars puinst pctx pret brs mfix idx args narg fn)) ->
+
+      (forall (Γ Γ' : context) p mfix idx args narg fn,
+          pred1_ctx Σ Γ Γ' ->
+          Pctx Γ Γ' ->
+          let mfixc s := fix_context (take_side_mfixpoint pred_context_side s mfix) in
+          pred1_ctx_over Σ Γ Γ' (mfixc Left) (mfixc Right) ->
+          Pctxover Γ Γ' (mfixc Left) (mfixc Right) ->
+          All (fun m =>
+            P' Γ Γ' m.(dtype) ×
+            P' (Γ ,,, mfixc Left) (Γ' ,,, mfixc Right) (dbody m)) mfix ->
+          unfold_cofix (take_side_mfixpoint pred_context_side Right mfix) idx = Some (narg, fn) ->
+          All (P' Γ Γ') args ->
+          Pa Γ Γ' (pCtx_cofixproj p mfix idx args narg fn)) ->
+      (forall (Γ Γ' : context) c u (decl : constant_body) (body : term),
+          pred1_ctx Σ Γ Γ' ->
+          Pctx Γ Γ' ->
+          declared_constant Σ c decl ->
+          cst_body decl = Some body ->
+          Pa Γ Γ' (pCtx_delta c u body)) ->
+      (forall (Γ Γ' : context) p (u : Instance.t) args arg,
+          pred1_ctx Σ Γ Γ' ->
+          Pctx Γ Γ' ->
+          All (P' Γ Γ') args ->
+          nth_error (take_side_list pred_context_side Right args) (p.(proj_npars) + p.(proj_arg)) = Some arg ->
+          Pa Γ Γ' (pCtx_projiota p u args arg)) ->
+      (forall (Γ Γ' : context) k rdecl r decl lhs s fs,
+          pred1_ctx Σ Γ Γ' ->
+          Pctx Γ Γ' ->
+          declared_rules Σ k rdecl ->
+          nth_error (prules rdecl ++ rules rdecl) r = Some decl ->
+          pattern_matches decl.(pat_lhs) lhs s ->
+          s.(found_subst) = take_side_list pred_context_side Left fs ->
+          All (P' Γ Γ') fs ->
+          let ss := symbols_subst k 0 s.(found_usubst) #|rdecl.(symbols)| in
+          let rhs := subst (take_side_list pred_context_side Right fs ++ ss) 0 decl.(rhs) in
+          Pa Γ Γ' (pCtx_rewrite lhs rhs fs)) ->
+
+      (forall (Γ Γ' : context) (i : nat),
+          pred1_ctx Σ Γ Γ' ->
+          Pctx Γ Γ' ->
+          Pa Γ Γ' (pCtxRel i)) ->
+      (forall (Γ Γ' : context) c (u : Instance.t),
+          pred1_ctx Σ Γ Γ' ->
+          Pctx Γ Γ' ->
+          Pa Γ Γ' (pCtxConst c u)) ->
+      (forall (Γ Γ' : context) k n (u : Instance.t),
+          pred1_ctx Σ Γ Γ' ->
+          Pctx Γ Γ' ->
+          Pa Γ Γ' (pCtxSymb k n u)) ->
+      (forall (Γ Γ' : context) (na : aname) (M N : pred_context),
+          P' Γ Γ' M ->
+          P' (Γ,, vass na (L M)) (Γ' ,, vass na (R M)) N ->
+          Pa Γ Γ' (pCtxLambda na M N)) ->
+      (forall (Γ Γ' : context) (M N : pred_context),
+          P' Γ Γ' M -> P' Γ Γ' N ->
+          Pa Γ Γ' (pCtxApp M N)) ->
+      (forall (Γ Γ' : context) (na : aname) (d t b : pred_context),
+          P' Γ Γ' d -> P' Γ Γ' t ->
+          P' (Γ ,, vdef na (L d) (L t)) (Γ' ,, vdef na (R d) (R t)) b ->
+          Pa Γ Γ' (pCtxLetIn na d t b)) ->
+
+      (forall (Γ Γ' : context) ci pars puinst pctx pret c brs,
+          pred1_ctx Σ Γ Γ' ->
+          Pctx Γ Γ' ->
+          All (P' Γ Γ') pars ->
+          let pars_side s := take_side_list pred_context_side s pars in
+          pred1_ctx_over Σ Γ Γ' (inst_case_context (pars_side Left) puinst pctx) (inst_case_context (pars_side Right) puinst pctx) ->
+          Pctxover Γ Γ' (inst_case_context (pars_side Left) puinst pctx) (inst_case_context (pars_side Right) puinst pctx) ->
+          P' (Γ ,,, inst_case_context (pars_side Left) puinst pctx)
+            (Γ' ,,, inst_case_context (pars_side Right) puinst pctx) pret ->
+          All (fun br =>
+            pred1_ctx_over Σ Γ Γ' (inst_case_context (pars_side Left) puinst br.1) (inst_case_context (pars_side Right) puinst br.1) ×
+            Pctxover Γ Γ' (inst_case_context (pars_side Left) puinst br.1) (inst_case_context (pars_side Right) puinst br.1) ×
+            P' (Γ ,,, inst_case_context (pars_side Left) puinst br.1) (Γ' ,,, inst_case_context (pars_side Right) puinst br.1) (snd br)) brs ->
+          P' Γ Γ' c ->
+          Pa Γ Γ' (pCtxCase ci pars puinst pctx pret c brs)) ->
+
+      (forall (Γ Γ' : context) (p : projection) (c : pred_context),
+          P' Γ Γ' c -> Pa Γ Γ' (pCtxProj p c)) ->
+
+      (forall (Γ Γ' : context) (mfix : mfixpoint pred_context) (idx : nat),
+          pred1_ctx Σ Γ Γ' ->
+          Pctx Γ Γ' ->
+          pred1_ctx_over Σ Γ Γ' (fix_context (take_side_mfixpoint pred_context_side Left mfix)) (fix_context (take_side_mfixpoint pred_context_side Right mfix)) ->
+          Pctxover Γ Γ' (fix_context (take_side_mfixpoint pred_context_side Left mfix)) (fix_context (take_side_mfixpoint pred_context_side Right mfix)) ->
+          All (fun m =>
+            P' Γ Γ' m.(dtype) ×
+            P' (Γ ,,, fix_context (take_side_mfixpoint pred_context_side Left mfix))
+              (Γ' ,,, fix_context (take_side_mfixpoint pred_context_side Right mfix)) (dbody m)) mfix ->
+          Pa Γ Γ' (pCtxFix mfix idx)) ->
+
+      (forall (Γ Γ' : context) (mfix : mfixpoint pred_context) (idx : nat),
+          pred1_ctx Σ Γ Γ' ->
+          Pctx Γ Γ' ->
+          pred1_ctx_over Σ Γ Γ' (fix_context (take_side_mfixpoint pred_context_side Left mfix)) (fix_context (take_side_mfixpoint pred_context_side Right mfix)) ->
+          Pctxover Γ Γ' (fix_context (take_side_mfixpoint pred_context_side Left mfix)) (fix_context (take_side_mfixpoint pred_context_side Right mfix)) ->
+          All (fun m =>
+            P' Γ Γ' m.(dtype) ×
+            P' (Γ ,,, fix_context (take_side_mfixpoint pred_context_side Left mfix))
+              (Γ' ,,, fix_context (take_side_mfixpoint pred_context_side Right mfix)) (dbody m)) mfix ->
+          Pa Γ Γ' (pCtxCoFix mfix idx)) ->
+      (forall (Γ Γ' : context) (na : aname) (M N : pred_context),
+          P' Γ Γ' M ->
+          P' (Γ,, vass na (L M)) (Γ' ,, vass na (R M)) N ->
+          Pa Γ Γ' (pCtxProd na M N)) ->
+      (forall (Γ Γ' : context) (ev : nat) (l : list pred_context),
+          pred1_ctx Σ Γ Γ' ->
+          Pctx Γ Γ' ->
+          All (P' Γ Γ') l -> Pa Γ Γ' (pCtxEvar ev l)) ->
+      (forall (Γ Γ' : context) (i : ident),
+          pred1_ctx Σ Γ Γ' ->
+          Pctx Γ Γ' ->
+          Pa Γ Γ' (pCtxVar i)) ->
+      (forall (Γ Γ' : context) (s : Universe.t),
+          pred1_ctx Σ Γ Γ' ->
+          Pctx Γ Γ' ->
+          Pa Γ Γ' (pCtxSort s)) ->
+      (forall (Γ Γ' : context) (ind : inductive) (ui : Instance.t),
+          pred1_ctx Σ Γ Γ' ->
+          Pctx Γ Γ' ->
+          Pa Γ Γ' (pCtxInd ind ui)) ->
+      (forall (Γ Γ' : context) (ind : inductive) (n : nat) (ui : Instance.t),
+          pred1_ctx Σ Γ Γ' ->
+          Pctx Γ Γ' ->
+          Pa Γ Γ' (pCtxConstruct ind n ui)) ->
+      (forall (Γ Γ' : context) (prim : prim_val),
+          pred1_ctx Σ Γ Γ' ->
+          Pctx Γ Γ' ->
+          Pa Γ Γ' (pCtxPrim prim)) ->
+      (forall (Γ Γ' : context) t t' (p : pred1 Σ Γ Γ' t t'), All_ctx P Γ Γ' (pred1_pred_context p)) ×
+      (forall Γ Γ' Δ Δ', pred1_ctx Σ Γ Γ' -> pred1_ctx_over Σ Γ Γ' Δ Δ' -> Pctxover Γ Γ' Δ Δ').
+  Proof using Σ.
+    intros P Pctx Pctxover P' P'' Pa Hctx Hctxover. intros.
+    assert (forall Γ Γ' t t' (p : pred1 Σ Γ Γ' t t'), All_ctx P Γ Γ' (pred1_pred_context p)).
+    {
+    fix aux 5.
+    assert (aux' : forall Γ Γ' t u, pred1 Σ Γ Γ' t u -> P'' Γ Γ' t u).
+    { intros ???? p. pose proof (aux _ _ _ _ p). eexists. repeat (split; tea). all: apply pred1_pred_context_side. }
+    assert (Hctx' : forall Γ Γ', pred1_ctx Σ Γ Γ' -> Pctx Γ Γ').
+    { intros ?? a. apply Hctx, (on_contexts_impl a aux'). exact a. }
+    assert (Hctxover' : forall Γ Γ' Δ Δ', pred1_ctx Σ Γ Γ' -> pred1_ctx_over Σ Γ Γ' Δ Δ' -> Pctxover Γ Γ' Δ Δ').
+    { intros ???? a a0. apply (Hctxover _ _ _ _ a (on_contexts_impl a aux') (Hctx' _ _ a) a0 (on_contexts_impl a0 (extend_over aux' _ _))). }
+    assert (to_P' : forall Γ Γ' t u (H: pred1 Σ Γ Γ' t u), All_ctx P Γ Γ' (pred1_pred_context H) -> P' Γ Γ' (pred1_pred_context H)).
+    { intros ???? p H. split => //. rewrite !pred1_pred_context_side. now eexists. }
+    intros Γ Γ' t t' H.
+    move aux at top.
+    destruct H; cbn.
+    all: repeat match goal with
+    | H : pred1 Σ ?Γ ?Γ' ?t ?t' |- _ =>
+      let XH := fresh "X" H in let XH' := fresh "X" H "'" in let XH'' := fresh "X" H "''" in
+      pose proof (aux _ _ _ _ H) as XH;
+      apply All_ctx_to_P in XH as XH';
+      apply to_P' in XH as XH'';
+      rewrite !pred1_pred_context_side in XH'; change (lock (pred1 Σ Γ Γ' t t')) in H
+    | H : All2 (pred1 Σ ?Γ ?Γ') ?l ?l' |- _ =>
+      let XH := fresh "X" H in let XH' := fresh "X" H "'" in
+      pose proof (All2_list_refl (aux _ _) _ _ H) as XH;
+      eapply All2_list_impl with (2 := to_P' _ _) in XH as XH';
+      change (lock (All2 (pred1 Σ Γ Γ') l l')) in H
+      end; unfold lock in *.
+    all: try solve [match goal with H : _ |- _ => constructor; [econstructor|eapply H]; rewrite ?pred1_pred_context_side; cycle -1; eauto end].
+    - constructor; [econstructor|]; rewrite ?pred1_pred_context_side; tas.
+      { rewrite !pred1_pred_context_side_list. eapply All2_list_refl, extract_brs_refl, aux. }
+      eapply X2; cycle -2; eauto.
+      + rewrite pred1_pred_context_side_branches //.
+      + rewrite -e0. clear -a0. induction a0 => //=. now f_equal.
+      + rewrite !pred1_pred_context_side_list.
+        eapply All2_list_refl. intros ?? (?&?&?). rewrite /= {2 4 6} e1.
+        split; [|split]; unfold extract_brs; cbn; eauto.
+    - constructor; [econstructor|]. rewrite ?pred1_pred_context_side; tas.
+      { rewrite !pred1_pred_context_side_mfixpoint. eapply All2_list_refl, extract_mfixpoint_refl, aux. }
+      eapply X3; rewrite ?pred1_pred_context_side_mfixpoint; eauto.
+      * eapply All2_list_refl. intros ?? (?&?&?). rewrite /=. split; cbn; eauto.
+      * rewrite pred1_pred_context_side_list //.
+    - constructor; [econstructor|]; rewrite ?pred1_pred_context_side; tas.
+      { rewrite !pred1_pred_context_side_list {2}e0. eapply All2_list_refl, extract_brs_refl, aux. }
+      { rewrite !pred1_pred_context_side_mfixpoint. eapply All2_list_refl, extract_mfixpoint_refl, aux. }
+      eapply X4; rewrite ?pred1_pred_context_side_list ?pred1_pred_context_side_mfixpoint; eauto.
+      * eapply All2_list_refl. intros ?? (?&?&?). rewrite /=. split; cbn; eauto.
+      * rewrite {2}e0 {2}e1; eauto.
+      * rewrite {2}e0 {2}e1; eauto.
+      * rewrite {2 4 6}e0.
+        eapply All2_list_refl. intros ?? (?&?&?). rewrite /= {2 4 6} e2.
+        split; [|split]; unfold extract_brs; cbn; eauto.
+    - constructor; [econstructor|]; rewrite ?pred1_pred_context_side; tas.
+      { rewrite !pred1_pred_context_side_mfixpoint. eapply All2_list_refl, extract_mfixpoint_refl, aux. }
+      eapply X5; rewrite ?pred1_pred_context_side_list ?pred1_pred_context_side_mfixpoint; eauto.
+      eapply All2_list_refl. intros ?? (?&?&?). rewrite /=. split; cbn; eauto.
+    - constructor; [econstructor|]; rewrite ?pred1_pred_context_side; tas.
+      eapply X7; eauto.
+      rewrite pred1_pred_context_side_list //.
+    - constructor; [econstructor|]; rewrite ?pred1_pred_context_side; tas.
+      pose proof (pred1_pred_context_side_list _ _ _ s' a0 Right).
+      unfold Pa in X8. cbn in X8 |- *.
+      rewrite -H.
+      eapply X8; eauto.
+      rewrite pred1_pred_context_side_list //.
+    - constructor; [econstructor|]; rewrite ?pred1_pred_context_side ?pred1_pred_context_side_list; tas.
+      { rewrite {2}e {2}e0 //. }
+      { rewrite {2}e. eapply All2_list_refl, extract_brs_refl, aux. }
+      eapply X15; eauto.
+      all: rewrite ?pred1_pred_context_side ?pred1_pred_context_side_list //.
+      all: rewrite ?{2}e ?{2}e0.
+      1-3: now eauto.
+      rewrite -{2 4}e. eapply All2_list_refl. intros ?? (?&?&?). rewrite /= {2 4 6} e1.
+      split; [|split]; unfold extract_brs; cbn; eauto.
+    - constructor; [econstructor|]; rewrite ?pred1_pred_context_side ?pred1_pred_context_side_mfixpoint; tas.
+      { eapply All2_list_refl, extract_mfixpoint_refl, aux. }
+      eapply X17; rewrite ?pred1_pred_context_side_mfixpoint; eauto.
+      eapply All2_list_refl, extract_mfixpoint_refl. intros; eapply to_P', aux.
+    - constructor; [econstructor|]; rewrite ?pred1_pred_context_side ?pred1_pred_context_side_mfixpoint; tas.
+      { eapply All2_list_refl, extract_mfixpoint_refl, aux. }
+      eapply X18; rewrite ?pred1_pred_context_side_mfixpoint; eauto.
+      eapply All2_list_refl, extract_mfixpoint_refl. intros; eapply to_P', aux.
+    - destruct t => //.
+      all: constructor; [econstructor|]; tas; match goal with H : _ |- _ => eapply H; eauto end.
+    }
+    split => //.
+    assert (aux' : forall Γ Γ' t u, pred1 Σ Γ Γ' t u -> P'' Γ Γ' t u).
+    { intros ???? p. pose proof (X26 _ _ _ _ p). eexists. repeat (split; tea). all: apply pred1_pred_context_side. }
+    intros.
+    eapply Hctxover; eauto.
+    { eapply (on_contexts_impl X27 aux'). }
+    eapply Hctx; eauto.
+    { eapply (on_contexts_impl X27 aux'). }
+    eapply (on_contexts_impl X28 (extend_over aux' Γ Γ')).
+  Qed.
+
+End Congruences.

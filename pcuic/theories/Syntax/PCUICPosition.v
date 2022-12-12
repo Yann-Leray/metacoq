@@ -47,7 +47,8 @@ Inductive choice :=
 | prod_r
 | let_bd
 | let_ty
-| let_in.
+| let_in
+| evar_arg (n : nat).
 
 Derive NoConfusion NoConfusionHom EqDec for choice.
 
@@ -115,6 +116,11 @@ Fixpoint validpos t (p : position) {struct p} :=
     | let_bd, tLetIn na b B t => validpos b p
     | let_ty, tLetIn na b B t => validpos B p
     | let_in, tLetIn na b B t => validpos t p
+    | evar_arg n, tEvar _ l =>
+        match nth_error l n with
+        | Some arg => validpos arg p
+        | None => false
+        end
     | _, _ => false
     end
   end.
@@ -253,6 +259,10 @@ Proof.
       * simpl in *. apply some_inj in e. subst.
         destruct y as [na' ty' bo' ra']. simpl in *. intuition eauto.
       * simpl in *. eapply IHa. all: eauto.
+    + dependent destruction e. simpl in *.
+      destruct (nth_error l n) as [arg|] eqn:e. 2: discriminate.
+      apply All2_nth_error_Some with (2 := e) in a as (arg' & -> & a).
+      now eapply ih.
 Qed.
 
 Lemma eq_term_valid_pos :
@@ -475,6 +485,21 @@ Proof.
     - simpl. cbn in e2. rewrite e in e2. assumption.
     - specialize (ih2 q). eapply ih2. all: assumption.
   }
+  assert (
+    forall n n' l arg (p : pos arg)
+      (e : nth_error l n = Some arg)
+      (e1 : validpos (tEvar n' l) (evar_arg n :: proj1_sig p)),
+      Acc posR p ->
+      Acc posR (exist (evar_arg n :: proj1_sig p) e1)
+  ) as Acc_evar_arg.
+  { intros n n' l arg p e e1 h.
+    induction h as [p ih1 ih2] in e, e1 |- *.
+    constructor. intros [q e2] h.
+    dependent destruction h.
+    simple refine (let q := exist p0 _ : pos arg in _).
+    - simpl. cbn in e2. rewrite e in e2. assumption.
+    - specialize (ih2 q). eapply ih2. all: assumption.
+  }
   intro t. induction t using term_forall_list_ind ; intros q.
   all: try solve [
              destruct q as [q e] ; destruct q as [| c q] ; [
@@ -485,6 +510,28 @@ Proof.
              | destruct c ; cbn in e ; discriminate
              ]
            ].
+  - destruct q as [q e]. destruct q as [| c q].
+    + constructor. intros [p' e'] h.
+      unfold posR in h. cbn in h.
+      dependent destruction h.
+      destruct c ; noconf e'.
+      * simpl in e'.
+        case_eq (nth_error l n0).
+        2:{ intro h. pose proof e' as hh. rewrite h in hh. discriminate. }
+        intros arg e1.
+        eapply All_nth_error in X as iharg. 2: exact e1.
+        unshelve eapply Acc_evar_arg with (1 := e1) (p := exist p _).
+        -- simpl. rewrite e1 in e'. assumption.
+        -- eapply iharg.
+    + destruct c ; noconf e.
+      * simpl in e.
+        case_eq (nth_error l n0).
+        2:{ intro h. pose proof e as hh. rewrite h in hh. discriminate. }
+        intros arg e1.
+        eapply All_nth_error in X as iharg. 2: exact e1.
+        unshelve eapply Acc_evar_arg with (1 := e1) (p := exist q _).
+        -- simpl. rewrite e1 in e. assumption.
+        -- eapply iharg.
   - destruct q as [q e]. destruct q as [| c q].
     + constructor. intros [p e'] h.
       unfold posR in h. cbn in h.
@@ -697,6 +744,11 @@ Fixpoint atpos t (p : position) {struct p} : term :=
   | [] => t
   | c :: p =>
     match c, t with
+    | evar_arg n, tEvar _ l =>
+      match nth_error l n with
+      | Some arg => atpos arg p
+      | None => tRel 0
+      end
     | app_l, tApp u v => atpos u p
     | app_r, tApp u v => atpos v p
     | case_par n, tCase ci pr c brs =>
@@ -758,6 +810,9 @@ Proof.
     all: try solve [ rewrite hh ; reflexivity ].
     all: try apply IHp.
     + simpl. destruct nth_error as [?|] eqn:e.
+      * apply IHp.
+      * rewrite hh. reflexivity.
+    + simpl. destruct nth_error.
       * apply IHp.
       * rewrite hh. reflexivity.
     + simpl. destruct nth_error.
@@ -933,7 +988,8 @@ Variant stack_entry : Type :=
 | Lambda_bd (na : aname) (A : term)
 | LetIn_bd (na : aname) (B t : term)
 | LetIn_ty (na : aname) (b t : term)
-| LetIn_in (na : aname) (b B : term).
+| LetIn_in (na : aname) (b B : term)
+| Evar_arg (n : nat) (l l' : list term).
 
 Definition stack := list stack_entry.
 
@@ -1029,6 +1085,7 @@ Definition fill_hole (t : term) (se : stack_entry) : term :=
   | LetIn_bd na B u => tLetIn na t B u
   | LetIn_ty na b u => tLetIn na b t u
   | LetIn_in na b B => tLetIn na b B t
+  | Evar_arg n l l' => tEvar n (l ++ t :: l')
   end.
 
 (* Not using fold_left here to get the right unfolding behavior *)
@@ -1307,6 +1364,7 @@ Definition closedn_stack_entry k se :=
   | LetIn_bd na B u => closedn k B && closedn (S k) u
   | LetIn_ty na b u => closedn k b && closedn (S k) u
   | LetIn_in na b B => closedn k b && closedn k B
+  | Evar_arg n l l' => forallb (closedn k) l && forallb (closedn k) l'
   end.
 
 Fixpoint closedn_stack k π :=
@@ -1347,6 +1405,7 @@ Definition stack_entry_choice (se : stack_entry) : choice :=
   | LetIn_bd na B t => let_bd
   | LetIn_ty na b t => let_ty
   | LetIn_in na b B => let_in
+  | Evar_arg n l l' => evar_arg #|l|
   end.
 
 Definition stack_position : stack -> position :=
@@ -1379,6 +1438,7 @@ Proof.
     + rewrite nth_error_snoc; auto.
   - destruct brs as ((?&[])&?); cbn.
     all: rewrite nth_error_snoc; auto.
+  - rewrite nth_error_snoc; auto.
 Qed.
 
 Lemma stack_position_valid :
@@ -1398,6 +1458,7 @@ Proof.
     + rewrite nth_error_snoc; auto.
   - destruct brs as ((?&[])&?); cbn.
     all: rewrite nth_error_snoc; auto.
+  - rewrite nth_error_snoc; auto.
 Qed.
 
 Definition stack_pos (t : term) (π : stack) : pos (zipc t π) :=
@@ -1475,6 +1536,8 @@ Section Stacks.
     - destruct brs as ((?&[])&?); cbn in *.
       + apply app_inj_length_l in H0 as (_&H0); auto; noconf H0.
         reflexivity.
+    - apply app_inj_length_l in H0 as (_&H0); auto; noconf H0.
+      reflexivity.
   Qed.
 
   Definition isStackApp (π : stack) : bool :=
@@ -1710,6 +1773,8 @@ Proof.
       rewrite - !andb_assoc. repeat bool_congr.
   - destruct brs as [[brs []] brs']; cbn.
     rewrite -app_tip_assoc !forallb_app; cbn.
+    len; ring_simplify; rewrite - !andb_assoc; repeat bool_congr.
+  - rewrite -app_tip_assoc !forallb_app; cbn.
     len; ring_simplify; rewrite - !andb_assoc; repeat bool_congr.
 Qed.
 

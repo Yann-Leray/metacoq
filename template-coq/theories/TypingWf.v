@@ -39,61 +39,15 @@ Proof.
 Qed.
 
 Lemma on_global_decl_impl `{checker_flags} Σ P Q kn d :
-  (forall Σ Γ t T, on_global_env cumul_gen P Σ.1 -> P Σ Γ t T -> Q Σ Γ t T) ->
-  on_global_env cumul_gen P Σ.1 ->
-  on_global_decl cumul_gen P Σ kn d -> on_global_decl cumul_gen Q Σ kn d.
-Proof.
-  unfold on_global_env.
-  intros X X0 o.
-  destruct d; simpl.
-  - destruct c; simpl. destruct cst_body0; simpl in *.
-    red in o |- *. simpl in *. now eapply X.
-    red in o |- *. simpl in *. now eapply X.
-  - simpl in *.
-    destruct o as [onI onP onNP].
-    constructor; auto.
-    -- eapply Alli_impl. exact onI. eauto. intros.
-
-       refine {| ind_arity_eq := X1.(ind_arity_eq);
-                 ind_cunivs := X1.(ind_cunivs) |}.
-       --- apply onArity in X1. unfold on_type in *; simpl in *.
-           now eapply X.
-       --- pose proof X1.(onConstructors) as X11. red in X11.
-           eapply All2_impl; eauto.
-           simpl. intros. destruct X2 as [? ? ? ?]; unshelve econstructor; eauto.
-           * apply X; eauto.
-           * clear -X0 X on_cargs. revert on_cargs.
-              generalize (cstr_args x0), y.
-              induction c; destruct y0; simpl; auto;
-              destruct a as [na [b|] ty]; simpl in *; auto;
-           split; intuition eauto.
-           * clear -X0 X on_cindices.
-             revert on_cindices.
-             generalize (List.rev (lift_context #|cstr_args x0| 0 (ind_indices x))).
-             generalize (cstr_indices x0).
-             induction 1; simpl; constructor; auto.
-       --- simpl; intros. apply (onProjections X1).
-       --- destruct X1. simpl. unfold check_ind_sorts in *.
-           destruct Universe.is_prop; auto.
-           destruct Universe.is_sprop; auto.
-           split. apply ind_sorts. destruct indices_matter; auto.
-           eapply type_local_ctx_impl. eapply ind_sorts. auto.
-       --- apply (onIndices X1).
-    -- red in onP. red.
-       eapply All_local_env_impl. eauto.
-       intros. now apply X.
-Qed.
+  (forall Σ Γ t T, on_global_env cumul_gen red P Σ.1 -> P Σ Γ t T -> Q Σ Γ t T) ->
+  on_global_env cumul_gen red P Σ.1 ->
+  on_global_decl cumul_gen red P Σ kn d -> on_global_decl cumul_gen red Q Σ kn d.
+Proof. intros. eapply on_global_decl_impl_simple; tea. apply X. Qed.
 
 Lemma on_global_env_impl `{checker_flags} Σ P Q :
-  (forall Σ Γ t T, on_global_env cumul_gen P Σ.1 -> P Σ Γ t T -> Q Σ Γ t T) ->
-  on_global_env cumul_gen P Σ -> on_global_env cumul_gen Q Σ.
-Proof.
-  destruct Σ as [univs Σ]; cbn.
-  intros X [cu X0]; split => /= //. cbn in *.
-  induction X0; try destruct o; constructor; auto; constructor; eauto.
-  clear IHX0.
-  eapply on_global_decl_impl; tea. split => //.
-Qed.
+  (forall Σ Γ t T, on_global_env cumul_gen red P Σ.1 -> P Σ Γ t T -> Q Σ Γ t T) ->
+  on_global_env cumul_gen red P Σ -> on_global_env cumul_gen red Q Σ.
+Proof. intros. eapply on_global_env_impl; tea. intros. now apply X. Qed.
 
 Lemma All_local_env_wf_decl_inv Σ (a : context_decl) (Γ : list context_decl)
          (X : All_local_env (wf_decl_pred Σ) (a :: Γ)) :
@@ -181,7 +135,7 @@ Hint Extern 10 => constructor : wf.
 Hint Resolve All_skipn : wf.
 
 Lemma on_global_decls_extends_not_fresh {cf} {univs retro} k (Σ : global_declarations) k' (Σ' : global_declarations) P :
-  on_global_decls cumul_gen P univs retro ((k :: Σ) ++ [k'] ++ Σ') -> k.1 = k'.1 -> False.
+  on_global_decls cumul_gen red P univs retro ((k :: Σ) ++ [k'] ++ Σ') -> k.1 = k'.1 -> False.
 Proof.
   intros H eq.
   depelim H. destruct o as [f ? ? ?].
@@ -190,7 +144,7 @@ Proof.
 Qed.
 
 Lemma lookup_env_extends {cf : checker_flags} (Σ : global_env) k d (Σ' : global_env) P :
-  on_global_env cumul_gen P Σ' ->
+  on_global_env cumul_gen red P Σ' ->
   lookup_env Σ k = Some d ->
   extends Σ Σ' -> lookup_env Σ' k = Some d.
 Proof.
@@ -226,7 +180,7 @@ Proof.
 Qed.
 
 Lemma declared_env_extends {cf : checker_flags} (Σ : global_env) k d (Σ' : global_env) P :
-  on_global_env cumul_gen P Σ' ->
+  on_global_env cumul_gen red P Σ' ->
   In (k, InductiveDecl d) (declarations Σ) -> extends Σ Σ' -> In (k,InductiveDecl d) (declarations Σ').
 Proof.
   intros; apply lookup_global_Some_iff_In_NoDup.
@@ -238,7 +192,7 @@ Proof.
 Qed.
 
 Lemma wf_extends {cf} {Σ : global_env} T {Σ' : global_env} P :
-  on_global_env cumul_gen P Σ' -> WfAst.wf Σ T -> extends Σ Σ' -> WfAst.wf Σ' T.
+  on_global_env cumul_gen red P Σ' -> WfAst.wf Σ T -> extends Σ Σ' -> WfAst.wf Σ' T.
 Proof.
   intros wfΣ'.
   induction 1 using term_wf_forall_list_ind; try solve [econstructor; eauto; solve_all].
@@ -249,16 +203,16 @@ Proof.
 Qed.
 
 Lemma wf_decl_extends {cf} {Σ : global_env} T {Σ' : global_env} P :
-  on_global_env cumul_gen P Σ' -> wf_decl Σ T -> extends Σ Σ' -> wf_decl Σ' T.
+  on_global_env cumul_gen red P Σ' -> wf_decl Σ T -> extends Σ Σ' -> wf_decl Σ' T.
 Proof.
   intros wf [] ext. red. destruct decl_body; split; eauto using wf_extends.
 Qed.
 
-Arguments lookup_on_global_env {H} {Pcmp P Σ c decl}.
+Arguments lookup_on_global_env {H} {Pcmp red P Σ c decl}.
 
 Lemma declared_inductive_wf {cf:checker_flags} {Σ : global_env} ind
          (mdecl : mutual_inductive_body) (idecl : one_inductive_body) :
-  on_global_env cumul_gen wf_decl_pred Σ ->
+  on_global_env cumul_gen red wf_decl_pred Σ ->
   declared_inductive Σ ind mdecl idecl -> WfAst.wf Σ (ind_type idecl).
 Proof.
   intros.
@@ -284,7 +238,7 @@ Proof.
 Qed.
 
 Lemma declared_inductive_wf_indices {cf:checker_flags} {Σ : global_env} {ind mdecl idecl} :
-  on_global_env cumul_gen wf_decl_pred Σ ->
+  on_global_env cumul_gen red wf_decl_pred Σ ->
   declared_inductive Σ ind mdecl idecl -> All (wf_decl Σ) (ind_indices idecl).
 Proof.
   intros.
@@ -303,7 +257,7 @@ Proof.
 Qed.
 
 Lemma declared_inductive_wf_ctors {cf:checker_flags} {Σ} {ind} {mdecl idecl} :
-  on_global_env cumul_gen wf_decl_pred Σ ->
+  on_global_env cumul_gen red wf_decl_pred Σ ->
   declared_inductive Σ ind mdecl idecl ->
   All (fun ctor => All (wf_decl Σ) ctor.(cstr_args)) (ind_ctors idecl).
 Proof.
@@ -335,7 +289,7 @@ Proof.
 Qed.
 
 Lemma on_global_inductive_wf_params {cf:checker_flags} {Σ : global_env_ext} {kn mdecl} :
-  on_global_decl cumul_gen (fun Σ : global_env_ext => wf_decl_pred Σ) Σ kn (InductiveDecl mdecl) ->
+  on_global_decl cumul_gen red (fun Σ : global_env_ext => wf_decl_pred Σ) Σ kn (InductiveDecl mdecl) ->
   All (wf_decl Σ) (ind_params mdecl).
 Proof.
   intros prf.
@@ -526,7 +480,7 @@ Section WfAst.
     Forall_decls_typing
       (fun (Σ : global_env_ext) (_ : context) (t T : term) =>
       WfAst.wf Σ t * WfAst.wf Σ T) Σ ->
-    on_global_env cumul_gen wf_decl_pred Σ.
+    on_global_env cumul_gen red wf_decl_pred Σ.
   Proof using Type.
     apply on_global_env_impl => Σ' Γ t []; simpl; unfold wf_decl_pred;
     intros; auto. destruct X0 as [s []]; intuition auto.
@@ -553,7 +507,7 @@ Section WfAst.
   Qed.
 
   Lemma declared_inductive_wf_params {ind mdecl idecl} :
-    on_global_env cumul_gen wf_decl_pred Σ ->
+    on_global_env cumul_gen red wf_decl_pred Σ ->
     declared_inductive Σ ind mdecl idecl -> All (wf_decl Σ) (ind_params mdecl).
   Proof using Type.
     intros.
@@ -568,7 +522,7 @@ Section WfAst.
   Lemma declared_constructor_wf
     (ind : inductive) (i : nat) (u : list Level.t)
           (mdecl : mutual_inductive_body) (idecl : one_inductive_body) (cdecl : constructor_body) :
-      on_global_env cumul_gen wf_decl_pred Σ ->
+      on_global_env cumul_gen red wf_decl_pred Σ ->
       declared_constructor Σ (ind, i) mdecl idecl cdecl ->
       WfAst.wf Σ (cstr_type cdecl).
   Proof using Type.
@@ -586,7 +540,7 @@ Section WfAst.
   Qed.
 
   Lemma wf_case_branch_context_gen {ind mdecl idecl cdecl p br} :
-    on_global_env cumul_gen wf_decl_pred Σ ->
+    on_global_env cumul_gen red wf_decl_pred Σ ->
     declared_constructor Σ ind mdecl idecl cdecl ->
     All (WfAst.wf Σ) (pparams p) ->
     All (fun ctor => All (wf_decl Σ) (cstr_args ctor)) (ind_ctors idecl) ->
@@ -612,7 +566,7 @@ Section WfAst.
   Qed.
 
   Lemma wf_case_branches_context ind mdecl idecl p brs :
-    on_global_env cumul_gen wf_decl_pred Σ ->
+    on_global_env cumul_gen red wf_decl_pred Σ ->
     declared_inductive Σ ind mdecl idecl ->
     All (WfAst.wf Σ) (pparams p) ->
     All (fun ctor => All (wf_decl Σ) (cstr_args ctor)) (ind_ctors idecl) ->
@@ -658,7 +612,7 @@ Section WfLookup.
   Qed.
 
   Lemma on_global_inductive_wf_bodies {kn mdecl} :
-    on_global_decl cumul_gen wf_decl_pred Σ kn (InductiveDecl mdecl) ->
+    on_global_decl cumul_gen red wf_decl_pred Σ kn (InductiveDecl mdecl) ->
     All (wf_inductive_body Σ) mdecl.(ind_bodies).
   Proof using Type.
     cbn. intros oni.
@@ -745,7 +699,7 @@ Section WfRed.
   Context {Σ : global_env}.
 
   Lemma wf_red1 Γ M N :
-    on_global_env cumul_gen wf_decl_pred Σ ->
+    on_global_env cumul_gen red wf_decl_pred Σ ->
     All (wf_decl Σ) Γ ->
     WfAst.wf Σ M ->
     red1 Σ Γ M N ->
@@ -865,7 +819,7 @@ Section WfRed.
   Lemma declared_projection_wf (p : projection)
           (mdecl : mutual_inductive_body) (idecl : one_inductive_body) cdecl pdecl :
       declared_projection Σ p mdecl idecl cdecl pdecl ->
-      on_global_env cumul_gen wf_decl_pred Σ ->
+      on_global_env cumul_gen red wf_decl_pred Σ ->
       WfAst.wf Σ pdecl.(proj_type).
   Proof using Type.
     intros isdecl X.
@@ -882,7 +836,7 @@ Section WfRed.
   Qed.
 
   Lemma declared_constant_wf cst decl :
-    on_global_env cumul_gen wf_decl_pred Σ ->
+    on_global_env cumul_gen red wf_decl_pred Σ ->
     declared_constant Σ cst decl ->
     WfAst.wf Σ decl.(cst_type) *
     on_some_or_none (WfAst.wf Σ) decl.(cst_body).
@@ -1041,7 +995,7 @@ Section TypingWf.
   Hint Resolve typing_all_wf_decl : wf.
 
   Lemma typing_wf_sigma Σ (wfΣ : wf Σ) :
-    on_global_env cumul_gen wf_decl_pred Σ.
+    on_global_env cumul_gen red wf_decl_pred Σ.
   Proof using Type.
     intros.
     pose proof (env_prop_sigma typing_wf_gen _ wfΣ). red in X.

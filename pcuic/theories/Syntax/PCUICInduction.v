@@ -32,6 +32,7 @@ Lemma term_forall_list_ind :
     (forall (n : aname) (t : term),
         P t -> forall t0 : term, P t0 -> forall t1 : term, P t1 -> P (tLetIn n t t0 t1)) ->
     (forall t u : term, P t -> P u -> P (tApp t u)) ->
+    (forall kn (n : nat) (u : list Level.t), P (tSymb kn n u)) ->
     (forall s (u : list Level.t), P (tConst s u)) ->
     (forall (i : inductive) (u : list Level.t), P (tInd i u)) ->
     (forall (i : inductive) (n : nat) (u : list Level.t), P (tConstruct i n u)) ->
@@ -249,6 +250,7 @@ Lemma term_forall_mkApps_ind :
     (forall (n : aname) (t : term),
         P t -> forall t0 : term, P t0 -> forall t1 : term, P t1 -> P (tLetIn n t t0 t1)) ->
     (forall t : term, forall v, ~ isApp t -> P t -> v <> [] -> All P v -> P (mkApps t v)) ->
+    (forall (kn : kername) (n : nat) (u : list Level.t), P (tSymb kn n u)) ->
     (forall (s : kername) (u : list Level.t), P (tConst s u)) ->
     (forall (i : inductive) (u : list Level.t), P (tInd i u)) ->
     (forall (i : inductive) (n : nat) (u : list Level.t), P (tConstruct i n u)) ->
@@ -263,9 +265,9 @@ Lemma term_forall_mkApps_ind :
     forall t : term, P t.
 Proof.
   intros until t.
-  rename X14 into Pprim.
+  rename X15 into Pprim.
   assert (Acc (MR lt size) t) by eapply measure_wf, Wf_nat.lt_wf.
-  induction H. rename X14 into auxt. clear H. rename x into t.
+  induction H. rename X15 into auxt. clear H. rename x into t.
   move auxt at top.
 
   destruct t; try now repeat (match goal with
@@ -314,7 +316,7 @@ Proof.
            cbn in E. rewrite -> H in E.
            inversion E. destruct l; inv H3.
            now rewrite Et1.
-  - eapply X10; [|apply auxt; hnf; cbn; lia.. | ].
+  - eapply X11; [|apply auxt; hnf; cbn; lia.. | ].
     repeat split; [| |apply auxt; hnf; cbn; unfold predicate_size; lia].
     * unfold MR in auxt. simpl in auxt. revert auxt. unfold predicate_size.
       generalize (pparams p).
@@ -328,7 +330,7 @@ Proof.
       + apply liftP_ctx_ind; intros. apply auxt; red; simpl; lia.
       + apply auxt'. intros. apply auxt.
       hnf in *; cbn in *. lia.
-  - eapply X12; [apply auxt; hnf; cbn; lia.. | ]. rename mfix into l.
+  - eapply X13; [apply auxt; hnf; cbn; lia.. | ]. rename mfix into l.
     revert l auxt. unfold MR; cbn. fix auxt' 1.
     destruct l; constructor. split.
     apply auxt. hnf; cbn. unfold def_size. lia.
@@ -336,7 +338,7 @@ Proof.
     apply auxt'. intros. apply auxt.
     hnf in *; cbn in *. unfold mfixpoint_size, def_size in *. lia.
 
-  - eapply X13; [apply auxt; hnf; cbn; lia.. | ]. rename mfix into l.
+  - eapply X14; [apply auxt; hnf; cbn; lia.. | ]. rename mfix into l.
     revert l auxt. unfold MR; cbn. fix auxt' 1.
     destruct l; constructor. split.
     apply auxt. hnf; cbn. unfold def_size. lia.
@@ -433,6 +435,86 @@ Proof.
     f_equal; symmetry; apply size_lift.
 Qed.
 
+Fixpoint subst_size s :=
+  match s with
+  | [] => 1
+  | h :: t => size h + subst_size t
+  end.
+
+Lemma subst_size_pos s : subst_size s > 0.
+Proof. induction s => /=; lia. Qed.
+
+Lemma In_subst_size s t :
+  In t s -> size t <= subst_size s.
+Proof.
+  induction s => //=; intros [-> | ih].
+  1: lia.
+  specialize (IHs ih); lia.
+Qed.
+
+Lemma mul_left_pos_le c : c > 0 -> forall n, n <= c * n.
+Proof. destruct c; lia. Qed.
+
+Lemma size_subst s k t : size (subst s k t) <= subst_size s * size t.
+Proof.
+  revert s k t.
+  fix size_subst 3.
+  intros s k t.
+  pose proof (Hpos := subst_size_pos s).
+  pose proof (Hmul := mul_left_pos_le _ Hpos).
+  destruct t; simpl; try lia.
+  - destruct (leb_spec_Set k n).
+    2: cbn; lia.
+    destruct nth_error eqn:e.
+    2: cbn; lia.
+    rewrite size_lift.
+    eapply nth_error_In, In_subst_size in e. lia.
+  - assert (list_size size (map (subst s k) l) <= subst_size s * list_size size l).
+    { induction l => //=. pose proof (size_subst s k a). lia. }
+    lia.
+  - pose proof (size_subst s k t1); pose proof (size_subst s (S k) t2).
+    lia.
+  - pose proof (size_subst s k t1); pose proof (size_subst s (S k) t2).
+    lia.
+  - pose proof (size_subst s k t1); pose proof (size_subst s k t2); pose proof (size_subst s (S k) t3).
+    lia.
+  - pose proof (size_subst s k t1); pose proof (size_subst s k t2).
+    lia.
+  - unfold predicate_size; cbn.
+    assert (list_size size (map (subst s k) (pparams p)) <= subst_size s * list_size size (pparams p)).
+    { induction (pparams p) => //=. pose proof (size_subst s k a). lia. }
+    pose proof (size_subst s k t).
+    pose proof (size_subst s (#|pcontext p| + k) (preturn p)).
+    assert (list_size (branch_size size) (map_branches_k (subst s) id k brs) <= subst_size s * list_size (branch_size size) brs).
+    2: { unfold context_size. specialize (Hmul (list_size (decl_size size) (pcontext p))). lia. }
+    clear -size_subst Hpos Hmul.
+    induction brs => //=.
+    assert (branch_size size (map_branch_k (subst s) id k a) <= subst_size s * branch_size size a).
+    2: lia.
+    unfold branch_size, map_branch_k, id, context_size; cbn.
+    pose proof (size_subst s (#|bcontext a| + k) (bbody a)).
+    specialize (Hmul (list_size (decl_size size) (bcontext a))).
+    lia.
+  - pose proof (size_subst s k t).
+    lia.
+  - unfold mfixpoint_size.
+    generalize (#|mfix| + k) as k' => k'.
+    induction mfix => //=; try lia.
+    assert (def_size size (map_def (subst s k) (subst s k') a) <= subst_size s * def_size size a).
+    2: lia.
+    destruct a; rewrite /map_def /def_size /=.
+    pose proof (size_subst s k dtype); pose proof (size_subst s k' dbody).
+    lia.
+  - unfold mfixpoint_size.
+    generalize (#|mfix| + k) as k' => k'.
+    induction mfix => //=; try lia.
+    assert (def_size size (map_def (subst s k) (subst s k') a) <= subst_size s * def_size size a).
+    2: lia.
+    destruct a; rewrite /map_def /def_size /=.
+    pose proof (size_subst s k dtype); pose proof (size_subst s k' dbody).
+    lia.
+Qed.
+
 Definition on_local_decl (P : context -> term -> Type)
            (Γ : context) (t : term) (T : typ_or_sort) :=
   match T with
@@ -470,6 +552,7 @@ Lemma term_forall_ctx_list_ind :
     (forall Γ (n : aname) (t : term),
         P Γ t -> forall t0 : term, P Γ t0 -> forall t1 : term, P (vdef n t t0 :: Γ) t1 -> P Γ (tLetIn n t t0 t1)) ->
     (forall Γ (t u : term), P Γ t -> P Γ u -> P Γ (tApp t u)) ->
+    (forall Γ kn (n : nat) (u : list Level.t), P Γ (tSymb kn n u)) ->
     (forall Γ s (u : list Level.t), P Γ (tConst s u)) ->
     (forall Γ (i : inductive) (u : list Level.t), P Γ (tInd i u)) ->
     (forall Γ (i : inductive) (n : nat) (u : list Level.t), P Γ (tConstruct i n u)) ->
@@ -488,7 +571,7 @@ Lemma term_forall_ctx_list_ind :
     (forall Γ p, P Γ (tPrim p)) ->
     forall Γ (t : term), P Γ t.
 Proof.
-  intros ????????????????? Γ t.
+  intros ?????????????????? Γ t.
   revert Γ t. set(foo:=CoreTactics.the_end_of_the_section). intros.
   Subterm.rec_wf_rel aux t (MR lt size); unfold MR in *; simpl. clear H1.
   assert (auxl : forall Γ {A} (l : list A) (f : A -> term),
@@ -537,7 +620,7 @@ Proof.
         | H : _ |- _ => solve [apply H; (eapply aux || eapply auxl); auto; red; simpl; try lia]
         end.
 
-  - eapply X10; eauto.
+  - eapply X11; eauto.
     * red. split.
       + eapply auxl; auto. simpl. unfold predicate_size, branch_size.
         now change (fun x => size x) with size; lia.
@@ -556,11 +639,11 @@ Proof.
         eapply auxbr. unfold branch_size. lia.
       + eapply IHbrs. intros. apply auxΓ. simpl in *. lia.
         intros. apply auxbr. simpl. lia.
-  - eapply X12; try (apply aux; red; simpl; lia).
+  - eapply X13; try (apply aux; red; simpl; lia).
     apply auxΓ => //. simpl. specialize (H mfix). lia.
     red. apply All_pair. split; apply auxl; simpl; auto.
 
-  - eapply X13; try (apply aux; red; simpl; lia).
+  - eapply X14; try (apply aux; red; simpl; lia).
     apply auxΓ => //. simpl. specialize (H mfix). lia.
     red. apply All_pair. split; apply auxl; simpl; auto.
 Defined.
@@ -581,6 +664,7 @@ Lemma term_ind_size_app :
     (forall (t u : term),
         (forall t', size t' < size (tApp t u) -> P t') ->
         P t -> P u -> P (tApp t u)) ->
+    (forall kn (n : nat) (u : list Level.t), P (tSymb kn n u)) ->
     (forall s (u : list Level.t), P (tConst s u)) ->
     (forall (i : inductive) (u : list Level.t), P (tInd i u)) ->
     (forall (i : inductive) (n : nat) (u : list Level.t), P (tConstruct i n u)) ->
@@ -614,7 +698,7 @@ Proof.
         | H : _ |- _ => solve [apply H; (eapply aux || eapply auxl); red; simpl; try lia]
         end.
 
-  * eapply X10. 2:{ apply aux; simpl. simpl; lia. }
+  * eapply X11. 2:{ apply aux; simpl. simpl; lia. }
     repeat split.
     + revert aux; simpl; unfold predicate_size.
       induction (pparams hh0); constructor; auto.
@@ -639,9 +723,9 @@ Proof.
       apply aux. lia.
       apply IHhh1. intros. apply aux. lia.
 
-  * eapply X12; try (apply aux; red; simpl; lia).
+  * eapply X13; try (apply aux; red; simpl; lia).
     red. apply All_pair. split; apply auxl; simpl; auto.
 
-  * eapply X13; try (apply aux; red; simpl; lia).
+  * eapply X14; try (apply aux; red; simpl; lia).
     red. apply All_pair. split; apply auxl; simpl; auto.
 Defined.

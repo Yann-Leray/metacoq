@@ -605,9 +605,16 @@ Fixpoint closedu (k : nat) (t : term) : bool :=
   | _ => true
   end.
 
+Axiom pattern : Type.
+Extract Constant pattern => "unit".
+
+Axiom tSymb : kername -> nat -> Instance.t -> term.
+Extract Constant tSymb => "fun k n u -> assert false".
+
 Module TemplateTerm <: Term.
 
 Definition term := term.
+Definition pattern := pattern.
 
 Definition tRel := tRel.
 Definition tSort := tSort.
@@ -621,6 +628,7 @@ Definition mkApps := mkApps.
 Definition lift := lift.
 Definition subst := subst.
 Definition closedn := closedn.
+Definition closedu := closedu.
 Definition noccur_between := noccur_between.
 Definition subst_instance_constr := subst_instance.
 
@@ -641,17 +649,27 @@ Fixpoint destArity Γ (t : term) :=
 
 (** Inductive substitution, to produce a constructors' type *)
 Definition inds ind u (l : list one_inductive_body) :=
-  let fix aux n :=
-      match n with
-      | 0 => []
-      | S n => tInd (mkInd ind n) u :: aux n
-      end
-  in aux (List.length l).
+  unfold_rev #|l| (fun n => tInd (mkInd ind n) u).
 
 Module TemplateTermUtils <: TermUtils TemplateTerm Env.
 
 Definition destArity := destArity.
 Definition inds := inds.
+
+Axiom symbols_subst :
+  kername -> nat -> Instance.t -> nat -> list term.
+Axiom context_env_clos :
+  (context -> term -> term -> Type) -> context -> term -> term -> Type.
+
+Axiom pattern_matches : pattern -> term -> found_substitution -> Type.
+Axiom pattern_holes : pattern -> nat.
+Axiom pattern_head : pattern -> kername × nat.
+
+Extract Constant symbols_subst => "fun kn n ui k -> assert false".
+Extract Constant context_env_clos "'a" => "unit".
+Extract Constant pattern_matches => "unit".
+Extract Constant pattern_holes => "fun p -> assert false".
+Extract Constant pattern_head => "fun p -> assert false".
 
 End TemplateTermUtils.
 
@@ -755,8 +773,7 @@ Qed.
 Lemma inds_spec ind u l :
   inds ind u l = List.rev (mapi (fun i _ => tInd {| inductive_mind := ind; inductive_ind := i |} u) l).
 Proof.
-  unfold inds, mapi. induction l using rev_ind. simpl. reflexivity.
-  now rewrite app_length /= Nat.add_1_r IHl mapi_rec_app /= rev_app_distr /= Nat.add_0_r.
+  rewrite /inds unfold_rev_spec mapi_unfold //.
 Qed.
 
 (** Helpers for "compact" case representation, reconstructing predicate and

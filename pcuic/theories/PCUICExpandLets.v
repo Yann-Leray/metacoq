@@ -23,6 +23,7 @@ Fixpoint trans (t : term) : term :=
   | tVar n => tVar n
   | tEvar ev args => tEvar ev (List.map trans args)
   | tSort u => tSort u
+  | tSymb k n u => tSymb k n u
   | tConst c u => tConst c u
   | tInd c u => tInd c u
   | tConstruct c k u => tConstruct c k u
@@ -98,10 +99,31 @@ Definition trans_constant_body bd :=
      cst_universes := bd.(PCUICEnvironment.cst_universes);
      cst_relevance := bd.(PCUICEnvironment.cst_relevance) |}.
 
+Definition trans_rewrite_rule r :=
+  {| pat_holes := r.(pat_holes);
+     pat_head := r.(pat_head);
+     pat_lhs := r.(pat_lhs);
+     rhs := trans r.(rhs)
+  |}.
+
+Definition trans_symbol s :=
+  {| symb_name := s.(symb_name);
+     symb_rel := s.(symb_rel);
+     symb_type := trans s.(symb_type)
+  |}.
+
+Definition trans_rewrite_body rew :=
+  {| symbols := List.map trans_symbol rew.(symbols);
+      rules := List.map trans_rewrite_rule rew.(rules);
+      prules := List.map trans_rewrite_rule rew.(prules);
+      rew_universes := rew.(rew_universes)
+  |}.
+
 Definition trans_global_decl (d : PCUICEnvironment.global_decl) :=
   match d with
   | PCUICEnvironment.ConstantDecl bd => ConstantDecl (trans_constant_body bd)
   | PCUICEnvironment.InductiveDecl bd => InductiveDecl (trans_minductive_body bd)
+  | PCUICEnvironment.RewriteDecl bd => RewriteDecl (trans_rewrite_body bd)
   end.
 
 Definition trans_global_decls (d : PCUICEnvironment.global_declarations) : global_declarations :=

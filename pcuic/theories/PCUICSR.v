@@ -866,25 +866,45 @@ Ltac forward_keep H :=
     let H' := fresh in
     assert (H' : X) ; [|specialize (H H')]
   end.
+
+(* REWRITE RULES criterion
+  It is global and not local unfortunately.
+*)
+Definition type_preserving `{cf : checker_flags} (Σ : global_env_ext) :=
+  forall kn r rdecl decl lhs s Γ A,
+    declared_rule Σ kn r rdecl decl ->
+    PCUICPattern.pattern_matches decl.(pat_lhs) lhs s ->
+    let ss := symbols_subst kn 0 s.(found_usubst) #|rdecl.(symbols)| in
+    let rhs := subst (s.(found_subst) ++ ss) 0 decl.(rhs) in
+    Σ ;;; Γ |- lhs : A ->
+    Σ ;;; Γ |- rhs : A.
+
+Existing Class type_preserving.
+#[global] Hint Mode type_preserving + + : typeclass_intances.
+
+
 (** The subject reduction property of the system: *)
 
 Definition SR_red1 {cf} Σ Γ t T :=
-  forall u (Hu : closed_red1 Σ Γ t u), Σ ;;; Γ |- u : T.
-  Ltac inv_on_free_vars :=
-    match goal with
-    | [ H : is_true (on_free_vars_decl _ _) |- _ ] => progress cbn in H
-    | [ H : is_true (on_free_vars_decl _ (vdef _ _ _)) |- _ ] => unfold on_free_vars_decl, test_decl in H
-    | [ H : is_true (_ && _) |- _ ] =>
-      move/andP: H => []; intros
-    | [ H : is_true (on_free_vars ?P ?t) |- _ ] =>
-      progress (cbn in H || rewrite on_free_vars_mkApps in H);
-      (move/and5P: H => [] || move/and4P: H => [] || move/and3P: H => [] || move/andP: H => [] ||
-        eapply forallb_All in H); intros
-    | [ H : is_true (test_def (on_free_vars ?P) ?Q ?x) |- _ ] =>
-      move/andP: H => []; rewrite ?shiftnP_xpredT; intros
-    | [ H : is_true (test_context_k _ _ _ ) |- _ ] =>
-      rewrite -> test_context_k_closed_on_free_vars_ctx in H
-    end.
+  type_preserving Σ ->
+  forall u (Hu : closed_red1 Σ Γ t u),
+    Σ ;;; Γ |- u : T.
+
+Ltac inv_on_free_vars :=
+  match goal with
+  | [ H : is_true (on_free_vars_decl _ _) |- _ ] => progress cbn in H
+  | [ H : is_true (on_free_vars_decl _ (vdef _ _ _)) |- _ ] => unfold on_free_vars_decl, test_decl in H
+  | [ H : is_true (_ && _) |- _ ] =>
+    move/andP: H => []; intros
+  | [ H : is_true (on_free_vars ?P ?t) |- _ ] =>
+    progress (cbn in H || rewrite on_free_vars_mkApps in H);
+    (move/and5P: H => [] || move/and4P: H => [] || move/and3P: H => [] || move/andP: H => [] ||
+      eapply forallb_All in H); intros
+  | [ H : is_true (test_def (on_free_vars ?P) ?Q ?x) |- _ ] =>
+    move/andP: H => []; rewrite ?shiftnP_xpredT; intros
+  | [ H : is_true (test_context_k _ _ _ ) |- _ ] =>
+    rewrite -> test_context_k_closed_on_free_vars_ctx in H
+  end.
 
 Lemma closed_red1_ind (Σ : global_env_ext) (P0 : context -> term -> term -> Type)
   (P := fun Γ t u => is_closed_context Γ -> is_open_term Γ t -> P0 Γ t u) :
@@ -924,6 +944,13 @@ Lemma closed_red1_ind (Σ : global_env_ext) (P0 : context -> term -> term -> Typ
     (arg : term),
       nth_error args (p.(proj_npars) + p.(proj_arg)) = Some arg ->
       P Γ (tProj p (mkApps (tConstruct p.(proj_ind) 0 u) args)) arg) ->
+
+  (forall (Γ : context) k rdecl r decl lhs s,
+      declared_rule Σ k r rdecl decl ->
+      PCUICPattern.pattern_matches decl.(pat_lhs) lhs s ->
+      let ss := symbols_subst k 0 s.(found_usubst) #|rdecl.(symbols)| in
+      let rhs := subst (s.(found_subst) ++ ss) 0 decl.(rhs) in
+      P Γ lhs rhs) ->
 
   (forall (Γ : context) (na : aname) (M M' N : term),
   closed_red1 Σ Γ M M' -> P0 Γ M M' -> P Γ (tLambda na M N) (tLambda na M' N)) ->
@@ -1015,7 +1042,7 @@ Lemma closed_red1_ind (Σ : global_env_ext) (P0 : context -> term -> term -> Typ
   forall (Γ : context) (t t0 : term), closed_red1 Σ Γ t t0 -> P0 Γ t t0.
 Proof.
   intros.
-  destruct X27 as [clΓ clt r].
+  destruct X28 as [clΓ clt r].
   move: clΓ clt.
   Ltac t :=
     eauto; try split; eauto;
@@ -1027,10 +1054,10 @@ Proof.
     try solve [multimatch goal with
     | H : _ |- _ => eapply H
     end; t].
-  - eapply X13. 2-3:t.
+  - eapply X14. 2-3:t.
     inv_on_free_vars.
     eapply forallb_All in p0.
-    eapply OnOne2_All_mix_left in X27; tea.
+    eapply OnOne2_All_mix_left in X28; tea.
     eapply OnOne2_impl; tea; repeat (intuition auto; t).
   - forward_keep IHr.
     { rewrite on_free_vars_ctx_app clΓ.
@@ -1038,11 +1065,11 @@ Proof.
     forward_keep IHr.
     { repeat inv_on_free_vars.
       rewrite app_length inst_case_predicate_context_length -shiftnP_add //. }
-    apply X14 => //.
-  - eapply X16 => //.
+    apply X15 => //.
+  - eapply X17 => //.
     inv_on_free_vars.
     eapply forallb_All in p4.
-    eapply OnOne2_All_mix_left in X27; tea. cbn in X27.
+    eapply OnOne2_All_mix_left in X28; tea. cbn in X28.
     eapply OnOne2_impl; tea; cbn; intros ?? [[[]] ?].
     forward_keep p5.
     { rewrite on_free_vars_ctx_app clΓ /=.
@@ -1051,17 +1078,17 @@ Proof.
     { repeat inv_on_free_vars.
       rewrite app_length inst_case_branch_context_length -shiftnP_add //. }
     intuition auto. split; auto.
-  - eapply X22 => //.
-    cbn in clt. eapply forallb_All in clt.
-    eapply OnOne2_All_mix_left in X27; tea.
-    eapply OnOne2_impl; tea; cbn; intuition auto; t.
   - eapply X23 => //.
     cbn in clt. eapply forallb_All in clt.
-    eapply OnOne2_All_mix_left in X27; tea.
+    eapply OnOne2_All_mix_left in X28; tea.
     eapply OnOne2_impl; tea; cbn; intuition auto; t.
   - eapply X24 => //.
     cbn in clt. eapply forallb_All in clt.
-    eapply OnOne2_All_mix_left in X27; tea.
+    eapply OnOne2_All_mix_left in X28; tea.
+    eapply OnOne2_impl; tea; cbn; intuition auto; t.
+  - eapply X25 => //.
+    cbn in clt. eapply forallb_All in clt.
+    eapply OnOne2_All_mix_left in X28; tea.
     eapply OnOne2_impl; tea; cbn; intros ?? [[[]] ?].
     forward_keep p.
     { rewrite on_free_vars_ctx_app clΓ /=.
@@ -1070,13 +1097,13 @@ Proof.
       rewrite app_length fix_context_length -shiftnP_add //.
       now inv_on_free_vars. }
     intuition auto. split; auto.
-  - eapply X25 => //.
-    cbn in clt. eapply forallb_All in clt.
-    eapply OnOne2_All_mix_left in X27; tea.
-    eapply OnOne2_impl; tea; cbn; intuition auto; t.
   - eapply X26 => //.
     cbn in clt. eapply forallb_All in clt.
-    eapply OnOne2_All_mix_left in X27; tea.
+    eapply OnOne2_All_mix_left in X28; tea.
+    eapply OnOne2_impl; tea; cbn; intuition auto; t.
+  - eapply X27 => //.
+    cbn in clt. eapply forallb_All in clt.
+    eapply OnOne2_All_mix_left in X28; tea.
     eapply OnOne2_impl; tea; cbn; intros ?? [[[]] ?].
     forward_keep p.
     { rewrite on_free_vars_ctx_app clΓ /=.
@@ -1524,16 +1551,24 @@ Qed.
 Lemma sr_red1 {cf:checker_flags} :
   env_prop SR_red1
       (fun Σ Γ => wf_local Σ Γ ×
-        (forall Γ' Δ' Δ,
+        (type_preserving Σ ->
+          forall Γ' Δ' Δ,
           Γ = Γ' ,,, Δ' ->
           OnOne2_local_env (on_one_decl (fun Δ : context => closed_red1 Σ (Γ',,, Δ))) Δ' Δ ->
           wf_local_rel Σ Γ' Δ)).
 Proof.
-  apply typing_ind_env; intros Σ wfΣ Γ wfΓ; unfold SR_red1; intros **; rename_all_hyps; auto.
-  2-15:match goal with
+  apply typing_ind_env; intros Σ wfΣ Γ wfΓ; unfold SR_red1; intros **.
+  all: repeat match goal with h : type_preserving _ -> _ |- _ => forward h; tas end.
+  all: repeat match goal with h : type_preserving _ |- _ => rename h into Xrew end.
+  all: rename_all_hyps; auto.
+  2-16:match goal with
     | [H : (_ ;;; _ |- _ <=s _) |- _ ] => idtac
     | _ =>
       invert_closed_red Hu;
+      try match goal with
+        | X : type_preserving _ |- _ =>
+          eapply X; tea
+      end;
       try solve [invert_mkApps_fix_eq];
       try solve [econstructor; eauto];
       try solve [
@@ -1548,7 +1583,7 @@ Proof.
     end.
 
   - (* Contexts *)
-    split; auto. intros Γ' Δ' Δ ->.
+    split; auto. intros Hrew Γ' Δ' Δ ->.
     induction 1.
     * depelim p. subst. depelim X. constructor.
       now eapply wf_local_app_inv.
@@ -1561,9 +1596,9 @@ Proof.
       now eapply Hs.
       exact tu.
       red. depelim p. destruct s as [[red <-]|[red <-]]; subst.
-      specialize (Hs _ red). eapply type_ws_cumul_pb; tea.
+      specialize (Hs Hrew _ red). eapply type_ws_cumul_pb; tea.
       apply infer_typing_sort_impl with id tu; intros _.
-      apply Hs. eapply (red_ws_cumul_pb (pb:=Cumul)).
+      apply Hs; tas. eapply (red_ws_cumul_pb (pb:=Cumul)).
       now eapply closed_red1_red.
       now eapply Hc.
 
@@ -2100,10 +2135,17 @@ Proof.
     apply ReflectEq.eqb_eq in t. rewrite t /= in heq_isCoFinite.
     discriminate.
 
+  - (* Case after rewrite *)
+    econstructor; eauto.
+    + econstructor; eauto.
+      eapply ctx_inst_impl with (2 := X5); now intros ? [].
+    + econstructor; eauto.
+      solve_all.
+
   - (* Case congruence on a parameter *)
     eassert (ctx_inst _ _ _ _) as Hctxi by (eapply ctx_inst_impl with (2 := X5); now intros ? []).
-    eassert (PCUICEnvTyping.ctx_inst _ _ _ _ _) as X6.
-    { eapply ctx_inst_impl with (2 := X5). intros ? ? ? ? [? r]; exact r. }
+    eassert (PCUICEnvTyping.ctx_inst (fun Σ Γ t T => ∀ u : term, Σ ;;; Γ ⊢ t ⇝1 u → Σ;;; Γ |- u : T) _ _ _ _) as X6.
+    { eapply PCUICEnvTyping.ctx_inst_impl with (1 := X5). intros ? ? [? r]; forward r; [assumption|]. exact r. }
     clear X5; rename Hctxi into X5.
     destruct X0, X4.
     assert (isType Σ Γ (mkApps (it_mkLambda_or_LetIn (case_predicate_context ci mdecl idecl p) (preturn p)) (indices ++ [c]))).
@@ -2358,7 +2400,7 @@ Proof.
       eapply (All2i_impl X8); intuition auto; clear X8.
       rewrite !case_branch_type_fst in a3 a4 *.
       set (cbty' := case_branch_type _ _ _ _ _ _ _ _) in *.
-      set (cbty := case_branch_type _ _ _ _ _ _ _ _) in b0.
+      set (cbty := case_branch_type _ _ _ _ _ _ _ _) in a4.
       have btyred : Σ ;;; Γ,,, cbty.1 ⊢ cbty.2 ⇝1 cbty'.2.
       { rewrite /cbty /cbty'.
         apply: closed_red1_case_branch_type => //.
@@ -2435,7 +2477,7 @@ Proof.
       intros [red <-].
       move=> [] wfbr [] convctx [] [] wfcbc IHcbc [] [] Hb IHb [] Hbty IHbty.
       intuition auto. clear b0.
-      eapply IHb. eapply closed_red1_eq_context_upto_names; tea.
+      eapply X9. eapply closed_red1_eq_context_upto_names; tea.
       eapply All2_app.
       2:reflexivity. etransitivity.
       2:eapply pre_case_branch_context_eq; cbn; tea.
@@ -2852,6 +2894,13 @@ Proof.
     apply mkApps_Fix_spec in H5. simpl in H5. subst args.
     simpl. destruct narg; discriminate.
 
+  - (* Fix congruence, after rewrite rule *)
+    econstructor; eauto.
+    + solve_all.
+      destruct a0 as (? & ? & ?).
+      now eexists.
+    + solve_all.
+
   - (* Fix congruence: type reduction *)
     assert(fixl :#|fix_context mfix| = #|fix_context mfix1|) by now (rewrite !fix_context_length; apply (OnOne2_length X2)).
     assert(convctx : conv_context cumulAlgo_gen Σ (Γ ,,, fix_context mfix) (Γ ,,, fix_context mfix1)).
@@ -2904,6 +2953,7 @@ Proof.
         rewrite -fixl.
         eapply type_Cumul_alt. eapply Hb.
         red. simple apply infer_typing_sort_impl with id HT; move=> /= [Hs IH].
+        forward IH; tas.
         specialize (IH _ red).
         eapply (weakening _ _ _ _ (tSort _)); auto.
         apply All_mfix_wf; auto.
@@ -2967,6 +3017,13 @@ Proof.
     * apply conv_cumul, conv_sym. destruct disj as [<-|[_ eq]].
       reflexivity. noconf eq. rewrite H4; reflexivity.
 
+  - (* CoFix congruence, after rewrite rule *)
+    econstructor; eauto.
+    + solve_all.
+      destruct a0 as (? & ? & ?).
+      now eexists.
+    + solve_all.
+
   - (* CoFix congruence: type reduction *)
     assert(fixl :#|fix_context mfix| = #|fix_context mfix1|) by now (rewrite !fix_context_length; apply (OnOne2_length X2)).
     assert(convctx : conv_context cumulAlgo_gen Σ (Γ ,,, fix_context mfix) (Γ ,,, fix_context mfix1)).
@@ -3018,6 +3075,7 @@ Proof.
         rewrite -fixl.
         eapply type_Cumul_alt. eapply Hb.
         red. simple apply infer_typing_sort_impl with id HT; move=> /= [Hs IH].
+        forward IH; tas.
         specialize (IH _ red).
         eapply (weakening _ _ _ _ (tSort _)); auto.
         apply All_mfix_wf; auto.
@@ -3109,7 +3167,7 @@ Proof.
   * now eapply subject_is_open_term.
 Qed.
 
-Lemma subject_reduction1 {cf Σ} {wfΣ : wf Σ} {Γ t u T}
+Lemma subject_reduction1 {cf Σ} {wfΣ : wf Σ} {Hrew : type_preserving Σ} {Γ t u T}
   : Σ ;;; Γ |- t : T -> red1 Σ Γ t u -> Σ ;;; Γ |- u : T.
 Proof.
   intros. eapply (env_prop_typing sr_red1); tea.
@@ -3117,31 +3175,31 @@ Proof.
 Defined.
 
 Theorem subject_reduction {cf:checker_flags} :
-  forall (Σ : global_env_ext) Γ t u T, wf Σ -> Σ ;;; Γ |- t : T -> red Σ Γ t u -> Σ ;;; Γ |- u : T.
+  forall (Σ : global_env_ext) Γ t u T, wf Σ -> type_preserving Σ -> Σ ;;; Γ |- t : T -> red Σ Γ t u -> Σ ;;; Γ |- u : T.
 Proof.
-  intros * wfΣ Hty Hred.
+  intros * wfΣ Hrew Hty Hred.
   induction Hred; eauto.
   eapply (env_prop_typing sr_red1); eauto.
   now eapply typing_closed_red1.
 Qed.
 
 Corollary subject_reduction1_closed {cf:checker_flags} :
-  forall (Σ : global_env_ext) Γ t u T, wf Σ ->
+  forall (Σ : global_env_ext) Γ t u T, wf Σ -> type_preserving Σ ->
   Σ ;;; Γ |- t : T -> Σ ;;; Γ ⊢ t ⇝1 u -> Σ ;;; Γ |- u : T.
 Proof.
-  intros * wfΣ Hty Hred.
+  intros * wfΣ Hrew Hty Hred.
   now eapply (env_prop_typing sr_red1).
 Qed.
 
 Corollary subject_reduction_closed {cf:checker_flags} :
-  forall (Σ : global_env_ext) Γ t u T, wf Σ ->
+  forall (Σ : global_env_ext) Γ t u T, wf Σ -> type_preserving Σ ->
   Σ ;;; Γ |- t : T -> Σ ;;; Γ ⊢ t ⇝ u -> Σ ;;; Γ |- u : T.
 Proof.
-  intros * wfΣ Hty Hred.
+  intros * wfΣ Hrew Hty Hred.
   eapply subject_reduction; tea. apply Hred.
 Qed.
 
-Lemma type_reduction {cf} {Σ} {wfΣ : wf Σ} {Γ t A B} :
+Lemma type_reduction {cf} {Σ} {wfΣ : wf Σ} {Hrew : type_preserving Σ} {Γ t A B} :
   Σ ;;; Γ |- t : A -> red Σ Γ A B -> Σ ;;; Γ |- t : B.
 Proof.
   intros Ht Hr.
@@ -3151,7 +3209,7 @@ Proof.
   eapply conv_cumul. now apply PCUICCumulativity.red_conv.
 Defined.
 
-Lemma type_reduction_closed {cf} {Σ} {wfΣ : wf Σ} {Γ t A B} :
+Lemma type_reduction_closed {cf} {Σ} {wfΣ : wf Σ} {Hrew : type_preserving Σ} {Γ t A B} :
   Σ ;;; Γ |- t : A -> Σ ;;; Γ ⊢ A ⇝ B -> Σ ;;; Γ |- t : B.
 Proof.
   intros Ht Hr. eapply type_reduction; tea. exact Hr.
@@ -3208,7 +3266,7 @@ Section SRContext.
   Ltac invs H := inversion H; subst.
   Ltac invc H := inversion H; subst; clear H.
 
-  Lemma subject_reduction_ctx {Σ} {wfΣ : wf Σ} Γ Γ' t T :
+  Lemma subject_reduction_ctx {Σ} {wfΣ : wf Σ} {Hrew : type_preserving Σ} Γ Γ' t T :
     red1_ctx Σ Γ Γ' ->
     Σ ;;; Γ |- t : T -> Σ ;;; Γ' |- t : T.
   Proof using Type.
@@ -3260,7 +3318,7 @@ Section SRContext.
     - eapply context_conversion; eauto.
   Qed.
 
-  Lemma wf_local_red1 {Σ} {wfΣ : wf Σ} {Γ Γ'} :
+  Lemma wf_local_red1 {Σ} {wfΣ : wf Σ} {Hrew : type_preserving Σ} {Γ Γ'} :
     red1_ctx Σ Γ Γ' -> wf_local Σ Γ -> wf_local Σ Γ'.
   Proof using Type.
     induction 1; cbn in *.
@@ -3304,7 +3362,7 @@ Section SRContext.
           etransitivity; eauto.
   Qed.
 
-  Lemma wf_local_red {Σ} {wfΣ : wf Σ} {Γ Γ'} :
+  Lemma wf_local_red {Σ} {wfΣ : wf Σ} {Hrew : type_preserving Σ} {Γ Γ'} :
     red_ctx Σ Γ Γ' -> wf_local Σ Γ -> wf_local Σ Γ'.
   Proof using Type.
     intros h. red in h. apply red_ctx_clos_rt_red1_ctx in h.
@@ -3359,7 +3417,7 @@ Section SRContext.
       intro H; simpl; constructor; cbn; try constructor; eauto; now apply IHΔ.
   Qed.
 
-  Lemma isType_red1 {Σ : global_env_ext} {wfΣ : wf Σ} {Γ A B} :
+  Lemma isType_red1 {Σ : global_env_ext} {wfΣ : wf Σ} {Hrew : type_preserving Σ} {Γ A B} :
      isType Σ Γ A ->
      red1 Σ Γ A B ->
      isType Σ Γ B.
@@ -3369,7 +3427,7 @@ Section SRContext.
      eapply subject_reduction1; eauto.
    Qed.
 
-   Lemma isWfArity_red1 {Σ} {wfΣ : wf Σ} {Γ A B} :
+   Lemma isWfArity_red1 {Σ} {wfΣ : wf Σ} {Hrew : type_preserving Σ} {Γ A B} :
      isWfArity Σ Γ A ->
      red1 Σ Γ A B ->
      isWfArity Σ Γ B.
@@ -3378,6 +3436,7 @@ Section SRContext.
      split. eapply isType_red1; eauto.
      clear isty; revert H.
      induction re using red1_ind_all.
+     all: try rename s into s0.
      all: intros [ctx [s H1]]; cbn in *; try discriminate.
      - rewrite destArity_app in H1.
        case_eq (destArity [] b'); [intros [ctx' s']|]; intro ee;
@@ -3385,6 +3444,8 @@ Section SRContext.
        pose proof (subst_destArity [] b' [b] 0) as H; cbn in H.
        rewrite ee in H. eexists _, s'. eassumption.
      - rewrite destArity_tFix in H1; discriminate.
+     - solve_discr.
+       induction lhs in H1, X |- * => //.
      - rewrite destArity_app in H1.
        case_eq (destArity [] b'); [intros [ctx' s']|]; intro ee;
          rewrite ee in H1; [|discriminate].
@@ -3411,7 +3472,7 @@ Section SRContext.
        eexists _, s''. cbn. rewrite destArity_app ee'. reflexivity.
    Qed.
 
-   Lemma isWfArity_red {Σ} {wfΣ : wf Σ} {Γ A B} :
+   Lemma isWfArity_red {Σ} {wfΣ : wf Σ} {Hrew : type_preserving Σ} {Γ A B} :
      isWfArity Σ Γ A ->
      red Σ Γ A B ->
      isWfArity Σ Γ B.
@@ -3421,7 +3482,7 @@ Section SRContext.
      - now eapply isWfArity_red1.
    Qed.
 
-   Lemma isType_red {Σ} {wfΣ : wf Σ} {Γ T U} :
+   Lemma isType_red {Σ} {wfΣ : wf Σ} {Hrew : type_preserving Σ} {Γ T U} :
     isType Σ Γ T -> red Σ Γ T U -> isType Σ Γ U.
    Proof using Type.
      intros HT red; apply infer_typing_sort_impl with id HT; intros Hs.
@@ -3430,7 +3491,7 @@ Section SRContext.
 
 End SRContext.
 
-Lemma isType_tLetIn {cf} {Σ} {HΣ' : wf Σ} {Γ} {na t A B}
+Lemma isType_tLetIn {cf} {Σ} {HΣ' : wf Σ} {Hrew : type_preserving Σ} {Γ} {na t A B}
   : isType Σ Γ (tLetIn na t A B)
     <~> (isType Σ Γ A × (Σ ;;; Γ |- t : A) × isType Σ (Γ,, vdef na t A) B).
 Proof.

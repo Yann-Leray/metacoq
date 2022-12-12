@@ -350,6 +350,10 @@ Module PrintTermTree.
             else (" := " ^ nl ^ print_term Σ' with_universes nil true b ^ "." ^ nl)
           | None => "."
           end ^ acc)
+      | (kn, RewriteDecl rew) :: Σ =>
+      let Σ' := ({| Env.universes := univs; declarations := Σ; retroknowledge := retro |}, rew.(rew_universes)) in
+      print_env_aux with_universes short n Σ'.1
+        ("Rewrite rules; pretty-printer TODO" ^ nl ^ acc)
       end
     end.
 

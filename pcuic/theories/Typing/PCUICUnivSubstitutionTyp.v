@@ -35,12 +35,13 @@ Proof using Type.
 Qed.
 
 Lemma cumulSpec_subst_instance (Σ : global_env_ext) Γ u A B pb univs :
+  wf Σ ->
   valid_constraints (global_ext_constraints (Σ.1, univs))
                     (subst_instance_cstrs u Σ) ->
   Σ ;;; Γ ⊢ A ≤s[pb] B ->
   (Σ.1,univs) ;;; subst_instance u Γ ⊢ subst_instance u A ≤s[pb] subst_instance u B.
 Proof.
-  intros e H. unfold cumulSpec.
+  intros wfΣ e H. unfold cumulSpec.
   revert pb Γ A B H e.
   apply: cumulSpec0_ind_all; intros; cbn; try solve [econstructor; intuition eauto].
   - rewrite subst_instance_subst. solve [econstructor].
@@ -89,6 +90,12 @@ Proof.
      1: rewrite subst_instance_subst cofix_subst_instance_subst.
     all: now inversion E.
   - rewrite subst_instance_two. solve [econstructor; eauto].
+  - apply on_declared_rule in H as H'; tas.
+    destruct H' as [_ _ _ _ ?].
+    unfold rhs0, ss.
+    rewrite subst_instance_subst subst_instance_found_subst [(rhs decl)@[_]]closedu_subst_instance; tas.
+    eapply cumul_rewrite; tea.
+    now eapply subst_instance_pattern_matches.
   - rewrite !subst_instance_mkApps.
     eapply cumul_proj. now rewrite nth_error_map H.
   - eapply cumul_Trans; intuition.
@@ -128,21 +135,24 @@ Proof.
     * eapply All2_map. eapply All2_impl. 1: tea. cbn; intros.
       eapply X0.2; eauto.
   - eapply cumul_Sort. now apply compare_universe_subst_instance.
+  - eapply cumul_Symb. apply precompose_subst_instance.
+    eapply R_universe_instance_impl; eauto.
+    now apply compare_universe_subst_instance.
   - eapply cumul_Const. apply precompose_subst_instance.
     eapply R_universe_instance_impl; eauto.
     now apply compare_universe_subst_instance.
 Defined.
 
-Lemma convSpec_subst_instance (Σ : global_env_ext) Γ u A B univs :
+Lemma convSpec_subst_instance (Σ : global_env_ext) Γ u A B univs (wfΣ : wf Σ) :
 valid_constraints (global_ext_constraints (Σ.1, univs))
                   (subst_instance_cstrs u Σ) ->
   Σ ;;; Γ |- A =s B ->
   (Σ.1,univs) ;;; subst_instance u Γ |- subst_instance u A =s subst_instance u B.
 Proof using Type.
-  apply cumulSpec_subst_instance.
+  now apply cumulSpec_subst_instance.
 Qed.
 
-Lemma conv_decls_subst_instance (Σ : global_env_ext) {Γ Γ'} u univs d d' :
+Lemma conv_decls_subst_instance (Σ : global_env_ext) {Γ Γ'} u univs d d' (wfΣ : wf Σ) :
   valid_constraints (global_ext_constraints (Σ.1, univs))
     (subst_instance_cstrs u Σ) ->
   conv_decls cumulSpec0 Σ Γ Γ' d d' ->
@@ -153,7 +163,7 @@ Proof using Type.
     eapply convSpec_subst_instance; tea.
 Qed.
 
-Lemma cumul_decls_subst_instance (Σ : global_env_ext) {Γ Γ'} u univs d d' :
+Lemma cumul_decls_subst_instance (Σ : global_env_ext) {Γ Γ'} u univs d d' (wfΣ : wf Σ) :
   valid_constraints (global_ext_constraints (Σ.1, univs))
     (subst_instance_cstrs u Σ) ->
   cumul_decls cumulSpec0 Σ Γ Γ' d d' ->
@@ -164,7 +174,7 @@ Proof using Type.
     (eapply convSpec_subst_instance || eapply cumulSpec_subst_instance); tea.
 Qed.
 
-Lemma conv_ctx_subst_instance (Σ : global_env_ext) {Γ Γ'} u univs :
+Lemma conv_ctx_subst_instance (Σ : global_env_ext) {Γ Γ'} u univs (wfΣ : wf Σ) :
   valid_constraints (global_ext_constraints (Σ.1, univs)) (subst_instance_cstrs u Σ) ->
   conv_context cumulSpec0 Σ Γ Γ' ->
   conv_context cumulSpec0 (Σ.1, univs) (subst_instance u Γ) (subst_instance u Γ').
@@ -174,7 +184,7 @@ Proof using Type.
   now eapply conv_decls_subst_instance.
 Qed.
 
-Lemma subst_instance_ws_cumul_ctx_pb_rel (Σ : global_env_ext) {Γ Γ'} u univs :
+Lemma subst_instance_ws_cumul_ctx_pb_rel (Σ : global_env_ext) {Γ Γ'} u univs (wfΣ : wf Σ) :
   valid_constraints (global_ext_constraints (Σ.1, univs)) (subst_instance_cstrs u Σ) ->
   cumul_context cumulSpec0 Σ Γ Γ' ->
   cumul_context cumulSpec0 (Σ.1, univs) (subst_instance u Γ) (subst_instance u Γ').
@@ -254,6 +264,10 @@ Proof using Type.
     + eapply X1; eauto.
     + eapply X3; eauto.
     + eapply X5; eauto.
+  - intros. rewrite /type_of_symbol subst_instance_subst subst_instance_two subst_instance_symbols_subst.
+    econstructor; [aa|aa|].
+    clear X X0; cbn in *.
+    eapply consistent_ext_trans; eauto.
   - intros. rewrite subst_instance_two. econstructor; [aa|aa|].
     clear X X0; cbn in *.
     eapply consistent_ext_trans; eauto.

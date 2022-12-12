@@ -2,7 +2,7 @@
 From Coq Require Import Morphisms.
 From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import config.
-From MetaCoq.PCUIC Require Import PCUICAst PCUICOnOne PCUICAstUtils PCUICCases PCUICInduction
+From MetaCoq.PCUIC Require Import PCUICAst PCUICOnOne PCUICAstUtils PCUICCases PCUICPattern PCUICInduction
   PCUICLiftSubst PCUICUnivSubst PCUICCumulativity
   PCUICReduction PCUICGlobalEnv PCUICClosed PCUICEquality PCUICRenameDef PCUICWeakeningEnvConv
   PCUICSigmaCalculus PCUICClosed PCUICOnFreeVars PCUICGuardCondition
@@ -931,6 +931,72 @@ Proof using Type.
   now rewrite rename_closedn_ctx.
 Qed.
 
+Lemma rename_pattern_match P f p t :
+  on_free_vars P t ->
+  pattern_match p (rename f t) = option_map (found_substitution_map (List.map (rename f)) id) (pattern_match p t).
+Proof.
+  induction p in t |- *; destruct t => ont //=. all: inv_on_free_vars.
+  - do 2 destruct eqb => //.
+  - rewrite IHp; tas.
+    destruct pattern_match => //=.
+    assert (forall parg arg, arg_pattern_match parg (rename f arg) = option_map (List.map (rename f)) (arg_pattern_match parg arg)) as ->.
+    2: { destruct arg_pattern_match => //=. rewrite found_substitution_map_app //. }
+    clear.
+    induction parg using arg_pattern_ind
+      with (P0 := fun parg => forall arg : term, rigid_arg_pattern_match parg _ = option_map _ (rigid_arg_pattern_match parg arg)); intros arg.
+    + easy.
+    + eapply (IHparg arg).
+    + destruct arg => //=.
+      rewrite IHparg // IHparg0 //.
+      destruct rigid_arg_pattern_match, arg_pattern_match => //=.
+      rewrite -map_app //.
+    + destruct arg => //=.
+      destruct andb => //.
+  - len.
+    rewrite IHp //.
+    destruct pattern_match as [s|] => //=.
+    destruct eqb => //=.
+    destruct case_in_pattern => //=.
+    destruct s as [fs fus]; cbn.
+    rewrite /found_substitution_app /found_substitution_map /=.
+    do 2 f_equal.
+    rewrite !map_app.
+    f_equal.
+    + f_equal. apply (f_equal2 cons); auto.
+      rewrite rename_it_mkProd_or_LetIn /=.
+      f_equal. 2: now len.
+      rewrite rename_inst_case_context /inst_case_predicate_context.
+      f_equal. cbn.
+      symmetry; apply rename_closedn_ctx.
+      rewrite closedn_ctx_on_free_vars //.
+    + solve_all.
+      rewrite rename_it_mkLambda_or_LetIn /=.
+      f_equal. 2: now len.
+      rewrite rename_inst_case_context /inst_case_branch_context.
+      f_equal. cbn.
+      symmetry. apply rename_closedn_ctx.
+      rewrite closedn_ctx_on_free_vars //.
+      now rewrite -test_context_k_closed_on_free_vars_ctx.
+  - inv_on_free_vars; auto.
+Qed.
+
+Lemma rename_pattern_matches P f p t s :
+  on_free_vars P t ->
+  pattern_matches p t s ->
+  pattern_matches p (rename f t) (found_substitution_map (List.map (rename f)) id s).
+Proof.
+  unfold pattern_matches.
+  intros h e.
+  erewrite rename_pattern_match, e; tea.
+  reflexivity.
+Qed.
+
+Lemma rename_symb_hd f t :
+  symb_hd (rename f t) = symb_hd t.
+Proof.
+  induction t => //.
+Qed.
+
 Lemma red1_rename :
   forall P Σ Γ Δ u v f,
     wf Σ ->
@@ -992,6 +1058,19 @@ Proof using cf.
       eapply declared_constant_closed_body. all: eauto.
   - rewrite rename_mkApps. simpl.
     econstructor. rewrite nth_error_map. rewrite H. reflexivity.
+  - eapply on_declared_rule in H as H'; tea.
+    destruct H' as [? _ _ ? _].
+    apply pattern_matches_length in H0 as Hsize.
+    rewrite /rhs0 !rename_subst0 map_app.
+    eapply (rename_pattern_matches P f) in H0; tea.
+    set s' := found_substitution_map (map (rename f)) id s.
+    change (found_usubst s) with (found_usubst s') in ss.
+    change (map (rename f) (found_subst s)) with (found_subst s').
+    replace (map (rename f) ss) with ss.
+    2: { rewrite /ss /symbols_subst. generalize 0 at 1 3. induction (#|_| - _); cbnr. intros; f_equal; auto. }
+    rewrite (rename_closedn _ _ (rhs decl)).
+    1: now replace #|_| with (#|context_of_symbols (symbols rdecl)| + pat_holes decl) by (len; lia).
+    eapply red_rewrite; tea.
   - move/and4P: hav=> [hpars hret hc hbrs].
     rewrite rename_predicate_set_pparams. econstructor.
     simpl. eapply OnOne2_map. repeat toAll.

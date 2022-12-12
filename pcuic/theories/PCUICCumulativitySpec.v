@@ -4,7 +4,7 @@ From Equations.Type Require Import Relation Relation_Properties.
 From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import config BasicAst Reflect.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICOnOne PCUICAstUtils PCUICEquality
-     PCUICLiftSubst PCUICUnivSubst PCUICCases PCUICOnFreeVars.
+     PCUICLiftSubst PCUICUnivSubst PCUICCases PCUICPattern PCUICOnFreeVars PCUICGlobalMaps.
 
 Set Default Goal Selector "!".
 
@@ -63,6 +63,10 @@ Inductive cumulSpec0 {cf : checker_flags} (Σ : global_env_ext) Γ (pb : conv_pb
 | cumul_Sort : forall s s',
     compare_universe pb Σ s s' ->
     Σ ;;; Γ ⊢ tSort s ≤s[pb] tSort s'
+
+| cumul_Symb : forall k n u u',
+    R_universe_instance (compare_universe Conv Σ) u u' ->
+    Σ ;;; Γ ⊢ tSymb k n u ≤s[pb] tSymb k n u'
 
 | cumul_Const : forall c u u',
     R_universe_instance (compare_universe Conv Σ) u u' ->
@@ -170,6 +174,14 @@ Inductive cumulSpec0 {cf : checker_flags} (Σ : global_env_ext) Γ (pb : conv_pb
     decl.(cst_body) = Some body ->
     Σ ;;; Γ ⊢ tConst c u ≤s[pb] body@[u]
 
+(** Rewrite rule *)
+| cumul_rewrite : forall k r rdecl decl lhs s,
+    declared_rule Σ k r rdecl decl ->
+    pattern_matches decl.(pat_lhs) lhs s ->
+    let ss := symbols_subst k 0 s.(found_usubst) #|rdecl.(symbols)| in
+    let rhs := subst (s.(found_subst) ++ ss) 0 decl.(rhs) in
+    Σ ;;; Γ ⊢ lhs ≤s[pb] rhs
+
 (** Proj *)
 | cumul_proj : forall p args u arg,
     nth_error args (p.(proj_npars) + p.(proj_arg)) = Some arg ->
@@ -187,7 +199,7 @@ Notation " Σ ;;; Γ |- t =s u " := (@convSpec _ Σ Γ t u) (at level 50, Γ, t,
 
 Include PCUICConversion.
 
-Module PCUICConversionParSpec <: EnvironmentTyping.ConversionParSig PCUICTerm PCUICEnvironment PCUICTermUtils PCUICEnvTyping.
+Module PCUICConversionParSpec <: EnvironmentTyping.ConversionParSig PCUICTerm PCUICEnvironment PCUICEnvTyping PCUICTermUtils.
   Definition cumul_gen := @cumulSpec0.
 End PCUICConversionParSpec.
 
@@ -280,6 +292,14 @@ Lemma cumulSpec0_ind_all :
        (forall (pb : conv_pb) (Γ : context) c (decl : constant_body) (body : term),
         declared_constant Σ c decl ->
         forall u : Instance.t, cst_body decl = Some body -> P pb Γ (tConst c u) (subst_instance u body)) ->
+
+        (* Rewrite rule *)
+       (forall (pb : conv_pb) (Γ : context) k r rdecl decl lhs s,
+        declared_rule Σ k r rdecl decl ->
+        pattern_matches decl.(pat_lhs) lhs s ->
+        let ss := symbols_subst k 0 s.(found_usubst) #|rdecl.(symbols)| in
+        let rhs := subst (s.(found_subst) ++ ss) 0 decl.(rhs) in
+        P pb Γ lhs rhs) ->
 
         (* Proj *)
        (forall (pb : conv_pb) (Γ : context)p (args : list term) (u : Instance.t)
@@ -395,42 +415,47 @@ Lemma cumulSpec0_ind_all :
           compare_universe pb Σ s s' -> P pb Γ (tSort s) (tSort s')) ->
 
       (forall (pb : conv_pb)
+          (Γ : context) (k : kername) (n : nat) (u u' : list Level.t),
+          R_universe_instance (compare_universe Conv Σ) u u' -> P pb Γ (tSymb k n u) (tSymb k n u') ) ->
+
+      (forall (pb : conv_pb)
           (Γ : context) (c : kername) (u u' : list Level.t),
           R_universe_instance (compare_universe Conv Σ) u u' -> P pb Γ (tConst c u) (tConst c u') ) ->
 
        forall (pb : conv_pb) (Γ : context) (t t0 : term), cumulSpec0 Σ Γ pb t t0 -> P pb Γ t t0.
 Proof.
-  intros. rename X24 into Xlast. revert pb Γ t t0 Xlast.
+  intros. rename X26 into Xlast. revert pb Γ t t0 Xlast.
   fix aux 5. intros pb Γ t u.
   move aux at top.
   destruct 1.
-  - eapply X8; eauto.
   - eapply X9; eauto.
   - eapply X10; eauto.
-  - eapply X20; eauto. clear -a aux.
-    revert args args' a.
-    fix aux' 3; destruct 1; constructor; auto.
+  - eapply X11; eauto.
   - eapply X21; eauto. clear -a aux.
     revert args args' a.
     fix aux' 3; destruct 1; constructor; auto.
-  - eapply X22; eauto.
-  - eapply X23; eauto.
-  - eapply X11.
+  - eapply X22; eauto. clear -a aux.
     revert args args' a.
     fix aux' 3; destruct 1; constructor; auto.
-  - eapply X12; eauto.
+  - eapply X23; eauto.
+  - eapply X24; eauto.
+  - eapply X25; eauto.
+  - eapply X12.
+    revert args args' a.
+    fix aux' 3; destruct 1; constructor; auto.
   - eapply X13; eauto.
   - eapply X14; eauto.
   - eapply X15; eauto.
-  - eapply X16 ; eauto.
+  - eapply X16; eauto.
+  - eapply X17; eauto.
     + unfold cumul_predicate in *. destruct c0 as [c0 [cuniv [ccontext creturn]]].
       repeat split ; eauto.
       * revert c0. generalize (pparams p), (pparams p').
         fix aux' 3; destruct 1; constructor; auto.
     + revert brs brs' a.
       fix aux' 3; destruct 1; constructor; intuition auto.
-  - eapply X17 ; eauto.
-  - eapply X18 ; eauto.
+  - eapply X18; eauto.
+  - eapply X19; eauto.
     revert a.
     set (mfixAbs := mfix). unfold mfixAbs at 2 5.
     clearbody mfixAbs.
@@ -438,7 +463,7 @@ Proof.
     fix aux' 3; destruct 1; constructor.
     + intuition auto.
     + auto.
-  - eapply X19 ; eauto.
+  - eapply X20; eauto.
     revert a.
     set (mfixAbs := mfix). unfold mfixAbs at 2 5.
     clearbody mfixAbs.
@@ -455,6 +480,7 @@ Proof.
   - eapply X5; eauto.
   - eapply X6; eauto.
   - eapply X7; eauto.
+  - eapply X8; eauto.
 Defined.
 
 Lemma convSpec0_ind_all :
@@ -498,6 +524,14 @@ Lemma convSpec0_ind_all :
        (forall  (Γ : context) c (decl : constant_body) (body : term),
         declared_constant Σ c decl ->
         forall u : Instance.t, cst_body decl = Some body -> P Γ (tConst c u) (subst_instance u body)) ->
+
+        (* Rewrite rule *)
+       (forall  (Γ : context) k r rdecl decl lhs s,
+        declared_rule Σ k r rdecl decl ->
+        pattern_matches decl.(pat_lhs) lhs s ->
+        let ss := symbols_subst k 0 s.(found_usubst) #|rdecl.(symbols)| in
+        let rhs := subst (s.(found_subst) ++ ss) 0 decl.(rhs) in
+        P Γ lhs rhs) ->
 
         (* Proj *)
        (forall  (Γ : context) p (args : list term) (u : Instance.t)
@@ -612,42 +646,47 @@ Lemma convSpec0_ind_all :
           eq_universe Σ s s' -> P Γ (tSort s) (tSort s')) ->
 
       (forall
+          (Γ : context) (k : kername) (n : nat) (u u' : list Level.t),
+          R_universe_instance (eq_universe Σ) u u' -> P Γ (tSymb k n u) (tSymb k n u') ) ->
+
+      (forall
           (Γ : context) (c : kername) (u u' : list Level.t),
           R_universe_instance (eq_universe Σ) u u' -> P Γ (tConst c u) (tConst c u') ) ->
 
        forall  (Γ : context) (t t0 : term), cumulSpec0 Σ Γ Conv t t0 -> P Γ t t0.
 Proof.
-  intros. rename X24 into Xlast. revert Γ t t0 Xlast.
+  intros. rename X26 into Xlast. revert Γ t t0 Xlast.
   fix aux 4. intros Γ t u.
   move aux at top.
   destruct 1.
-  - eapply X8; eauto.
   - eapply X9; eauto.
   - eapply X10; eauto.
-  - eapply X20; eauto. clear -a aux.
-    revert args args' a.
-    fix aux' 3; destruct 1; constructor; auto.
+  - eapply X11; eauto.
   - eapply X21; eauto. clear -a aux.
     revert args args' a.
     fix aux' 3; destruct 1; constructor; auto.
-  - eapply X22; eauto.
-  - eapply X23; eauto.
-  - eapply X11.
+  - eapply X22; eauto. clear -a aux.
     revert args args' a.
     fix aux' 3; destruct 1; constructor; auto.
-  - eapply X12; eauto.
+  - eapply X23; eauto.
+  - eapply X24; eauto.
+  - eapply X25; eauto.
+  - eapply X12.
+    revert args args' a.
+    fix aux' 3; destruct 1; constructor; auto.
   - eapply X13; eauto.
   - eapply X14; eauto.
   - eapply X15; eauto.
-  - eapply X16 ; eauto.
+  - eapply X16; eauto.
+  - eapply X17; eauto.
     + unfold cumul_predicate in *. destruct c0 as [c0 [cuniv [ccontext creturn]]].
       repeat split ; eauto.
       * revert c0. generalize (pparams p), (pparams p').
         fix aux' 3; destruct 1; constructor; auto.
     + revert brs brs' a.
       fix aux' 3; destruct 1; constructor; intuition auto.
-  - eapply X17 ; eauto.
-  - eapply X18 ; eauto.
+  - eapply X18; eauto.
+  - eapply X19; eauto.
     revert a.
     set (mfixAbs := mfix). unfold mfixAbs at 2 5.
     clearbody mfixAbs.
@@ -655,7 +694,7 @@ Proof.
     fix aux' 3; destruct 1; constructor.
     + intuition auto.
     + auto.
-  - eapply X19 ; eauto.
+  - eapply X20; eauto.
     revert a.
     set (mfixAbs := mfix). unfold mfixAbs at 2 5.
     clearbody mfixAbs.
@@ -672,4 +711,5 @@ Proof.
   - eapply X5; eauto.
   - eapply X6; eauto.
   - eapply X7; eauto.
+  - eapply X8; eauto.
 Defined.

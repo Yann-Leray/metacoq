@@ -876,6 +876,7 @@ Section Checker.
       List.fold_left (fun acc body =>
                         acc ;; check_wf_type body.(ind_name) Σ G body.(ind_type))
                      inds.(ind_bodies) (ret ())
+    | RewriteDecl rew => wrap_error (string_of_kername kn) (TypeError (NotSupported "Checking of rewrite rules isn't supported yet; TODO"))
     end.
 
   Fixpoint check_fresh id (env : global_declarations) : EnvCheck () :=

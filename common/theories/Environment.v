@@ -860,11 +860,11 @@ Module Environment (T : Term).
   Definition primitive_invariants (p : prim_tag) (cdecl : constant_body) :=
     match p with
     | primInt | primFloat =>
-     [/\ cdecl.(cst_type) = tSort Sort.type0, cdecl.(cst_body) = None &
+     [/\ cdecl.(cst_type) = tSort Sort.type0, cdecl.(cst_body) = None, cdecl.(cst_relevance) = rel_of_Type &
           cdecl.(cst_universes) = Monomorphic_ctx]
     | primArray =>
       let s := sType (Universe.make' (Level.lvar 0)) in
-      [/\ cdecl.(cst_type) = tImpl (tSort s) (tSort s), cdecl.(cst_body) = None &
+      [/\ cdecl.(cst_type) = tImpl (tSort s) (tSort s), cdecl.(cst_body) = None, cdecl.(cst_relevance) = relevance_of_sort s &
         cdecl.(cst_universes) = Polymorphic_ctx array_uctx]
     end.
 

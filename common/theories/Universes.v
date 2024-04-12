@@ -2319,6 +2319,11 @@ Proof using Type.
   now destruct s.
 Qed.
 
+Lemma relevance_product s1 s2 : relevance_of_sort (Sort.sort_of_product s1 s2) = relevance_of_sort s2.
+Proof using Type.
+  destruct s1, s2 => //=.
+Qed.
+
 Lemma leq_sort_product_mon {cf} ϕ s1 s1' s2 s2' :
   leq_sort ϕ s1 s1' ->
   leq_sort ϕ s2 s2' ->

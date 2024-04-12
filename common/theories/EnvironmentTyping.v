@@ -450,6 +450,10 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
     lift_sorting c s (Judge tm ty (Some w.2.π1) r)
     := (w.1, (w.2.π1; (w.2.π2.1, (conj eq_refl w.2.π2.2.p2)))).
 
+  Definition lift_sorting_extract_rel {c s tm ty u} (w : lift_sorting c s (Judge tm ty u None)) :
+    lift_sorting c s (Judge tm ty u (Some (relevance_of_sort w.2.π1)))
+    := (w.1, (w.2.π1; (w.2.π2.1, (conj w.2.π2.2.p1 eq_refl)))).
+
   Lemma lift_sorting_forget_univ {Pc Ps tm ty u r} :
     lift_sorting Pc Ps (Judge tm ty u r) ->
     lift_sorting Pc Ps (Judge tm ty None r).
@@ -1300,6 +1304,22 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
         /\ ConstraintSet.For_all (declared_cstr_levels all_levels) (constraints_of_udecl udecl)
         /\ satisfiable_udecl univs udecl
         /\ valid_on_mono_udecl univs udecl.
+
+    Lemma on_udecl_mono univs :
+      consistent (ContextSet.constraints univs) ->
+      on_udecl univs Monomorphic_ctx.
+    Proof.
+      intro H.
+      cbn; split; [intro; lsets|split]; [intro; csets|split].
+      - hnf. unfold univs_ext_constraints, constraints_of_udecl.
+        destruct H as (val & H); exists val.
+        eapply satisfies_union; split; auto.
+        intros v Hin; csets.
+      - hnf.
+        intros val Hval; exists val; split.
+        1: intros v Hin; csets.
+        intros ??; reflexivity.
+    Qed.
 
     (** Positivity checking of the inductive, ensuring that the inductive itself
       can only appear at the right of an arrow in each argument's types. *)

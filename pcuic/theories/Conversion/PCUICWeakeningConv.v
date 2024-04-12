@@ -94,6 +94,19 @@ Proof.
       apply rename_ext => k. simpl. now repeat nat_compare_specs.
 Qed.
 
+Lemma weakening_mrenaming P Γ Γ' Γ'' :
+  mrenaming P (Γ ,,, Γ') (Γ ,,, Γ'' ,,, Γ') (lift_renaming #|Γ''| #|Γ'|).
+Proof.
+  intros i d hpi hnth.
+  rewrite /lift_renaming.
+  destruct (Nat.leb #|Γ'| i) eqn:leb; [apply Nat.leb_le in leb|eapply Nat.leb_nle in leb].
+  - assert (i = (i - #|Γ'|) + #|Γ'|) as H by lia.
+    set j := i - #|Γ'| in H. clearbody j. subst i.
+    rewrite -app_context_assoc !nth_error_app_ge // ?app_length in hnth |- *. 1: lia.
+    rewrite -hnth. f_equal. lia.
+  - rewrite !nth_error_app_lt ?app_length // in hnth |- *. all: lia.
+Qed.
+
 (* Variant lookup_decl_spec Γ Δ i : option context_decl -> Type :=
 | lookup_head d : i < #|Δ| ->
   nth_error Δ i = Some d -> lookup_decl_spec Γ Δ i (Some d)

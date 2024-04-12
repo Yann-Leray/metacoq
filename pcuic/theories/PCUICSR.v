@@ -393,16 +393,6 @@ Proof.
   apply context_subst_subst_extended_subst. apply sp.
 Qed.
 
-Lemma isType_weaken {cf} {Σ Γ Δ T} {wfΣ : wf Σ} :
-  wf_local Σ Δ ->
-  isType Σ Γ T ->
-  isType Σ (Δ ,,, Γ) T.
-Proof.
-  intros wfΔ HT.
-  apply lift_typing_impl with (1 := HT) => ?? Hs.
-  eapply weaken_ctx => //.
-Qed.
-
 (** The crucial property on constructors of cumulative inductive types for type preservation:
     we don't need to compare their instances when fully applied. *)
 Lemma cmp_global_instance_cstr_irrelevant {cf} {Σ} {wfΣ  : wf Σ} {ci c} {mdecl idecl cdecl u u'} :
@@ -472,16 +462,6 @@ Proof.
   len.
   rewrite Nat.add_comm Nat.add_assoc. eapply closedn_lift.
   now rewrite Nat.add_comm.
-Qed.
-
-Lemma smash_context_subst_context_let_expand s Γ Δ :
-  smash_context [] (subst_context_let_expand s Γ Δ) =
-  subst_context_let_expand s Γ (smash_context [] Δ).
-Proof.
-  rewrite /subst_context_let_expand.
-  rewrite (smash_context_subst []).
-  now rewrite /expand_lets_ctx /expand_lets_k_ctx (smash_context_subst [])
-    (smash_context_lift []).
 Qed.
 
 Lemma on_constructor_wf_args {cf} {Σ} {wfΣ : wf Σ} {ind c mdecl idecl cdecl u} :
@@ -2517,7 +2497,7 @@ Proof.
         rewrite closed_k_ctx_subst //.
         eapply (declared_inductive_closed_params_inst isdecl).
         move/isType_subst_extended_subst.
-        move/(isType_weaken wfΓ); rewrite app_context_assoc.
+        move/(isType_weaken_ctx _ wfΓ); rewrite app_context_assoc.
         move/(isType_substitution sppars).
         rewrite -skipn_subst_instance - !skipn_subst_context.
         rewrite -(subst_context_smash_context _ _ []).
@@ -2599,7 +2579,7 @@ Proof.
     eapply (type_ws_cumul_pb (pb:=Cumul)); eauto.
     { rewrite firstn_skipn.
       unshelve epose proof (isdecl' := declared_projection_to_gen isdecl); eauto.
-      eapply (isType_subst_instance_decl _ _ _ _ _ u wf isdecl'.p1.p1.p1) in projty; eauto.
+      eapply isTypeRel_isType, (isType_subst_instance_decl _ _ _ _ _ u wf isdecl'.p1.p1.p1) in projty; eauto.
       apply lift_sorting_f_it_impl with (tu := projty) => // Hs.
       rewrite /= /map_decl /= in Hs.
       eapply (weaken_ctx Γ) in Hs; auto.
@@ -2833,7 +2813,7 @@ Proof.
       move/(isType_subst_instance_decl _ _ _ _ (InductiveDecl mdecl) u _ _) : isTy.
       unshelve epose proof (isdecl' := declared_projection_to_gen isdecl); eauto.
       move/(_ _ isdecl'.p1.p1.p1 cu).
-      move/(isType_weaken wfΓ).
+      move/(isType_weaken_ctx _ wfΓ).
       rewrite [_@[u]](subst_instance_app_ctx _ _ [_]).
       rewrite app_context_assoc subst_instance_smash.
       move/(isType_substitution sppars) => /=. len.

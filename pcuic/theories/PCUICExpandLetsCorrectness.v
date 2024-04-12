@@ -3808,7 +3808,7 @@ Proof.
   - rewrite (trans_subst (shiftnP #|projection_context p.(proj_ind) mdecl idecl u| xpred0) (shiftnP #|Γ| xpred0)).
     { rewrite /projection_context /=; len. cbn.
       destruct (declared_projection_type_and_eq _ isdecl) as [[] ?].
-      eapply isType_is_open_term in i. cbn in i; len in i.
+      eapply isTypeRel_is_open_term in i. cbn in i; len in i.
       rewrite on_free_vars_subst_instance //. }
     { generalize (subject_is_open_term X1). move/type_is_open_term: X1.
       now rewrite on_free_vars_mkApps /= forallb_rev => -> ->. }

@@ -684,33 +684,33 @@ Proof using Hcf.
 Qed.
 
 Lemma leq_term_prop_sorted_l {Σ Γ v v' u u'} :
-  wf_ext Σ ->
+  wf Σ ->
   PCUICEquality.leq_term Σ (global_ext_constraints Σ) v v' ->
   Σ;;; Γ |- v : tSort u ->
   Σ;;; Γ |- v' : tSort u' -> Sort.is_propositional u ->
   leq_sort (global_ext_constraints Σ) u' u.
 Proof using Hcf.
   intros wfΣ leq hv hv' isp.
-  eapply typing_leq_term_prop in leq; eauto. 2: apply wfΣ.
+  eapply typing_leq_term_prop in leq; eauto.
   apply cumul_prop_sort in leq.
   now eapply eq_univ_prop_compare_sort_propositional with (pb := Cumul).
 Qed.
 
 Lemma leq_term_prop_sorted_r {Σ Γ v v' u u'} :
-  wf_ext Σ ->
+  wf Σ ->
   PCUICEquality.leq_term Σ (global_ext_constraints Σ) v v' ->
   Σ;;; Γ |- v : tSort u ->
   Σ;;; Γ |- v' : tSort u' -> Sort.is_propositional u' ->
   leq_sort (global_ext_constraints Σ) u u'.
 Proof using Hcf.
   intros wfΣ leq hv hv' isp.
-  eapply typing_leq_term_prop in leq; eauto. 2: apply wfΣ.
+  eapply typing_leq_term_prop in leq; eauto.
   apply cumul_prop_sort in leq.
   now eapply eq_univ_prop_compare_sort_propositional with (pb := Cumul).
 Qed.
 
 Lemma cumul_prop_inv (Σ : global_env_ext) Γ A B u u' :
-  wf_ext Σ ->
+  wf Σ ->
   Sort.is_propositional u ->
   (((Σ ;;; Γ |- A : tSort u) * (Σ ;;; Γ |- B : tSort u')) +
    ((Σ ;;; Γ |- B : tSort u) * (Σ ;;; Γ |- A : tSort u')))%type ->
@@ -737,7 +737,7 @@ Proof using Hcf.
 Qed.
 
 Lemma unique_sorting_family {pb} {Σ : global_env_ext} {Γ T U s s'} :
-  wf_ext Σ ->
+  wf Σ ->
   Σ ;;; Γ |- T : tSort s ->
   Σ ;;; Γ |- U : tSort s' ->
   Σ ;;; Γ ⊢ T ≤[pb] U ->
@@ -753,7 +753,7 @@ Proof using Hcf.
 Qed.
 
 Lemma unique_sorting_equality_prop {pb} {Σ : global_env_ext} {Γ T U s s'} :
-  wf_ext Σ ->
+  wf Σ ->
   Σ ;;; Γ |- T : tSort s ->
   Σ ;;; Γ |- U : tSort s' ->
   Σ ;;; Γ ⊢ T ≤[pb] U ->
@@ -765,7 +765,7 @@ Proof using Hcf.
 Qed.
 
 Lemma unique_sorting_equality_prop_l {pb} {Σ : global_env_ext} {Γ T U s s'} :
-  wf_ext Σ ->
+  wf Σ ->
   Σ ;;; Γ |- T : tSort s ->
   Σ ;;; Γ |- U : tSort s' ->
   Σ ;;; Γ ⊢ T ≤[pb] U ->
@@ -776,7 +776,7 @@ Proof using Hcf.
 Qed.
 
 Lemma unique_sorting_equality_prop_r {pb} {Σ : global_env_ext} {Γ T U s s'} :
-  wf_ext Σ ->
+  wf Σ ->
   Σ ;;; Γ |- T : tSort s ->
   Σ ;;; Γ |- U : tSort s' ->
   Σ ;;; Γ ⊢ T ≤[pb] U ->
@@ -787,7 +787,7 @@ Proof using Hcf.
 Qed.
 
 Lemma unique_sorting_equality_sprop {pb} {Σ : global_env_ext} {Γ T U s s'} :
-  wf_ext Σ ->
+  wf Σ ->
   Σ ;;; Γ |- T : tSort s ->
   Σ ;;; Γ |- U : tSort s' ->
   Σ ;;; Γ ⊢ T ≤[pb] U ->
@@ -799,7 +799,7 @@ Proof using Hcf.
 Qed.
 
 Lemma unique_sorting_equality_sprop_l {pb} {Σ : global_env_ext} {Γ T U s s'} :
-  wf_ext Σ ->
+  wf Σ ->
   Σ ;;; Γ |- T : tSort s ->
   Σ ;;; Γ |- U : tSort s' ->
   Σ ;;; Γ ⊢ T ≤[pb] U ->
@@ -810,7 +810,7 @@ Proof using Hcf.
 Qed.
 
 Lemma unique_sorting_equality_sprop_r {pb} {Σ : global_env_ext} {Γ T U s s'} :
-  wf_ext Σ ->
+  wf Σ ->
   Σ ;;; Γ |- T : tSort s ->
   Σ ;;; Γ |- U : tSort s' ->
   Σ ;;; Γ ⊢ T ≤[pb] U ->
@@ -821,7 +821,7 @@ Proof using Hcf.
 Qed.
 
 Lemma unique_sorting_equality_propositional {pb} {Σ : global_env_ext} {Γ T U s s'} :
-  wf_ext Σ ->
+  wf Σ ->
   Σ ;;; Γ |- T : tSort s ->
   Σ ;;; Γ |- U : tSort s' ->
   Σ ;;; Γ ⊢ T ≤[pb] U ->
@@ -833,7 +833,7 @@ Proof using Hcf.
 Qed.
 
 Lemma cumul_prop1 (Σ : global_env_ext) Γ A B u :
-  wf_ext Σ ->
+  wf Σ ->
   Sort.is_prop u ->
   isType Σ Γ A ->
   Σ ;;; Γ |- B : tSort u ->
@@ -847,7 +847,7 @@ Proof using Hcf.
 Qed.
 
 Lemma cumul_prop2 (Σ : global_env_ext) Γ A B u :
-  wf_ext Σ ->
+  wf Σ ->
   Sort.is_prop u ->
   isType Σ Γ B ->
   Σ ;;; Γ |- A <= B ->
@@ -861,7 +861,7 @@ Proof using Hcf.
 Qed.
 
 Lemma cumul_sprop1 (Σ : global_env_ext) Γ A B u :
-  wf_ext Σ ->
+  wf Σ ->
   Sort.is_sprop u ->
   isType Σ Γ A ->
   Σ ;;; Γ |- B : tSort u ->
@@ -875,7 +875,7 @@ Proof using Hcf.
 Qed.
 
 Lemma cumul_sprop2 (Σ : global_env_ext) Γ A B u :
-  wf_ext Σ ->
+  wf Σ ->
   Sort.is_sprop u ->
   isType Σ Γ B ->
   Σ ;;; Γ |- A <= B ->

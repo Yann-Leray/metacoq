@@ -4,7 +4,7 @@ From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import config.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICCases PCUICInduction
   PCUICLiftSubst PCUICUnivSubst
-  PCUICTyping PCUICEquality PCUICOnFreeVars
+  PCUICRelevance PCUICTyping PCUICEquality PCUICOnFreeVars
   PCUICSigmaCalculus PCUICRenameDef.
 
 Require Import ssreflect ssrbool.
@@ -60,6 +60,12 @@ Definition closed_subst (Γ : context) σ (Δ : context) :=
   is_closed_context Δ ×
   (forall x decl, nth_error Γ x = Some decl -> is_open_term Δ (σ x)) ×
   usubst Γ σ Δ.
+
+(* Substitution accounting relevance marks for reduction / cumulativity *)
+Definition valid_subst Σ Γ σ Δ :=
+  (forall i rel,
+    nth_error Γ i = Some rel ->
+    isTermRel Σ Δ (σ i) rel).
 
 (* Well-typedness of a substitution *)
 

@@ -64,16 +64,6 @@ Section Validity.
     rewrite (subst_instance_destArity []) eq. intuition auto.
   Qed.
 
-  Lemma isType_weakening {Σ Γ T} :
-    wf Σ.1 ->
-    wf_local Σ Γ ->
-    isType Σ [] T ->
-    isType Σ Γ T.
-  Proof using Type.
-    intros wfΣ wfΓ HT.
-    now apply isType_weaken.
-  Qed.
-
   Notation type_ctx := (type_local_ctx (lift_typing typing)).
   Lemma type_ctx_wf_univ Σ Γ Δ s : type_ctx Σ Γ Δ s -> wf_sort Σ s.
   Proof using Type.
@@ -217,7 +207,7 @@ Section Validity.
     - (* Constant *)
       eapply declared_constant_inv in wf as Hc; eauto.
       apply lift_sorting_forget_body, lift_sorting_forget_rel in Hc.
-      eapply isType_weakening; eauto.
+      eapply isType_weaken; eauto.
       unshelve eapply declared_constant_to_gen in H; eauto.
       eapply isType_subst_instance_decl with (Γ:=[]); eauto. simpl.
       exact weaken_env_prop_typing.
@@ -226,7 +216,7 @@ Section Validity.
       destruct (on_declared_inductive isdecl); pcuic.
       destruct isdecl.
       apply onArity, isTypeRel_isType in o0.
-      eapply isType_weakening; eauto.
+      eapply isType_weaken; eauto.
       unshelve eapply declared_minductive_to_gen in H; eauto.
       eapply isType_subst_instance_decl with (Γ:=[]); eauto.
 
@@ -296,7 +286,7 @@ Section Validity.
 
     - (* Proj *)
       pose proof isdecl as isdecl'.
-      eapply declared_projection_type in isdecl'; eauto.
+      eapply declared_projection_type, isTypeRel_isType in isdecl'; eauto.
       unshelve eapply isType_mkApps_Ind_inv in X2 as [parsubst [argsubst [sppar sparg
         lenpars lenargs cu]]]; eauto.
       2:eapply isdecl.p1.
@@ -333,10 +323,10 @@ Section Validity.
 
     - (* Primitive *)
       depelim X0; depelim X1; simp prim_type; cbn in *.
-      1-2:destruct H1 as [hty hbod huniv]; eapply has_sort_isType with (s := _@[[]]); change (tSort ?s@[[]]) with (tSort s)@[[]];
+      1-2:destruct H1 as [hty hbod hrel huniv]; eapply has_sort_isType with (s := _@[[]]); change (tSort ?s@[[]]) with (tSort s)@[[]];
           rewrite <- hty; refine (type_Const _ _ _ [] _ wfΓ H0 _); rewrite huniv //.
       set (s := sType (Universe.make' (array_level a))).
-      destruct H1 as [hty' hbod huniv].
+      destruct H1 as [hty' hbod hrel huniv].
       eapply has_sort_isType with s.
       eapply (type_App _ _ _ _ (tSort s) (tSort s)); tea; cycle 1.
       + eapply (type_Const _ _ _ [array_level a]) in H0; tea. rewrite hty' in H0. cbn in H0. exact H0.
@@ -357,6 +347,16 @@ Corollary validity {cf:checker_flags} {Σ} {wfΣ : wf Σ} {Γ t T} :
   Σ ;;; Γ |- t : T -> isType Σ Γ T.
 Proof.
   intros. eapply validity_env; try eassumption.
+Defined.
+
+Corollary validity_sort {cf:checker_flags} {Σ} {wfΣ : wf Σ} {Γ t s} :
+  Σ ;;; Γ |- t : tSort s -> isTypeRel Σ Γ (tSort s) rel_of_Type.
+Proof.
+  intros X.
+  apply validity in X as (_ & s' & X & _).
+  eapply inversion_Sort in X as (wfΓ & wfs & _); tas.
+  apply has_sort_isTypeRel with (s := Sort.super s). 1: apply relevance_super.
+  now apply type_Sort.
 Defined.
 
 Lemma wf_local_validity `{cf : checker_flags} {Σ} {wfΣ : wf Σ} Γ Δ :

@@ -16,7 +16,8 @@ From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICTactics
      PCUICOnFreeVars PCUICWellScopedCumulativity
      PCUICContexts PCUICSubstitution PCUICSpine PCUICInductiveInversion
      PCUICClosed PCUICClosedTyp
-     PCUICUnivSubstitutionConv PCUICUnivSubstitutionTyp.
+     PCUICUnivSubstitutionConv PCUICUnivSubstitutionTyp
+     PCUICRelevanceTyp.
 
 From MetaCoq.PCUIC Require Import BDTyping BDToPCUIC BDFromPCUIC BDUnique.
 
@@ -1377,31 +1378,38 @@ Section Typecheck.
    | primInt | decl :=
       check_eq_true (eqb decl.(cst_body) None) (Msg "primitive type is registered to a defined constant") ;;
       check_eq_true (eqb decl.(cst_universes) Monomorphic_ctx) (Msg "primitive type is registered to a non-monomorphic constant") ;;
+      check_eq_true (eqb decl.(cst_relevance) Relevant) (Msg "wrong relevance for primitive") ;;
       check_eq_true (eqb decl.(cst_type) (tSort Sort.type0)) (Msg "primitive type for integers is registered to an axiom whose type is not the sort Set") ;;
       ret _
    | primFloat | decl :=
       check_eq_true (eqb decl.(cst_body) None) (Msg "primitive type is registered to a defined constant") ;;
       check_eq_true (eqb decl.(cst_universes) Monomorphic_ctx) (Msg "primitive type for floats is registered to non-monomorphic constant") ;;
+      check_eq_true (eqb decl.(cst_relevance) Relevant) (Msg "wrong relevance for primitive") ;;
       check_eq_true (eqb decl.(cst_type) (tSort Sort.type0)) (Msg "primitive type for floats is registered to an axiom whose type is not the sort Set") ;;
       ret _
    | primArray | decl :=
       let s := sType (Universe.make' (Level.lvar 0)) in
       check_eq_true (eqb decl.(cst_body) None) (Msg "primitive type is registered to a defined constant") ;;
       check_eq_true (eqb decl.(cst_universes) (Polymorphic_ctx array_uctx)) (Msg "primitive type is registered to a monomorphic constant") ;;
+      check_eq_true (eqb decl.(cst_relevance) Relevant) (Msg "wrong relevance for primitive") ;;
       check_eq_true (eqb decl.(cst_type) (tImpl (tSort s) (tSort s))) (Msg "primitive type for arrays is registered to an axiom whose type is not of shape Type -> Type") ;;
       ret _.
   Proof.
     all:try eapply eqb_eq in i.
     all:try apply eqb_eq in i0.
-    all:try apply eqb_eq in i1 => //.
+    all:try apply eqb_eq in i1.
+    all:try apply eqb_eq in i2 => //.
     - destruct H as []. rewrite H in absurd; eauto.
     - destruct H as []. apply absurd. now rewrite H1; apply eqb_refl.
+    - destruct H as []. apply absurd. rewrite H2; apply eqb_refl.
     - destruct H as []. apply absurd; rewrite H0; apply eqb_refl.
     - destruct H as []. rewrite H in absurd; eauto.
     - destruct H as []. apply absurd. now rewrite H1; apply eqb_refl.
+    - destruct H as []. apply absurd. rewrite H2; apply eqb_refl.
     - destruct H as []. apply absurd; rewrite H0; apply eqb_refl.
     - destruct H as []. rewrite H in absurd; eauto.
     - destruct H as []. apply absurd. now rewrite H1; apply eqb_refl.
+    - destruct H as []. apply absurd. rewrite H2; apply eqb_refl.
     - destruct H as []. apply absurd; rewrite H0; apply eqb_refl.
   Qed.
 

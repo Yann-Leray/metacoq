@@ -1467,6 +1467,20 @@ Proof.
   - destruct l'; cbn in *. lia. rewrite IHl. lia.
 Qed.
 
+Lemma map_map2 {A B C D} (f : A -> B) (g : C -> D -> A) l l' :
+  map f (map2 g l l') = map2 (fun x y => f (g x y)) l l'.
+Proof.
+  induction l in l' |- *; destruct l'; simpl; auto. f_equal.
+  apply IHl.
+Qed.
+
+Lemma map2_map {A A' B B' C} (f : A -> B) (f' : A' -> B') (g : B -> B' -> C) l l' :
+  map2 g (map f l) (map f' l') = map2 (fun x y => g (f x) (f' y)) l l'.
+Proof.
+  induction l in l' |- *; destruct l'; simpl; auto. f_equal.
+  apply IHl.
+Qed.
+
 Lemma map2_map_l {A B C D} (f : A -> B) (g : B -> C -> D) (l : list A) (l' : list C) :
   map2 g (List.map f l) l' =
   map2 (fun x y => g (f x) y) l l'.

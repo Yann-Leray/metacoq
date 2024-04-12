@@ -1106,6 +1106,26 @@ Qed.*)
       now rewrite Hsub Nat.add_0_r.
   Qed.
 
+  Lemma ctx_inst_app_inv_1 {P} {Γ} {Δ : context} {Δ' args} :
+    PCUICEnvTyping.ctx_inst P Γ args (Δ ++ Δ') ->
+    PCUICEnvTyping.ctx_inst P Γ (firstn (context_assumptions Δ) args) Δ.
+  Proof using Type.
+    revert args Δ'.
+    induction Δ using ctx_length_ind; intros.
+    1: now constructor.
+    depelim X0; simpl.
+    - specialize (X (subst_telescope [i] 0 Γ0) ltac:(now rewrite /subst_telescope mapi_length)).
+      rewrite subst_telescope_app in X0.
+      specialize (X _ _ X0).
+      rewrite context_assumptions_subst_telescope in X.
+      constructor; auto.
+    - specialize (X (subst_telescope [b] 0 Γ0) ltac:(now rewrite /subst_telescope mapi_length)).
+      rewrite subst_telescope_app in X0.
+      specialize (X _ _ X0).
+      rewrite context_assumptions_subst_telescope in X.
+      constructor; auto.
+  Qed.
+
   Lemma ctx_inst_sub_eq {Γ} {Δ : context} {Δ' args args'} (c : ctx_inst Σ Γ args Δ) (d : ctx_inst Σ Γ args' Δ') :
     args' = args ->
     Δ = Δ' -> ctx_inst_sub c = ctx_inst_sub d.

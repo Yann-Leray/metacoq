@@ -1345,6 +1345,16 @@ Lemma closed_subst_ext {Δ σ σ' Γ} :
   - eapply usubst_ext; eauto.
 Qed.
 
+Lemma valid_subst_ext Σ Δ σ σ' Γ :
+  valid_subst Σ Γ σ Δ ->
+  σ =1 σ' ->
+  valid_subst Σ Γ σ' Δ.
+Proof using Type.
+  intros Hσ eq.
+  intros n decl hnth. rewrite -(eq n).
+  now apply Hσ.
+Qed.
+
 Lemma well_subst_ext Σ Δ σ σ' Γ :
   Σ ;;; Δ ⊢ σ : Γ ->
   σ =1 σ' ->
@@ -1396,6 +1406,30 @@ Proof using Type.
       2: now eapply h.
       now easy.
   - eapply usubst_Up; eauto; intuition.
+Qed.
+
+Lemma valid_subst_Up {Σ : global_env} {wf : wf Σ} {Γ Δ σ r} :
+  valid_subst Σ Γ σ Δ ->
+  valid_subst Σ (Γ ,, r) (⇑ σ) (Δ ,, r).
+Proof using Type.
+  intros h.
+  intros [|n] decl e.
+  - simpl in *. injection e as ->.
+    constructor. reflexivity.
+  - simpl in *. specialize (h _ _ e) as h1.
+    pose proof (weakening_isTermRel (Γ' := []) (Γ'' := [r]) _ _ h1) as X.
+    simpl in X.
+    sigma in X. eapply X.
+Qed.
+
+Lemma valid_subst_up {Σ : global_env} {wf : wf Σ} {Γ Δ σ r} :
+  valid_subst Σ Γ σ Δ ->
+  valid_subst Σ (Γ ,, r) (up 1 σ) (Δ ,, r).
+Proof using Type.
+  intros h.
+  eapply valid_subst_ext.
+  1: now eapply valid_subst_Up.
+  now sigma.
 Qed.
 
 Lemma well_subst_Up {Σ : global_env_ext} {wfΣ : wf Σ} {Γ Δ σ na A} :
@@ -1545,6 +1579,28 @@ Proof.
       cbn in H0. rewrite shiftnP_add in H0. rewrite <- app_length in H0.
       destruct H0; tea.
 Defined.
+
+Lemma valid_subst_app {Σ : global_env} {wfΣ : wf Σ} {Γ Δ σ Δ'} :
+  valid_subst Σ Γ σ Δ ->
+  valid_subst Σ (Γ ,,, Δ') (⇑^#|Δ'| σ) (Δ ,,, Δ').
+Proof using Type.
+  induction Δ'; simpl => h.
+  - eapply valid_subst_ext; eauto.
+    now rewrite Upn_0.
+  - eapply valid_subst_ext.
+    2:now rewrite Upn_S. simpl.
+    now apply valid_subst_Up.
+Qed.
+
+Lemma valid_subst_app_up {Σ : global_env} {wf : wf Σ} {Γ Δ σ Δ'} :
+  valid_subst Σ Γ σ Δ ->
+  valid_subst Σ (Γ ,,, Δ') (up #|Δ'| σ) (Δ ,,, Δ').
+Proof using Type.
+  intros h.
+  eapply valid_subst_ext.
+  1: now eapply valid_subst_app.
+  now sigma.
+Qed.
 
 Lemma well_subst_app {Σ : global_env_ext} {wfΣ : wf Σ} {Γ Δ σ Δ'} :
   wf_local Σ (Δ ,,, inst_context σ Δ') ->

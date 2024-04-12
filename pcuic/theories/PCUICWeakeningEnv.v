@@ -251,6 +251,29 @@ Proof.
   intuition auto.
 Qed.
 
+Lemma on_udecl_prop_mono (Σ : global_env) :
+  on_udecl_prop Σ Monomorphic_ctx.
+Proof.
+  intros v Hin.
+  cbn in Hin. csets.
+Qed.
+
+Lemma on_udecl_prop_array_ctx (Σ : global_env) :
+  on_udecl_prop Σ (Polymorphic_ctx array_uctx).
+Proof.
+  intros v Hin.
+  cbn in Hin. csets.
+Qed.
+
+Lemma on_udecl_prop_primitive (Σ : global_env) p decl :
+  primitive_invariants p decl ->
+  on_udecl_prop Σ (cst_universes decl).
+Proof.
+  destruct p.
+  all: intros [_ _ _ ->].
+  all: now auto using on_udecl_prop_mono, on_udecl_prop_array_ctx.
+Qed.
+
 
 
 (** ** Lookup *)

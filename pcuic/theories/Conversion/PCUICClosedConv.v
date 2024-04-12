@@ -10,7 +10,7 @@ From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICCases PCUICInducti
 Require Import ssreflect ssrbool.
 From Equations Require Import Equations.
 
-Implicit Types (cf : checker_flags) (Σ : global_env_ext).
+Implicit Types (cf : checker_flags).
 
 Lemma type_local_ctx_All_local_env {cf} P Σ Γ Δ s :
   All_local_env (lift_typing P Σ) Γ ->

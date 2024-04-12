@@ -3,7 +3,7 @@ From Coq Require Import Morphisms.
 From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import config.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICTactics PCUICCases PCUICInduction
-  PCUICLiftSubst PCUICUnivSubst PCUICCumulativity
+  PCUICLiftSubst PCUICUnivSubst PCUICCumulativity PCUICRelevance
   PCUICTyping PCUICReduction PCUICGlobalEnv PCUICClosed PCUICEquality PCUICRenameDef
   PCUICSigmaCalculus PCUICClosed PCUICOnFreeVars PCUICOnFreeVarsConv PCUICGuardCondition PCUICTyping
   PCUICWeakeningEnvConv PCUICWeakeningEnvTyp PCUICClosedConv PCUICClosedTyp PCUICRenameConv.
@@ -47,7 +47,7 @@ Proof.
   eapply urenaming_vdef; assumption.
 Qed.
 
-Lemma rename_ind_predicate_context {Σ : global_env_ext} {wfΣ : wf Σ} {f ind mdecl idecl} :
+Lemma rename_ind_predicate_context {Σ : global_env} {wfΣ : wf Σ} {f ind mdecl idecl} :
   declared_inductive Σ ind mdecl idecl ->
   rename_context (shiftn (context_assumptions (ind_params mdecl)) f) (ind_predicate_context ind mdecl idecl) =
   ind_predicate_context ind mdecl idecl.
@@ -71,7 +71,7 @@ Proof.
     rewrite rename_closedn_ctx //.
 Qed.
 
-Lemma rename_case_predicate_context {Σ : global_env_ext} {wfΣ : wf Σ} {ind mdecl idecl f p} :
+Lemma rename_case_predicate_context {Σ : global_env} {wfΣ : wf Σ} {ind mdecl idecl f p} :
   declared_inductive Σ ind mdecl idecl ->
   wf_predicate mdecl idecl p ->
   rename_context f (case_predicate_context ind mdecl idecl p) =
@@ -87,6 +87,21 @@ Proof.
     rewrite rename_inst_case_context.
     rewrite (wf_predicate_length_pars wfp) (declared_minductive_ind_npars decli).
     now rewrite (rename_ind_predicate_context decli).
+Qed.
+
+Lemma rename_case_branch_context {Σ : global_env} {wfΣ : wf Σ} {ind mdecl idecl f p br cdecl} :
+  declared_inductive Σ ind mdecl idecl ->
+  wf_predicate mdecl idecl p ->
+  wf_branch cdecl br ->
+  rename_context f (case_branch_context ind mdecl p (forget_types (bcontext br)) cdecl) =
+  case_branch_context ind mdecl (rename_predicate f p) (forget_types (bcontext br)) (rename_constructor_body mdecl f cdecl).
+Proof.
+  unfold rename_constructor_body, map_constructor_body.
+  intros isdecl wfp wfb.
+  apply rename_case_branch_context_gen.
+  - eapply declared_inductive_closed_params, isdecl.
+  - rewrite map_length. now apply wf_branch_length.
+  - rewrite (wf_predicate_length_pars wfp) (declared_minductive_ind_npars isdecl) //.
 Qed.
 
 Lemma rename_case_branch_type {Σ : global_env_ext} {wfΣ : wf Σ} f (ci : case_info) mdecl idecl p br i cdecl :
@@ -105,11 +120,7 @@ Lemma rename_case_branch_type {Σ : global_env_ext} {wfΣ : wf Σ} f (ci : case_
 Proof.
   intros decli wfp wfb ptm p' ptm'.
   rewrite /case_branch_type /case_branch_type_gen /map_pair /=.
-  rewrite rename_case_branch_context_gen //.
-  { eapply (declared_inductive_closed_params decli). }
-  { len; now apply wf_branch_length. }
-  { rewrite -(declared_minductive_ind_npars decli).
-    apply (wf_predicate_length_pars wfp). }
+  erewrite rename_case_branch_context; tea.
   f_equal.
   rewrite rename_mkApps map_app map_map_compose.
   rewrite (wf_branch_length wfb).
@@ -785,6 +796,85 @@ Lemma rename_prim_type f p pty : rename f (prim_type p pty) = prim_type (map_pri
 Proof.
   destruct p as [? []]; cbn; simp prim_type => //.
 Qed.
+
+Lemma rename_isTermRel P f Σ Δ Γ t rel :
+  wf Σ ->
+  let sP := shiftnP #|Γ| P in
+  mrenaming sP Γ Δ f ->
+  isTermRel Σ Γ t rel ->
+  isTermRel Σ Δ (rename f t) rel.
+Proof.
+  intros wfΣ sP Hur H.
+  induction t using term_forall_list_ind in f, Γ, Δ, sP, Hur, H, rel |- *; cbn; depelim H.
+  all: try solve [ try rewrite H; econstructor => //; eauto ].
+  - constructor.
+    eapply Hur; tas.
+    apply nth_error_Some_length in e.
+    unfold sP, shiftnP. toProp. left. now apply Nat.ltb_lt.
+  - constructor; [eapply IHt1|eapply IHt2]; tea.
+    now apply mrenaming_snoc'.
+  - constructor; [eapply IHt1|eapply IHt2]; tea.
+    now apply mrenaming_snoc'.
+  - constructor; [eapply IHt1|eapply IHt2|eapply IHt3]; tea.
+    now apply mrenaming_snoc'.
+  - eapply wfTermRel_pred_wf_predicate in w as wfp; tea. 2: apply d.
+    destruct X as (Xp & Xc & Xr). destruct w as (wp & wc & wr).
+    econstructor; tea. 3: now eauto.
+    1: repeat split.
+    + rewrite /= /id.
+      rewrite -[subst_instance _ _](rename_closedn_ctx f 0).
+      { pose proof (declared_minductive_closed (proj1 d)) as []%andb_and.
+        now rewrite closedn_subst_instance_context. }
+      rewrite rename_context_telescope.
+      rewrite rename_telescope_shiftn0.
+      clear -wp Xp Hur.
+      induction wp in Xp |- *.
+      1: constructor.
+      all: rewrite rename_telescope_cons /=.
+      * depelim Xp; constructor; eauto.
+        rewrite -(rename_subst_telescope _ [t]). now apply IHwp.
+      * constructor.
+        rewrite -(rename_subst_telescope _ [b]). now apply IHwp.
+    + now cbn.
+    + eapply Xr; tea.
+      apply wf_predicate_length_pcontext in wfp.
+      rewrite app_length /= !mark_case_predicate_context //=.
+      rewrite -marks_of_context_length.
+      now apply mrenaming_app'.
+    + solve_all.
+      apply wfTermRel_pred_wf_branch in a as wfb.
+      apply wf_branch_length in wfb.
+      destruct a as (onbctx & onb).
+      split; auto.
+      eapply b0; tea.
+      rewrite app_length /= !mark_case_branch_context //=.
+      rewrite -marks_of_context_length.
+      now apply mrenaming_app'.
+
+  - erewrite map_dname. econstructor.
+    1: now rewrite nth_error_map e.
+    rewrite mark_fix_context.
+    unfold wfTermRel_mfix in *.
+    solve_all.
+    eapply b0; tea.
+    rewrite app_length -fix_context_length -marks_of_context_length.
+    now apply mrenaming_app'.
+
+  - erewrite map_dname. econstructor.
+    1: now rewrite nth_error_map e.
+    rewrite mark_fix_context.
+    unfold wfTermRel_mfix in *.
+    solve_all.
+    eapply b0; tea.
+    rewrite app_length -fix_context_length -marks_of_context_length.
+    now apply mrenaming_app'.
+
+  - econstructor. depelim p1; try now constructor.
+    destruct X as (Xty & Xdef & Xval).
+    constructor; cbn; eauto.
+    solve_all.
+Qed.
+
 
 (** For an unconditional renaming defined on all variables in the source context *)
 Lemma typing_rename_prop :

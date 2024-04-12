@@ -4,7 +4,7 @@ From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import config Universes uGraph.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICInduction PCUICOnFreeVars
      PCUICLiftSubst PCUICEquality PCUICUnivSubst
-     PCUICCases PCUICCumulativity PCUICTyping PCUICReduction PCUICWeakeningEnv PCUICWeakeningEnvTyp
+     PCUICCases PCUICCumulativity PCUICRelevance PCUICTyping PCUICReduction PCUICWeakeningEnv PCUICWeakeningEnvTyp
      PCUICClosed PCUICPosition PCUICGuardCondition PCUICUnivSubstitutionConv.
 
 Require Import Equations.Prop.DepElim.
@@ -229,6 +229,54 @@ Hint Resolve subst_instance_wf_predicate
 Hint Resolve All_local_env_over_subst_instance : univ_subst.
 Hint Resolve declared_inductive_wf_ext_wk declared_inductive_wf_global_ext : pcuic.
 
+
+Lemma isTermRel_subst_instance Σ (wfΣ : wf Σ) Γ u t rel :
+  isTermRel Σ Γ t rel -> isTermRel Σ Γ t@[u] rel.
+Proof using Type.
+  intro h.
+  induction t using term_forall_list_ind in Γ, rel, h |- *; depelim h.
+  all: try solve [ try rewrite H; econstructor => //; eauto ].
+  - cbn.
+    eapply wfTermRel_pred_wf_predicate in w as wfp; eauto. 2: apply d.
+    econstructor => //; eauto.
+    + destruct X as (X & X' & X'').
+      destruct w as (Y & Y' & Y'').
+      repeat split; auto.
+      * move: Y. cbn.
+        rewrite -subst_instance_two_context.
+        rewrite -[List.rev (subst_instance u _)]map_rev.
+        clear -X.
+        induction 1 in X |- *; cbn; try now constructor.
+        1: depelim X; constructor; eauto.
+        2: constructor.
+        all: now rewrite -(subst_instance_subst_telescope u [_]).
+      * apply wf_predicate_length_pcontext in wfp.
+        rewrite !mark_case_predicate_context //= in Y'' |- *.
+        now apply X''.
+    + solve_all.
+      apply wfTermRel_pred_wf_branch in a as wfb.
+      apply wf_branch_length in wfb.
+      destruct a as (onbctx & onb).
+      split; auto.
+      eapply b0; tea.
+      rewrite !mark_case_branch_context //= in onb |- *.
+
+  - cbn. erewrite map_dname. econstructor. 1: rewrite nth_error_map e => //.
+    rewrite mark_fix_context. unfold wfTermRel_mfix in *. solve_all.
+  - cbn. erewrite map_dname. econstructor. 1: rewrite nth_error_map e => //.
+    rewrite mark_fix_context. unfold wfTermRel_mfix in *. solve_all.
+  - cbn. econstructor. depelim p1; try now constructor.
+    destruct X as (Xty & Xdef & Xval).
+    constructor; cbn; eauto.
+    solve_all.
+Qed.
+
+Lemma isTermRel_subst_instance' Σ (wfΣ : wf Σ) Γ u t rel :
+  isTermRel Σ (marks_of_context Γ) t rel -> isTermRel Σ (marks_of_context Γ@[u]) t@[u] rel.
+Proof.
+  rewrite marks_of_context_univ_subst.
+  now apply isTermRel_subst_instance.
+Qed.
 
 Lemma typing_subst_instance :
   env_prop (fun Σ Γ t T => forall u univs,

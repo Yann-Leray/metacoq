@@ -4,7 +4,7 @@ From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import config.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICTactics PCUICCases PCUICInduction
   PCUICLiftSubst PCUICUnivSubst
-  PCUICTyping PCUICReduction PCUICCumulativity
+  PCUICRelevance PCUICTyping PCUICReduction PCUICCumulativity
   PCUICEquality PCUICGlobalEnv PCUICClosed PCUICClosedConv PCUICClosedTyp PCUICEquality PCUICWeakeningEnvConv PCUICWeakeningEnvTyp
   PCUICSigmaCalculus PCUICRenameDef PCUICRenameConv PCUICWeakeningConv PCUICWeakeningTyp PCUICInstDef PCUICInstConv
   PCUICGuardCondition PCUICUnivSubstitutionConv PCUICOnFreeVars PCUICOnFreeVarsConv PCUICClosedTyp PCUICClosedTyp.
@@ -357,6 +357,80 @@ Qed.
 Lemma inst_prim_type σ p pty : (prim_type p pty).[σ] = prim_type (map_prim (inst σ) p) pty.
 Proof.
   destruct p as [? []] => //.
+Qed.
+
+Lemma inst_isTermRel {cf} {Σ} {wfΣ : wf Σ} Γ Δ t rel σ :
+  valid_subst Σ Γ σ Δ ->
+  isTermRel Σ Γ t rel ->
+  isTermRel Σ Δ t.[σ] rel.
+Proof.
+  intros hσ h.
+  induction t using term_forall_list_ind in rel, σ, Γ, Δ, hσ, h |- *; cbn; depelim h.
+  all: try solve [ try rewrite H; econstructor => //; eauto ].
+  - now apply hσ in e.
+  - constructor; [eapply IHt1|eapply IHt2]; eauto.
+    now apply valid_subst_up.
+  - constructor; [eapply IHt1|eapply IHt2]; eauto.
+    now apply valid_subst_up.
+  - constructor; [eapply IHt1|eapply IHt2|eapply IHt3]; eauto.
+    now apply valid_subst_up.
+
+  - eapply wfTermRel_pred_wf_predicate in w as wfp; tea. 2: apply d.
+    destruct X as (Xp & Xc & Xr). destruct w as (wp & wc & wr).
+    econstructor; tea. 3: now eauto.
+    1: repeat split.
+    + rewrite /= /id.
+      rewrite -[subst_instance _ _](inst_closedn_ctx σ 0).
+      { pose proof (declared_minductive_closed (proj1 d)) as []%andb_and.
+        now rewrite closedn_subst_instance_context. }
+      rewrite inst_context_telescope.
+      rewrite inst_telescope_upn0.
+      clear -wp Xp hσ.
+      induction wp in Xp |- *.
+      1: constructor.
+      all: rewrite inst_telescope_cons /=.
+      * depelim Xp; constructor; eauto.
+        rewrite -(inst_subst_telescope _ [t]). now apply IHwp.
+      * constructor.
+        rewrite -(inst_subst_telescope _ [b]). now apply IHwp.
+    + now cbn.
+    + eapply Xr; tea.
+      apply wf_predicate_length_pcontext in wfp.
+      rewrite /= !mark_case_predicate_context //=.
+      rewrite -marks_of_context_length.
+      now apply valid_subst_app_up.
+    + solve_all.
+      apply wfTermRel_pred_wf_branch in a as wfb.
+      apply wf_branch_length in wfb.
+      destruct a as (onbctx & onb).
+      split; auto.
+      eapply b0; tea.
+      rewrite /= !mark_case_branch_context //=.
+      rewrite -marks_of_context_length.
+      now apply valid_subst_app_up.
+
+  - erewrite map_dname. econstructor.
+    1: now rewrite nth_error_map e.
+    rewrite mark_fix_context.
+    unfold wfTermRel_mfix in *.
+    solve_all.
+    eapply b0; tea.
+    rewrite -fix_context_length -marks_of_context_length.
+    now apply valid_subst_app_up.
+
+  - erewrite map_dname. econstructor.
+    1: now rewrite nth_error_map e.
+    rewrite mark_fix_context.
+    unfold wfTermRel_mfix in *.
+    solve_all.
+    eapply b0; tea.
+    rewrite -fix_context_length -marks_of_context_length.
+    now apply valid_subst_app_up.
+
+  - econstructor. depelim p1; try now constructor.
+    destruct X as (Xty & Xdef & Xval).
+    constructor; cbn; eauto.
+    solve_all.
 Qed.
 
 Lemma type_inst {cf : checker_flags} : env_prop

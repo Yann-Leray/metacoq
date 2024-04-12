@@ -346,7 +346,7 @@ Proof.
 Qed.
 
 
-Implicit Types (cf : checker_flags) (Σ : global_env_ext).
+Implicit Types (cf : checker_flags).
 
 Lemma subject_closed {cf} {Σ} {wfΣ : wf Σ.1} {Γ t T} :
   Σ ;;; Γ |- t : T ->
@@ -485,13 +485,13 @@ Proof.
   now rewrite -on_free_vars_ctx_on_ctx_free_vars shiftnP_closedP shiftnP_xpredT Nat.add_0_r.
 Qed.
 
-Lemma wf_local_closed_context `{checker_flags} {Σ Γ} {wfΣ : wf Σ} : wf_local Σ Γ -> on_free_vars_ctx xpred0 Γ.
+Lemma wf_local_closed_context `{checker_flags} {Σ Γ} {wfΣ : wf Σ.1} : wf_local Σ Γ -> on_free_vars_ctx xpred0 Γ.
 Proof.
   move/PCUICClosedTyp.closed_wf_local.
   now rewrite closed_ctx_on_ctx_free_vars on_free_vars_ctx_on_ctx_free_vars_closedP.
 Qed.
 
-Lemma typing_closed_context {cf} {Σ} {wfΣ : wf Σ} {Γ T U} :
+Lemma typing_closed_context {cf} {Σ} {wfΣ : wf Σ.1} {Γ T U} :
   Σ ;;; Γ |- T : U ->
   is_closed_context Γ.
 Proof.

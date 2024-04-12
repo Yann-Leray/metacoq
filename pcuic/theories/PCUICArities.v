@@ -673,16 +673,6 @@ Section WfEnv.
     now eapply it_mkProd_or_LetIn_wf_local in Hs.
   Qed.
 
-  Lemma isType_weaken {Γ T} :
-    wf_local Σ Γ ->
-    isType Σ [] T ->
-    isType Σ Γ T.
-  Proof using wfΣ.
-    intros wfΓ HT.
-    apply lift_typing_impl with (1 := HT) => ?? hs.
-    eapply (weaken_ctx Γ) in hs; eauto.
-  Qed.
-
   Lemma subst_telescope_subst_instance u s k Γ :
     subst_telescope (map (subst_instance u) s) k
       (subst_instance u Γ) =

@@ -4,7 +4,7 @@ From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import config.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICCases PCUICInduction
   PCUICLiftSubst PCUICUnivSubst PCUICTyping PCUICCumulativity
-  PCUICClosed
+  PCUICClosed PCUICRelevance
   PCUICSigmaCalculus PCUICRenameDef PCUICRenameConv PCUICRenameTyp PCUICOnFreeVars
   PCUICClosedConv PCUICClosedTyp PCUICWeakeningConv.
 
@@ -20,6 +20,16 @@ Implicit Types cf : checker_flags.
 
 Set Default Goal Selector "!".
 Generalizable Variables Σ Γ t T.
+
+Lemma weakening_isTermRel {cf : checker_flags} {Σ} {wfΣ : wf Σ} {Γ Γ' Γ''} t rel :
+  isTermRel Σ (Γ ,,, Γ') t rel ->
+  isTermRel Σ (Γ ,,, Γ'' ,,, Γ') (lift #|Γ''| #|Γ'| t) rel.
+Proof.
+  intro H.
+  rewrite lift_rename.
+  eapply rename_isTermRel with (P := xpred0); tea.
+  apply weakening_mrenaming.
+Qed.
 
 Lemma weakening_wf_local {cf: checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ Γ' Γ''} :
   wf_local Σ (Γ ,,, Γ') ->
@@ -165,7 +175,7 @@ Proof.
   eapply weakening_gen => //.
 Qed.
 
-Lemma lift_typing_weakening {cf : checker_flags} Σ Γ Γ' j :
+Lemma lift_typing_weakening {cf : checker_flags} {Σ Γ Γ' j} :
   wf Σ.1 -> wf_local Σ (Γ ,,, Γ') ->
   lift_typing typing Σ Γ j ->
   lift_typing typing Σ (Γ ,,, Γ') (judgment_map (lift0 #|Γ'|) j).
@@ -175,7 +185,25 @@ Proof.
   now apply weakening.
 Qed.
 
-Lemma lift_typing_weaken_ctx {cf : checker_flags} Σ Γ Δ j :
+Lemma isType_weakening {cf : checker_flags} {Σ Γ Γ' T} :
+  wf Σ.1 -> wf_local Σ (Γ ,,, Γ') ->
+  isType Σ Γ T ->
+  isType Σ (Γ ,,, Γ') (lift0 #|Γ'| T).
+Proof.
+  intros wfΣ wfΓ Hj.
+  now apply lift_typing_weakening with (3 := Hj).
+Qed.
+
+Lemma isTypeRel_weakening {cf : checker_flags} {Σ Γ Γ' T r} :
+  wf Σ.1 -> wf_local Σ (Γ ,,, Γ') ->
+  isTypeRel Σ Γ T r ->
+  isTypeRel Σ (Γ ,,, Γ') (lift0 #|Γ'| T) r.
+Proof.
+  intros wfΣ wfΓ Hj.
+  now apply lift_typing_weakening with (3 := Hj).
+Qed.
+
+Lemma lift_typing_weaken_ctx {cf : checker_flags} {Σ Γ Δ j} :
   wf Σ.1 -> wf_local Σ Δ ->
   lift_typing typing Σ Γ j ->
   lift_typing typing Σ (Δ ,,, Γ) j.
@@ -183,6 +211,40 @@ Proof.
   intros wfΣ wfΔ Hj.
   apply lift_typing_impl with (1 := Hj) => t T.
   now apply weaken_ctx.
+Qed.
+
+Lemma isType_weaken_ctx {cf : checker_flags} {Σ Γ Δ T} :
+  wf Σ.1 -> wf_local Σ Δ ->
+  isType Σ Γ T ->
+  isType Σ (Δ ,,, Γ) T.
+Proof.
+  intros wfΣ wfΓ Hj.
+  now apply lift_typing_weaken_ctx with (3 := Hj).
+Qed.
+
+Lemma isTypeRel_weaken_ctx {cf : checker_flags} {Σ Γ Δ T r} :
+  wf Σ.1 -> wf_local Σ Δ ->
+  isTypeRel Σ Γ T r ->
+  isTypeRel Σ (Δ ,,, Γ) T r.
+Proof.
+  intros wfΣ wfΓ Hj.
+  now apply lift_typing_weaken_ctx with (3 := Hj).
+Qed.
+
+Lemma isType_weaken {cf : checker_flags} {Σ Γ T} :
+  wf Σ.1 -> wf_local Σ Γ ->
+  isType Σ [] T ->
+  isType Σ Γ T.
+Proof.
+  eapply @isType_weaken_ctx.
+Qed.
+
+Lemma isTypeRel_weaken {cf : checker_flags} {Σ Γ T r} :
+  wf Σ.1 -> wf_local Σ Γ ->
+  isTypeRel Σ [] T r ->
+  isTypeRel Σ Γ T r.
+Proof.
+  apply @isTypeRel_weaken_ctx.
 Qed.
 
 Corollary All_mfix_wf {cf:checker_flags} Σ Γ mfix :

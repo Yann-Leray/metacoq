@@ -541,6 +541,16 @@ Definition subst_let_expand args Δ T :=
 Definition subst_context_let_expand args Δ Γ :=
   (subst_context args 0 (expand_lets_ctx Δ Γ)).
 
+Lemma smash_context_subst_context_let_expand s Γ Δ :
+  smash_context [] (subst_context_let_expand s Γ Δ) =
+  subst_context_let_expand s Γ (smash_context [] Δ).
+Proof.
+  rewrite /subst_context_let_expand.
+  rewrite (smash_context_subst []).
+  now rewrite /expand_lets_ctx /expand_lets_k_ctx (smash_context_subst [])
+    (smash_context_lift []).
+Qed.
+
 Definition subst_let_expand_tProd args Δ na T s :
   subst_let_expand args Δ (tProd na T (tSort s)) =
   tProd na (subst_let_expand args Δ T) (tSort s).

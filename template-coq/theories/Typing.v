@@ -856,7 +856,7 @@ Inductive typing `{checker_flags} (Σ : global_env_ext) (Γ : context) : term ->
     All (on_def_type (lift_typing1 (typing Σ)) Γ) mfix ->
     All (on_def_body (lift_typing1 (typing Σ)) (fix_context mfix) Γ) mfix ->
     wf_fixpoint Σ mfix ->
-      Σ ;;; Γ |- tFix mfix n : decl.(dtype)
+    Σ ;;; Γ |- tFix mfix n : decl.(dtype)
 
 | type_CoFix mfix n decl :
     cofix_guard Σ Γ mfix ->

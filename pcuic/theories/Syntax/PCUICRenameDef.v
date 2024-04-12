@@ -30,6 +30,11 @@ Context `{cf : checker_flags}.
   the same time *)
 (** Remark: renaming allows instantiating an assumption with a well-typed body *)
 
+Definition mrenaming (P : nat -> bool) (Γ Δ : mark_context) f :=
+  forall i rel, P i ->
+    nth_error Γ i = Some rel ->
+    nth_error Δ (f i) = Some rel.
+
 Definition urenaming (P : nat -> bool) Γ Δ f :=
   forall i decl, P i ->
     nth_error Γ i = Some decl ->
@@ -45,6 +50,17 @@ Definition renaming P Σ Γ Δ f :=
   wf_local Σ Δ × urenaming P Γ Δ f.
 
 Definition renaming_closed Γ Δ f := urenaming (closedP #|Γ| xpredT) Γ Δ f.
+
+Lemma urenaming_mrenaming P Γ Δ f :
+  urenaming P Γ Δ f -> mrenaming P (marks_of_context Γ) (marks_of_context Δ) f.
+Proof.
+  intros h n r hp em.
+  rewrite !nth_error_map in em |- *.
+  destruct (nth_error Γ n) as [decl|] eqn:e => //.
+  specialize (h n decl hp e) as (decl' & -> & eqb & _).
+  rewrite -em /=. symmetry. f_equal.
+  apply eqb.
+Qed.
 
 End Renaming.
 

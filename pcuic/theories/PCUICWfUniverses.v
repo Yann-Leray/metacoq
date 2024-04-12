@@ -1252,6 +1252,15 @@ Qed.
     cbn in wfs. now to_wfu.
   Qed.
 
+  Lemma sort_type_super {Σ : global_env_ext} {Γ t s} :
+    wf Σ ->
+    Σ ;;; Γ |- t : tSort s -> Σ ;;; Γ |- tSort s : tSort (Sort.super s).
+  Proof using Type.
+    intros wfΣ Hty.
+    constructor. 1: now eapply typing_wf_local.
+    now eapply typing_wf_sort.
+  Qed.
+
   Lemma isType_wf_universes {Σ Γ T} : wf Σ.1 -> isType Σ Γ T -> wf_universes Σ T.
   Proof using Type.
     intros wfΣ (_ & s & Hs & _). now eapply typing_wf_universes in Hs as [HT _]%andb_and.

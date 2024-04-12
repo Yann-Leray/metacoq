@@ -310,7 +310,7 @@ Section OnConstructor.
     clear Hlen'.
     rewrite [_ ,,, _]app_context_assoc in Hinst.
     now exists inst.
-    apply lift_typing_weaken_ctx with (Γ := []); tas.
+    apply isType_weaken; tas.
     eapply isTypeRel_isType.
     apply oib.(onArity).
   Qed.
@@ -4517,6 +4517,53 @@ Proof.
     rewrite (ctx_inst_length instl) context_assumptions_rev //.
 Qed.
 
+Lemma apply_predctx {cf : checker_flags} {Σ : global_env_ext} Γ (ci : case_info) p indices c ps mdecl idecl {wfΣ : wf Σ.1} :
+  declared_inductive Σ ci mdecl idecl ->
+  wf_predicate mdecl idecl p ->
+  eq_context_upto_names (pcontext p) (ind_predicate_context ci mdecl idecl) ->
+  ctx_inst Σ Γ (pparams p ++ indices) (List.rev (ind_params mdecl,,, ind_indices idecl)@[puinst p]) ->
+  Σ;;; Γ |- c : mkApps (tInd ci (puinst p)) (pparams p ++ indices) ->
+  let predctx := case_predicate_context ci mdecl idecl p in
+  let ptm := it_mkLambda_or_LetIn predctx (preturn p) in
+  Σ;;; Γ,,, predctx |- preturn p : tSort ps -> Σ ;;; Γ |- mkApps ptm (indices ++ [c]) : tSort ps.
+Proof.
+  intros decli wfp hpctx ctxi hd predctx ptm hret.
+  pose proof (validity hd) as ist.
+  assert (wfΓ : wf_local Σ Γ) by pcuic.
+
+  pose proof (isType_mkApps_Ind_smash decli ist). forward X by apply wfp.
+  destruct X as [sppars [spinds cu]].
+
+  eapply type_mkApps; eauto.
+  eapply type_it_mkLambda_or_LetIn; tea.
+
+  assert (wfΓp : wf_local Σ (Γ ,,, predctx)) by pcuic.
+
+  have typred : isType Σ Γ (it_mkProd_or_LetIn predctx (tSort ps)).
+  { eapply All_local_env_app_inv in wfΓp as [_ onp].
+    eapply validity_wf_local in onp as [xs Hs].
+    eapply has_sort_isType.
+    eapply type_it_mkProd_or_LetIn_sorts; tea.
+    now eapply PCUICWfUniverses.sort_type_super. }
+  have wfps : wf_sort Σ ps.
+  { pcuic. }
+  epose proof (isType_case_predicate (puinst p) _ _ wfΓ decli cu wfps sppars).
+
+  eapply @typing_spine_strengthen
+  with (T := it_mkProd_or_LetIn (pre_case_predicate_context_gen ci mdecl idecl _ _) _); tea.
+  2:{ rewrite /predctx /case_predicate_context /case_predicate_context_gen.
+      eapply ws_cumul_pb_compare. 1-3:eauto with fvs.
+      eapply PCUICEquality.eq_term_leq_term.
+      eapply eq_term_set_binder_name. 2:reflexivity.
+      now eapply wf_pre_case_predicate_context_gen. }
+
+  eapply wf_arity_spine_typing_spine; auto.
+  split; auto.
+  eapply arity_spine_case_predicate; tea.
+
+  rewrite -smash_context_subst_context_let_expand //.
+Qed.
+
 Lemma ind_arity_relevant {cf : checker_flags} (Σ : global_env_ext) mdecl idecl :
   wf Σ.1 ->
   let ind_type := it_mkProd_or_LetIn (ind_params mdecl) (it_mkProd_or_LetIn (ind_indices idecl) (tSort (ind_sort idecl))) in
@@ -4595,4 +4642,33 @@ Proof.
   2: rewrite app_context_nil_l; apply Hty.
   2: { epose proof (weaken_lookup_on_global_env' _ _ (InductiveDecl mdecl) wfΣ _); eauto. now split. Unshelve. 2: apply isdeclgen.p1.p1. }
   eapply subslet_inds; tea. exact isdecl.
+Qed.
+
+Lemma declared_projection_type_inst {cf:checker_flags} {Σ : global_env_ext} {mdecl idecl p cdecl pdecl Γ c u args} :
+  wf Σ.1 ->
+  declared_projection Σ p mdecl idecl cdecl pdecl ->
+  Σ;;; Γ |- c : mkApps (tInd (proj_ind p) u) args ->
+  isTypeRel Σ (PCUICInductives.projection_context p.(proj_ind) mdecl idecl u)
+    pdecl.(proj_type)@[u] pdecl.(proj_relevance).
+Proof.
+  intros wfΣ declp hc.
+  eapply validity in hc.
+  assert (wfΓ : wf_local Σ Γ) by pcuic.
+  epose proof (isType_mkApps_Ind_inv wfΣ declp wfΓ hc) as [pars [argsub [? ? ? ? cu]]].
+  epose proof (declared_projection_type wfΣ declp).
+  rewrite -(projection_context_gen_inst declp cu).
+  eapply isTypeRel_subst_instance_decl with (decl := InductiveDecl _); tea.
+  unshelve eapply (declared_projection_to_gen declp); eauto.
+Qed.
+
+Lemma isTypeRel_projection {cf : checker_flags} Σ mdecl idecl cdecl pdecl p c args u Γ :
+  wf Σ.1 -> declared_projection Σ.1 p mdecl idecl cdecl pdecl ->
+  Σ;;; Γ |- c : mkApps (tInd (proj_ind p) u) args -> #|args| = ind_npars mdecl ->
+  isTypeRel Σ Γ (subst0 (c :: List.rev args) (proj_type pdecl)@[u]) pdecl.(proj_relevance).
+Proof.
+  intros wfΣ declp declc hargs.
+  epose proof (declared_projection_type_inst wfΣ declp declc).
+  eapply (isTypeRel_substitution (Δ := [])).
+  2:{ cbn. eapply isTypeRel_weaken_ctx; tea. pcuic. }
+  eapply projection_subslet; tea. now eapply validity.
 Qed.

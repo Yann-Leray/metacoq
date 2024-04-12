@@ -3,7 +3,7 @@ From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import config.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICTactics PCUICInduction
      PCUICLiftSubst PCUICEquality PCUICPosition PCUICCases PCUICSigmaCalculus
-     PCUICUnivSubst PCUICContextSubst PCUICTyping
+     PCUICUnivSubst PCUICContextSubst PCUICRelevance PCUICTyping
      PCUICWeakeningEnvConv PCUICWeakeningEnv PCUICWeakeningEnvTyp PCUICClosed PCUICClosedConv PCUICClosedTyp
      PCUICReduction PCUICWeakeningConv PCUICWeakeningTyp PCUICCumulativity PCUICUnivSubstitutionConv
      PCUICRenameDef PCUICRenameConv PCUICInstDef PCUICInstConv PCUICInstTyp PCUICOnFreeVars.
@@ -53,6 +53,9 @@ Inductive subslet {cf:checker_flags} Σ (Γ : context) : list term -> context ->
     subslet Σ Γ (subst0 s t :: s) (Δ ,, vdef na t T).
 
 #[global] Hint Constructors subslet : pcuic.
+
+Definition marks_subslet {cf:checker_flags} (Σ : global_env) (Γ : mark_context) s Δ :=
+  All2 (fun t r => isTermRel Σ Γ t r) s Δ.
 
 Lemma subslet_def {cf} {Σ : global_env_ext} {Γ Δ s na t T t'} :
   subslet Σ Γ s Δ ->
@@ -1651,6 +1654,36 @@ Qed.
     intros x decl hnth. specialize (hty x decl hnth). now sigma.
   Qed.
 
+  Lemma marks_valid_subst {Σ1 : global_env} {wfΣ1 : wf Σ1} {Γ Γ' s Δ} :
+    marks_subslet Σ1 Γ s Γ' ->
+    valid_subst Σ1 (Γ ,,, Γ' ,,, Δ) (⇑^#|Δ| (s ⋅n ids)) (Γ ,,, Δ).
+  Proof using Type.
+    intros hty.
+    intros n r.
+    apply All2_length in hty as hlen.
+    unfold app_context.
+    case: nth_error_appP => // r' hnth h [=] e; subst r'.
+    2: move: hnth; case: nth_error_appP => // r' hnth h' [=] e; subst r'.
+    - rewrite {1}Upn_eq subst_consn_lt; len => //. rewrite /subst_fn.
+      rewrite idsn_lt //.
+      constructor.
+      rewrite nth_error_app_lt //.
+    - rewrite {1}Upn_eq subst_consn_ge; len => //.
+      rewrite subst_consn_compose.
+      rewrite subst_consn_lt; len.
+      unfold subst_fn. rewrite nth_error_map.
+      eapply All2_nth_error_Some_r in hty as (t & -> & hty); tea.
+      cbn.
+      rewrite -rename_inst -lift0_rename.
+      now eapply @weakening_isTermRel with (Γ' := []).
+    - rewrite Upn_subst_consn_ge. 1: lia.
+      rewrite compose_ids_l.
+      rewrite /shiftk.
+      constructor.
+      rewrite nth_error_app_ge. 1: lia.
+      rewrite -hnth. f_equal. lia.
+  Qed.
+
   Lemma subslet_well_subst {Γ Γ' s Δ} :
     subslet Σ Γ s Γ' ->
     wf_local Σ (Γ ,,, subst_context s 0 Δ) ->
@@ -1734,6 +1767,17 @@ Qed.
       + pcuicfo.
   Qed.
 End SubstitutionLemmas.
+
+Theorem subst_isTermRel {cf} {Σ : global_env} {wfΣ : wf Σ} {Γ Γ' s Δ t r} :
+  marks_subslet Σ Γ s Γ' ->
+  isTermRel Σ (Γ ,,, Γ' ,,, Δ) t r ->
+  isTermRel Σ (Γ ,,, Δ) (subst s #|Δ| t) r.
+Proof.
+  intros Hs Ht.
+  rewrite subst_inst.
+  eapply inst_isTermRel; tea.
+  now apply marks_valid_subst.
+Qed.
 
 Theorem substitution_prop {cf} : env_prop
   (fun Σ Γ0 t T =>

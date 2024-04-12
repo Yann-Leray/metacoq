@@ -114,6 +114,10 @@ theories/PCUICWeakeningConfig.v
 
 theories/PCUICCasesHelper.v
 
+theories/PCUICRelevance.v
+theories/PCUICRelevanceTerm.v
+theories/PCUICRelevanceTyp.v
+
 # theories/All.v
 
 # To do separate extraction of the files, not working currently

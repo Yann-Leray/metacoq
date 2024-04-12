@@ -821,10 +821,10 @@ Lemma Alli_impl_Alli {A} {P Q} (l : list A) {n} : Alli P n l -> Alli (fun n x =>
 Proof. induction 1; inversion 1; constructor; intuition auto. Defined.
 
 Lemma All_impl {A} {P Q} {l : list A} : All P l -> (forall x, P x -> Q x) -> All Q l.
-Proof. induction 1; try constructor; intuition auto. Qed.
+Proof. intros H f. induction H; now constructor. Defined.
 
 Lemma Alli_impl {A} {P Q} (l : list A) {n} : Alli P n l -> (forall n x, P n x -> Q n x) -> Alli Q n l.
-Proof. induction 1; try constructor; intuition auto. Defined.
+Proof. intros H f. induction H; now constructor. Defined.
 
 Lemma All_map {A B} {P : B -> Type} {f : A -> B} {l : list A} :
   All (fun x => P (f x)) l -> All P (map f l).

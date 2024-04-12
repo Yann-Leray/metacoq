@@ -387,6 +387,27 @@ Proof using Type.
       now rewrite -rename_compose h2; sigma.
 Qed.
 
+Lemma urenaming_vass' n P Γ Δ na A f :
+  urenaming (shiftnP n P) Γ Δ f ->
+  urenaming (shiftnP (S n) P) (Γ ,, vass na A) (Δ ,, vass na (rename f A)) (shiftn 1 f).
+Proof.
+  intro Hur.
+  eapply urenaming_impl.
+  2: now apply urenaming_vass.
+  intros i H. rewrite -shiftnP_S //.
+Qed.
+
+Lemma mrenaming_snoc' n P Γ Δ r f :
+  mrenaming (shiftnP n P) Γ Δ f ->
+  mrenaming (shiftnP (S n) P) (Γ ,, r) (Δ ,, r) (shiftn 1 f).
+Proof.
+  intros h [|i] decl hP e.
+  - simpl in e. injection e as [= ->] => //.
+  - simpl in e |- *.
+    replace (i - 0) with i by lia.
+    eapply h with (2 := e).
+    apply hP.
+Qed.
 
 Lemma urenaming_vdef :
   forall P Γ Δ na b B f,
@@ -415,6 +436,16 @@ Proof using Type.
       now rewrite -rename_compose h2; sigma.
 Qed.
 
+Lemma urenaming_vdef' n P Γ Δ na b B f :
+  urenaming (shiftnP n P) Γ Δ f ->
+  urenaming (shiftnP (S n) P) (Γ ,, vdef na b B) (Δ ,, vdef na (rename f b) (rename f B)) (shiftn 1 f).
+Proof.
+  intro Hur.
+  eapply urenaming_impl.
+  2: now apply urenaming_vdef.
+  intros i H. rewrite -shiftnP_S //.
+Qed.
+
 Lemma urenaming_ext :
   forall P P' Γ Δ f g,
     P =1 P' ->
@@ -435,6 +466,19 @@ Proof using Type.
     destruct (decl_body decl') => /= //.
     intros [=]; f_equal.
     now setoid_rewrite <- (hfg _).
+Qed.
+
+Lemma mrenaming_ext P P' Γ Δ f g :
+    P =1 P' ->
+    f =1 g ->
+    mrenaming P Δ Γ f ->
+    mrenaming P' Δ Γ g.
+Proof using Type.
+  intros hP hfg h.
+  intros i decl p e.
+  rewrite <-hP in p.
+  rewrite <- hfg.
+  now eapply h.
 Qed.
 
 Lemma renaming_extP P P' Σ Γ Δ f :
@@ -468,6 +512,33 @@ Proof using Type.
     3:{eapply urenaming_vass; tea. eapply ih; assumption. }
     * now rewrite shiftnP_add.
     * now rewrite shiftn_add.
+Qed.
+
+Lemma urenaming_context' n P Γ Δ Ξ f :
+  urenaming (shiftnP n P) Γ Δ f ->
+  urenaming (shiftnP (#|Ξ| + n) P) (Γ ,,, Ξ) (Δ ,,, rename_context f Ξ) (shiftn #|Ξ| f).
+Proof.
+  intro Hur.
+  eapply urenaming_impl.
+  2: now apply urenaming_context.
+  intros i H. rewrite shiftnP_add //.
+Qed.
+
+Lemma mrenaming_app' n P Γ Δ Ξ f :
+  mrenaming (shiftnP n P) Γ Δ f ->
+  mrenaming (shiftnP (#|Ξ| + n) P) (Γ ,,, Ξ) (Δ ,,, Ξ) (shiftn #|Ξ| f).
+Proof.
+  intro H.
+  induction Ξ; cbn; auto.
+  - eapply mrenaming_ext; tea.
+    + reflexivity.
+    + rewrite shiftn0 //.
+  - eapply mrenaming_snoc' in IHΞ.
+    rewrite -!app_context_cons in IHΞ.
+    eapply mrenaming_ext; tea.
+    + reflexivity.
+    + rewrite shiftnS //.
+    + apply IHΞ.
 Qed.
 
 Definition rename_branch := (map_branch_shift rename shiftn).

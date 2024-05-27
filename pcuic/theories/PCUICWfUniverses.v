@@ -350,21 +350,6 @@ Section CheckerFlags.
       now rewrite IHAll H0.
     Qed. *)
 
-    Lemma test_context_mapi (p : term -> bool) f (ctx : context) k :
-  test_context p (mapi_context (shiftf f k) ctx) = test_context_k (fun k => p ∘ f k) k ctx.
-Proof using Type.
-  induction ctx; simpl; auto.
-  rewrite IHctx. f_equal.
-  now rewrite test_decl_map_decl.
-Qed.
-Hint Rewrite test_context_mapi : map.
-
-Lemma test_context_k_ctx (p : term -> bool) (ctx : context) k :
-  test_context p ctx = test_context_k (fun k => p) k ctx.
-Proof using Type.
-  induction ctx; simpl; auto.
-Qed.
-
     Lemma on_universes_lift pu pc n k t : on_universes pu pc (lift n k t) = on_universes pu pc t.
     Proof using Type.
       induction t in n, k |- * using term_forall_list_ind; simpl ; auto ; try

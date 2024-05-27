@@ -69,7 +69,7 @@ Lemma conv_infer_prod `{checker_flags} Σ (wfΣ : wf Σ) Γ t na A B :
   Σ ;;; Γ |- t : tProd na A B ->
   (∑ T', (Σ ;;; Γ |- t ▹ T') × (Σ ;;; Γ ⊢ T' ≤ tProd na A B)) ->
   ∑ na' A' B', [× Σ ;;; Γ |- t ▹Π (na',A',B'),
-    eq_binder_annot na na', Σ ;;; Γ ⊢ A' = A & Σ ;;; Γ ,, vass na A ⊢ B' ≤ B].
+    eq_binder_annot na' na, Σ ;;; Γ ⊢ A' = A & Σ ;;; Γ ,, vass na A ⊢ B' ≤ B].
 Proof.
   intros tyt (T'&?&Cumt).
   apply ws_cumul_pb_Prod_r_inv in Cumt as (?&?&?&[]) ; auto.
@@ -443,7 +443,7 @@ Qed.
 Lemma typing_infer_prod `{checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ t na A B} :
   Σ ;;; Γ |- t : tProd na A B ->
   ∑ na' A' B', [× Σ ;;; Γ |- t ▹Π (na',A',B'),
-    eq_binder_annot na na', Σ ;;; Γ ⊢ A' = A & Σ ;;; Γ ,, vass na A ⊢ B' ≤ B].
+    eq_binder_annot na' na, Σ ;;; Γ ⊢ A' = A & Σ ;;; Γ ,, vass na A ⊢ B' ≤ B].
 Proof.
   intros.
   apply conv_infer_prod ; tea.

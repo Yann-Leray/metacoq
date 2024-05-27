@@ -190,12 +190,6 @@ Proof.
   constructor; eauto.
 Qed.
 
-Lemma ctx_ind P : P [] -> (forall na A Γ, P Γ -> P (Γ ,, vass na A)) -> (forall na b B Γ, P Γ -> P (Γ ,, vdef na b B)) -> forall Γ, P Γ.
-Proof.
-  intros X Xa Xd Γ.
-  induction Γ as [| [na [b|] ty] Γ ] => //; eauto.
-Qed.
-
 Lemma marks_of_context_length Γ :
   #|marks_of_context Γ| = #|Γ|.
 Proof.

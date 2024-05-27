@@ -721,7 +721,7 @@ Ltac inv_eta :=
 
 Lemma leq_term_propositional_sorted_l {Σ Γ v v' u u'} :
    wf_ext Σ ->
-   PCUICEquality.leq_term Σ (global_ext_constraints Σ) v v' ->
+   PCUICEquality.leq_term Σ (global_ext_constraints Σ) Γ v v' ->
    Σ;;; Γ |- v : tSort u ->
    Σ;;; Γ |- v' : tSort u' -> Sort.is_propositional u ->
    leq_sort (global_ext_constraints Σ) u' u.

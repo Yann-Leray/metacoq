@@ -108,8 +108,10 @@ Fixpoint nl (t : term) : term :=
   | tPrim p => tPrim (map_prim nl p)
   end.
 
+Notation nldecl := (map_decl_anon nl).
+
 Definition nlctx (Γ : context) : context :=
-  map (map_decl_anon nl) Γ.
+  map nldecl Γ.
 
 Definition nl_constant_body c :=
   Build_constant_body

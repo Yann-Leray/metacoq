@@ -4,7 +4,7 @@ From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import config.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICCases PCUICInduction
   PCUICLiftSubst PCUICUnivSubst
-  PCUICRelevance PCUICTyping PCUICEquality PCUICOnFreeVars
+  PCUICRelevance PCUICTyping PCUICEquality PCUICClosed PCUICOnFreeVars
   PCUICSigmaCalculus PCUICRenameDef.
 
 Require Import ssreflect ssrbool.
@@ -61,6 +61,14 @@ Definition closed_subst (Γ : context) σ (Δ : context) :=
   (forall x decl, nth_error Γ x = Some decl -> is_open_term Δ (σ x)) ×
   usubst Γ σ Δ.
 
+Definition wf_subst σ := forall n : nat, wf_term (σ n).
+
+Definition All_equal_subst Σ cmp_universe cmp_sort Γ pb σ σ' :=
+  forall n : nat,
+  wf_term (σ n) ×
+  eq_term_upto_univ_napp Σ cmp_universe cmp_sort Γ Conv 0 (σ n) (σ' n) ×
+  eq_term_upto_univ_napp Σ cmp_universe cmp_sort Γ pb 0 (σ n) (σ' n).
+
 (* Substitution accounting relevance marks for reduction / cumulativity *)
 Definition valid_subst Σ Γ σ Δ :=
   (forall i rel,
@@ -73,6 +81,7 @@ Definition well_subst {cf} Σ (Γ : context) σ (Δ : context) :=
   (forall x decl,
     nth_error Γ x = Some decl ->
     Σ ;;; Δ |- σ x : ((lift0 (S x)) (decl_type decl)).[ σ ]) ×
+  wf_subst σ ×
   usubst Γ σ Δ.
 
 Notation "Σ ;;; Δ ⊢ σ : Γ" :=

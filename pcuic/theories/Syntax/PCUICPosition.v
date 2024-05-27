@@ -182,7 +182,7 @@ Definition dlet_in na b B t (p : pos t) : pos (tLetIn na b B t) :=
 
 Lemma eq_context_upto_context_choice_term Σ cmp_universe cmp_sort pb Γ Γ' c :
   eq_context_upto Σ cmp_universe cmp_sort pb Γ Γ' ->
-  rel_option (eq_term_upto_univ Σ cmp_universe cmp_sort (match c.2 with
+  rel_option (eq_term_upto_univ Σ cmp_universe cmp_sort (skipn (S (fst c)) Γ) (match c.2 with
                                       | choose_decl_body => Conv
                                       | choose_decl_type => pb
                                       end) )
@@ -203,13 +203,13 @@ Proof.
 Qed.
 
 Lemma eq_term_upto_valid_pos :
-  forall {Σ u v p cmp_universe cmp_sort pb napp},
+  forall {Σ Γ u v p cmp_universe cmp_sort pb napp},
     validpos u p ->
-    eq_term_upto_univ_napp Σ cmp_universe cmp_sort pb napp u v ->
+    eq_term_upto_univ_napp Σ cmp_universe cmp_sort Γ pb napp u v ->
     validpos v p.
 Proof.
-  intros Σ u v p cmp_universe cmp_sort pb napp vp e.
-  induction p as [| c p ih ] in u, v, pb, napp, vp, e |- *.
+  intros Σ Γ u v p cmp_universe cmp_sort pb napp vp e.
+  induction p as [| c p ih ] in Γ, u, v, pb, napp, vp, e |- *.
   - reflexivity.
   - destruct c, u. all: try discriminate.
     all: try solve [
@@ -259,9 +259,9 @@ Proof.
 Qed.
 
 Lemma eq_term_valid_pos :
-  forall `{cf : checker_flags} {Σ G u v p},
+  forall `{cf : checker_flags} {Σ φ Γ u v p},
     validpos u p ->
-    eq_term Σ G u v ->
+    eq_term Σ φ Γ u v ->
     validpos v p.
 Proof.
   intros cf Σ G u v p vp e.

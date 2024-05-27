@@ -157,17 +157,6 @@ Proof.
     all: eapply eq_term_upto_univ_cumulSpec; eauto.
 Defined.
 
-Lemma eq_context_cumul_Spec_rel {cf:checker_flags} Σ Ξ0 Γ Δ :
-  compare_context Σ Cumul Γ Δ -> cumul_ctx_rel cumulSpec0 Σ Ξ0 Γ Δ.
-Proof.
-  intros e.
-  eapply All2_fold_impl. 1: tea. cbn; intros.
-  destruct X.
-  - econstructor 1; eauto. eapply eq_term_upto_univ_cumulSpec; eauto.
-  - econstructor 2; eauto.
-    all: eapply eq_term_upto_univ_cumulSpec; eauto.
-Defined.
-
 Lemma cumul_context_Algo_Spec {cf:checker_flags} Σ pb Γ' Γ :
   Σ ⊢ Γ' ≤[pb] Γ -> PCUICCumulativitySpec.cumul_pb_context cumulSpec0 pb Σ Γ' Γ.
 Proof.

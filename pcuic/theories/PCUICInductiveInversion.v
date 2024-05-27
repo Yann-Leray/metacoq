@@ -1320,8 +1320,9 @@ Proof.
   move=> hnth db [onΓ ont red].
   destruct Σ.
   move: ont. rewrite PCUICOnFreeVars.on_free_vars_mkApps /= => /andP[] // => onn onargs.
-  unshelve eapply (red_mkApps_tRel (Γ := exist Γ onΓ) _ hnth db) in red as [args' [eq redargs]] => //.
-  now cbn.
+  unshelve eapply red_mkApps_tRel in red as [args' [eq redargs]]; revgoals; tea.
+  { rewrite wf_terms_on_free_vars. solve_all. eauto with fvs. }
+  1: now eauto with fvs.
   exists args'; split => //.
   cbn in redargs. solve_all.
   eapply into_closed_red; eauto.
@@ -1357,7 +1358,7 @@ Qed.
 
 Lemma ws_cumul_pb_terms_confl {cf} {Σ} {wfΣ : wf Σ} {Γ u u'} :
   ws_cumul_pb_terms Σ Γ u u' ->
-  ∑ nf nf', (red_terms Σ Γ u nf * red_terms Σ Γ u' nf') * (All2 (eq_term Σ Σ) nf nf').
+  ∑ nf nf', (red_terms Σ Γ u nf * red_terms Σ Γ u' nf') * (All2 (eq_term Σ Σ Γ) nf nf').
 Proof.
   intros cv.
   induction cv.
@@ -1385,7 +1386,7 @@ Lemma ws_cumul_pb_mkApps_eq {cf} {Σ} {wfΣ : wf Σ} Γ f f' u u' :
   is_closed_context Γ ->
   is_open_term Γ f ->
   is_open_term Γ f' ->
-  compare_term_napp Σ Σ Cumul #|u| f f' ->
+  compare_term_napp Σ Σ Γ Cumul #|u| f f' ->
   ws_cumul_pb_terms Σ Γ u u' ->
   Σ ;;; Γ ⊢ mkApps f u ≤ mkApps f' u'.
 Proof.

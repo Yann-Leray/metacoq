@@ -5,7 +5,7 @@ From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils
      PCUICLiftSubst PCUICUnivSubst PCUICTyping PCUICConfluence
      PCUICCumulativity PCUICSR PCUICPosition PCUICCasesContexts PCUICEquality
      PCUICGlobalEnv PCUICNamelessDef
-     PCUICAlpha PCUICNormal PCUICInversion PCUICReduction PCUICSubstitution
+     PCUICAlphaDef PCUICAlpha PCUICNormal PCUICInversion PCUICReduction PCUICSubstitution
      PCUICConversion PCUICContextConversion PCUICContextConversionTyp PCUICValidity
      PCUICArities PCUICWeakeningEnvConv PCUICWeakeningEnvTyp PCUICGeneration
      PCUICUnivSubstitutionConv PCUICUnivSubstitutionTyp
@@ -64,8 +64,7 @@ Proof.
   move=> eq cl.
   assert (cl' := alpha_eq_context_closed eq cl).
   eapply eq_context_upto_ws_cumul_ctx_pb => //.
-  eapply All2_fold_All2. eapply All2_impl; tea.
-  intros x y []; constructor; subst; auto; try reflexivity.
+  apply eq_context_upto_names_eq_context_upto; tea; tc.
 Qed.
 
 Lemma wf_case_inst_case_context {cf Σ} {wfΣ : wf Σ}

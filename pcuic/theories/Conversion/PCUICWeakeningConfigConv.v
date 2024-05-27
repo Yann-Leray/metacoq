@@ -12,33 +12,32 @@ Require Import ssreflect.
 Set Default Goal Selector "!".
 Implicit Types (cf : checker_flags).
 
-Lemma compare_term_config_impl {cf1 cf2} Σ φ pb t t'
-  : config.impl cf1 cf2
-    -> @compare_term cf1 Σ φ pb t t' -> @compare_term cf2 Σ φ pb t t'.
+Lemma compare_term_config_impl {cf1 cf2} Σ φ Γ pb t t' :
+  config.impl cf1 cf2 ->
+  @compare_term cf1 Σ φ Γ pb t t' ->
+  @compare_term cf2 Σ φ Γ pb t t'.
 Proof.
   intro H. apply eq_term_upto_univ_impl; auto.
   1,2: intros ??; now eapply cmp_universe_config_impl.
   1,2: intros ??; now eapply cmp_sort_config_impl.
 Qed.
 
-Lemma eq_term_config_impl {cf1 cf2} Σ φ t t'
-  : config.impl cf1 cf2 -> @compare_term cf1 Σ φ Conv t t' -> @compare_term cf2 Σ φ Conv t t'.
+Lemma eq_term_config_impl {cf1 cf2} Σ φ Γ t t' :
+  config.impl cf1 cf2 -> @compare_term cf1 Σ φ Γ Conv t t' -> @compare_term cf2 Σ φ Γ Conv t t'.
 Proof. eapply compare_term_config_impl with (pb := Conv). Qed.
 
-Lemma leq_term_config_impl {cf1 cf2} Σ ctrs t u
-  : config.impl cf1 cf2 -> @compare_term cf1 Σ ctrs Cumul t u -> @compare_term cf2 Σ ctrs Cumul t u.
+Lemma leq_term_config_impl {cf1 cf2} Σ φ Γ t u :
+  config.impl cf1 cf2 -> @compare_term cf1 Σ φ Γ Cumul t u -> @compare_term cf2 Σ φ Γ Cumul t u.
 Proof. apply compare_term_config_impl with (pb := Cumul). Qed.
 
-Lemma compare_decl_config_impl {cf1 cf2} pb Σ φ d d'
-  : config.impl cf1 cf2
-    -> @compare_decl cf1 pb Σ φ d d' -> @compare_decl cf2 pb Σ φ d d'.
+Lemma compare_decl_config_impl {cf1 cf2} pb Σ φ Γ d d' :
+  config.impl cf1 cf2 -> @compare_decl cf1 pb Σ φ Γ d d' -> @compare_decl cf2 pb Σ φ Γ d d'.
 Proof.
   intros Hcf []; constructor; eauto using (@compare_term_config_impl cf1 cf2).
 Qed.
 
-Lemma compare_context_config_impl {cf1 cf2} pb Σ φ Γ Γ'
-  : config.impl cf1 cf2
-    -> @compare_context cf1 pb Σ φ Γ Γ' -> @compare_context cf2 pb Σ φ Γ Γ'.
+Lemma compare_context_config_impl {cf1 cf2} pb Σ φ Γ Γ' :
+  config.impl cf1 cf2 -> @compare_context cf1 pb Σ φ Γ Γ' -> @compare_context cf2 pb Σ φ Γ Γ'.
 Proof.
   intros Hcf. induction 1; constructor; auto; eapply (@compare_decl_config_impl cf1 cf2); eassumption.
 Qed.

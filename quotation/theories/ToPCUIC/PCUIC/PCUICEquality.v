@@ -48,18 +48,18 @@ End with_R.
  {cmp_sort : conv_pb -> sort -> sort -> Prop}
  {qRe : quotation_of cmp_universe} {qRle : quotation_of cmp_sort}
  {quoteRe : forall pb x y, ground_quotable (cmp_universe pb x y)} {quoteRle : forall pb x y, ground_quotable (cmp_sort pb x y)}
- {Σ pb napp x y}
+ {Σ Γ pb napp x y}
  {subr : RelationClasses.subrelation (cmp_universe Conv) (cmp_universe pb)}
-  : ground_quotable (@eq_term_upto_univ_napp Σ cmp_universe cmp_sort pb napp x y).
+  : ground_quotable (@eq_term_upto_univ_napp Σ cmp_universe cmp_sort Γ pb napp x y).
 Proof.
-  unfold ground_quotable; revert Σ cmp_universe cmp_sort pb napp x y qRe qRle quoteRe quoteRle subr.
-  fix quote_eq_term_upto_univ_napp 13; intros.
+  unfold ground_quotable; revert Σ cmp_universe cmp_sort Γ pb napp x y qRe qRle quoteRe quoteRle subr.
+  fix quote_eq_term_upto_univ_napp 14; intros.
   lazymatch type of quote_eq_term_upto_univ_napp with
-  | forall (x1 : ?X1) (x2 : ?X2) (x3 : ?X3) (x4 : ?X4) (x5 : ?X5) (x6 : ?X6) (x7 : ?X7) (x8 : ?X8) (x9 : ?X9) (x10 : ?X10) (x11 : ?X11) (x12 : ?X12) (t : ?X13), quotation_of t
-    => change (forall (x1 : X1) (x2 : X2) (x3 : X3) (x4 : X4) (x5 : X5) (x6 : X6) (x7 : X7) (x8 : X8) (x9 : X9) (x10 : X10) (x11 : X11) (x12 : X12), ground_quotable X13) in quote_eq_term_upto_univ_napp
+  | forall (x1 : ?X1) (x2 : ?X2) (x3 : ?X3) (x4 : ?X4) (x5 : ?X5) (x6 : ?X6) (x7 : ?X7) (x8 : ?X8) (x9 : ?X9) (x10 : ?X10) (x11 : ?X11) (x12 : ?X12) (x13 : ?X13) (t : ?X14), quotation_of t
+    => change (forall (x1 : X1) (x2 : X2) (x3 : X3) (x4 : X4) (x5 : X5) (x6 : X6) (x7 : X7) (x8 : X8) (x9 : X9) (x10 : X10) (x11 : X11) (x12 : X12) (x13 : X13), ground_quotable X14) in quote_eq_term_upto_univ_napp
   end.
   destruct t; replace_quotation_of_goal ().
 Defined.
 
-#[export] Instance quote_compare_term {cf pb Σ ϕ x y} : ground_quotable (@compare_term cf Σ ϕ pb x y).
+#[export] Instance quote_compare_term {cf pb Σ ϕ Γ x y} : ground_quotable (@compare_term cf Σ ϕ Γ pb x y).
 Proof. unshelve eapply quote_eq_term_upto_univ_napp. apply compare_universe_subrel. Defined.

@@ -276,9 +276,9 @@ Proof using wfΣ.
     1: reflexivity.
     1: now etransitivity.
     etransitivity ; tea.
-    eapply red_red_ctx_inv' ; tea.
+    eapply red_red_context_inv' ; tea.
     constructor.
-    1: eapply closed_red_ctx_refl ; fvs.
+    1: eapply closed_red_context_refl ; fvs.
     now constructor.
 
   - inversion X3 ; subst.

@@ -14,12 +14,12 @@ Set Default Goal Selector "!".
 Reserved Notation " Σ ;;; Γ |- t <=[ pb ] u" (at level 50, Γ, t, u at next level,
   format "Σ  ;;;  Γ  |-  t  <=[ pb ] u").
 
-Notation " Σ ⊢ t <===[ pb ] u" := (compare_term Σ Σ pb t u) (at level 50, t, u at next level).
+Notation " Σ ;;; Γ ⊢ t <===[ pb ] u" := (compare_term Σ Σ Γ pb t u) (at level 50, Γ, t, u at next level).
 
 (** ** Cumulativity *)
 
 Inductive cumulAlgo_gen `{checker_flags} (Σ : global_env_ext) (Γ : context) (pb : conv_pb) : term -> term -> Type :=
-| cumul_refl t u : Σ ⊢ t <===[ pb ] u -> Σ ;;; Γ |- t <=[pb] u
+| cumul_refl t u : Σ ;;; Γ ⊢ t <===[ pb ] u -> Σ ;;; Γ |- t <=[pb] u
 | cumul_red_l t u v : Σ ;;; Γ |- t ⇝ v -> Σ ;;; Γ |- v <=[pb] u -> Σ ;;; Γ |- t <=[pb] u
 | cumul_red_r t u v : Σ ;;; Γ |- t <=[pb] v -> Σ ;;; Γ |- u ⇝ v -> Σ ;;; Γ |- t <=[pb] u
 where " Σ ;;; Γ |- t <=[ pb ] u " := (cumulAlgo_gen Σ Γ pb t u) : type_scope.
@@ -52,7 +52,7 @@ Instance conv_decls_refl {cf:checker_flags} Σ Γ Γ' : Reflexive (conv_decls cu
 Instance cumul_decls_refl {cf:checker_flags} Σ Γ Γ' : Reflexive (cumul_decls cumulAlgo_gen Σ Γ Γ') := _.
 
 Lemma cumul_alt `{cf : checker_flags} Σ Γ pb t u :
-  Σ ;;; Γ |- t <=[pb] u <~> ∑ v v', red Σ Γ t v × red Σ Γ u v' × Σ ⊢ v <===[ pb ] v'.
+  Σ ;;; Γ |- t <=[pb] u <~> ∑ v v', red Σ Γ t v × red Σ Γ u v' × Σ ;;; Γ ⊢ v <===[ pb ] v'.
 Proof.
   split.
   - induction 1.
@@ -83,9 +83,9 @@ Proof.
   intro; constructor. reflexivity.
 Qed.
 
-Lemma red_cumul `{cf : checker_flags} {Σ : global_env_ext} {Γ t u} :
+Lemma red_cumul_pb `{cf : checker_flags} {Σ : global_env_ext} {pb} {Γ t u} :
   red Σ Γ t u ->
-  Σ ;;; Γ |- t <= u.
+  Σ ;;; Γ |- t <=[pb] u.
 Proof.
   intros. apply clos_rt_rt1n in X.
   induction X.
@@ -93,9 +93,9 @@ Proof.
   - econstructor 2. all: eauto.
 Qed.
 
-Lemma red_cumul_inv `{cf : checker_flags} {Σ : global_env_ext} {Γ t u} :
+Lemma red_cumul_pb_inv `{cf : checker_flags} {Σ : global_env_ext} {pb} {Γ t u} :
   red Σ Γ t u ->
-  Σ ;;; Γ |- u <= t.
+  Σ ;;; Γ |- u <=[pb] t.
 Proof.
   intros. apply clos_rt_rt1n in X.
   induction X.
@@ -103,16 +103,16 @@ Proof.
   - econstructor 3. all: eauto.
 Qed.
 
-Lemma red_cumul_cumul `{cf : checker_flags} {Σ : global_env_ext} {Γ t u v} :
-  red Σ Γ t u -> Σ ;;; Γ |- u <= v -> Σ ;;; Γ |- t <= v.
+Lemma red_cumul_pb_cumul_pb `{cf : checker_flags} {Σ : global_env_ext} {pb} {Γ t u v} :
+  red Σ Γ t u -> Σ ;;; Γ |- u <=[pb] v -> Σ ;;; Γ |- t <=[pb] v.
 Proof.
   intros. apply clos_rt_rt1n in X.
   induction X. 1: auto.
   econstructor 2; eauto.
 Qed.
 
-Lemma red_cumul_cumul_inv `{cf : checker_flags} {Σ : global_env_ext} {Γ t u v} :
-  red Σ Γ t v -> Σ ;;; Γ |- u <= v -> Σ ;;; Γ |- u <= t.
+Lemma red_cumul_pb_cumul_pb_inv `{cf : checker_flags} {Σ : global_env_ext} {pb} {Γ t u v} :
+  red Σ Γ t v -> Σ ;;; Γ |- u <=[pb] v -> Σ ;;; Γ |- u <=[pb] t.
 Proof.
   intros. apply clos_rt_rt1n in X.
   induction X. 1: auto.
@@ -121,96 +121,84 @@ Proof.
   - eauto.
 Qed.
 
-Lemma conv_cumul2 {cf:checker_flags} Σ Γ t u :
-  Σ ;;; Γ |- t = u -> (Σ ;;; Γ |- t <= u) * (Σ ;;; Γ |- u <= t).
+Lemma red_cumul `{cf : checker_flags} {Σ : global_env_ext} {Γ t u} :
+  red Σ Γ t u ->
+  Σ ;;; Γ |- t <= u.
 Proof.
-  induction 1.
-  - split; constructor; now apply eq_term_leq_term.
-  - destruct IHX as [H1 H2]. split.
-    * econstructor 2; eassumption.
-    * econstructor 3; eassumption.
-  - destruct IHX as [H1 H2]. split.
-    * econstructor 3; eassumption.
-    * econstructor 2; eassumption.
+  apply red_cumul_pb.
+Qed.
+
+Lemma red_cumul_inv `{cf : checker_flags} {Σ : global_env_ext} {Γ t u} :
+  red Σ Γ t u ->
+  Σ ;;; Γ |- u <= t.
+Proof.
+  apply red_cumul_pb_inv.
+Qed.
+
+Lemma red_cumul_cumul `{cf : checker_flags} {Σ : global_env_ext} {Γ t u v} :
+  red Σ Γ t u -> Σ ;;; Γ |- u <= v -> Σ ;;; Γ |- t <= v.
+Proof.
+  apply red_cumul_pb_cumul_pb.
+Qed.
+
+Lemma red_cumul_cumul_inv `{cf : checker_flags} {Σ : global_env_ext} {Γ t u v} :
+  red Σ Γ t v -> Σ ;;; Γ |- u <= v -> Σ ;;; Γ |- u <= t.
+Proof.
+  apply red_cumul_pb_cumul_pb_inv.
 Qed.
 
 Lemma conv_cumul {cf:checker_flags} Σ Γ t u :
   Σ ;;; Γ |- t = u -> Σ ;;; Γ |- t <= u.
 Proof.
-  intro H; now apply conv_cumul2 in H.
-Qed.
-
-Lemma conv_cumul_inv {cf:checker_flags} Σ Γ t u :
-  Σ ;;; Γ |- u = t -> Σ ;;; Γ |- t <= u.
-Proof.
-  intro H; now apply conv_cumul2 in H.
+  induction 1.
+  - constructor; now eapply eq_term_leq_term.
+  - econstructor 2; eassumption.
+  - econstructor 3; eassumption.
 Qed.
 
 Lemma red_conv {cf:checker_flags} (Σ : global_env_ext) Γ t u
   : red Σ Γ t u -> Σ ;;; Γ |- t = u.
 Proof.
-  intros H%clos_rt_rt1n_iff.
-  induction H.
-  - reflexivity.
-  - econstructor 2; eauto.
+  apply red_cumul_pb.
 Qed.
 
 #[global]
 Hint Resolve red_conv : core.
 
-Lemma eq_term_App `{checker_flags} Σ φ f f' :
-  eq_term Σ φ f f' ->
-  isApp f = isApp f'.
-Proof.
-  inversion 1; reflexivity.
-Qed.
-
-Lemma eq_term_eq_term_napp {cf:checker_flags} Σ ϕ napp t t' :
-  eq_term Σ ϕ t t' ->
-  eq_term_upto_univ_napp Σ (compare_universe ϕ) (compare_sort ϕ) Conv napp t t'.
+Lemma eq_term_eq_term_napp {cf:checker_flags} Σ ϕ Γ napp t t' :
+  eq_term Σ ϕ Γ t t' ->
+  eq_term_upto_univ_napp Σ (compare_universe ϕ) (compare_sort ϕ) Γ Conv napp t t'.
 Proof.
   intros. eapply eq_term_upto_univ_impl. 6:eauto.
   5:auto with arith. all:typeclasses eauto.
 Qed.
 
-Lemma leq_term_leq_term_napp {cf:checker_flags} Σ ϕ napp t t' :
-  leq_term Σ ϕ t t' ->
-  eq_term_upto_univ_napp Σ (compare_universe ϕ) (compare_sort ϕ) Cumul napp t t'.
+Lemma leq_term_leq_term_napp {cf:checker_flags} Σ ϕ Γ napp t t' :
+  leq_term Σ ϕ Γ t t' ->
+  eq_term_upto_univ_napp Σ (compare_universe ϕ) (compare_sort ϕ) Γ Cumul napp t t'.
 Proof.
   intros. eapply eq_term_upto_univ_impl. 6:eauto.
   5:auto with arith. all:typeclasses eauto.
 Qed.
 
-Lemma eq_term_mkApps `{checker_flags} Σ φ f l f' l' :
-  eq_term Σ φ f f' ->
-  All2 (eq_term Σ φ) l l' ->
-  eq_term Σ φ (mkApps f l) (mkApps f' l').
+Lemma eq_term_mkApps `{checker_flags} Σ φ Γ f l f' l' :
+  eq_term Σ φ Γ f f' ->
+  All2 (eq_term Σ φ Γ) l l' ->
+  eq_term Σ φ Γ (mkApps f l) (mkApps f' l').
 Proof.
-  induction l in l', f, f' |- *; intro e; inversion_clear 1.
-  - assumption.
-  - cbn. eapply IHl.
-    + constructor; auto. now apply eq_term_eq_term_napp.
-    + assumption.
+  intros Hf Hargs.
+  apply eq_term_upto_univ_napp_mkApps; tas.
+  now apply eq_term_eq_term_napp.
 Qed.
 
-Lemma leq_term_App `{checker_flags} Σ φ f f' :
-  leq_term Σ φ f f' ->
-  isApp f = isApp f'.
+Lemma leq_term_mkApps `{checker_flags} Σ φ Γ f l f' l' :
+  leq_term Σ φ Γ f f' ->
+  All2 (eq_term Σ φ Γ) l l' ->
+  leq_term Σ φ Γ (mkApps f l) (mkApps f' l').
 Proof.
-  inversion 1; reflexivity.
-Qed.
-
-Lemma leq_term_mkApps `{checker_flags} Σ φ f l f' l' :
-  leq_term Σ φ f f' ->
-  All2 (eq_term Σ φ) l l' ->
-  leq_term Σ φ (mkApps f l) (mkApps f' l').
-Proof.
-  induction l in l', f, f' |- *; intro e; inversion_clear 1.
-  - assumption.
-  - cbn. apply IHl.
-    + constructor; try assumption.
-      now eapply leq_term_leq_term_napp.
-    + assumption.
+  intros Hf Hargs.
+  apply eq_term_upto_univ_napp_mkApps; tas.
+  now apply leq_term_leq_term_napp.
 Qed.
 
 #[global]
@@ -219,46 +207,25 @@ Hint Resolve cumul_refl' : core.
 Lemma red_conv_conv `{cf : checker_flags} Σ Γ t u v :
   red (fst Σ) Γ t u -> Σ ;;; Γ |- u = v -> Σ ;;; Γ |- t = v.
 Proof.
-  intros. apply clos_rt_rt1n_iff in X.
-  induction X; auto.
-  now econstructor 2.
+  apply red_cumul_pb_cumul_pb.
 Qed.
 
 Lemma red_conv_conv_inv `{cf : checker_flags} Σ Γ t u v :
   red (fst Σ) Γ t u -> Σ ;;; Γ |- v = u -> Σ ;;; Γ |- v = t.
 Proof.
-  intros X%clos_rt_rt1n_iff.
-  induction X; auto.
-  now econstructor 3; [eapply IHX|]; eauto.
+  apply red_cumul_pb_cumul_pb_inv.
 Qed.
 
-#[global]
-Instance conv_sym `{cf : checker_flags} (Σ : global_env_ext) Γ :
-  Symmetric (convAlgo Σ Γ).
+Definition eq_termp_napp {cf:checker_flags} (Σ : global_env_ext) Γ (pb: conv_pb) napp :=
+  compare_term_napp Σ Σ Γ pb napp.
+
+Notation eq_termp Σ := (compare_term Σ Σ).
+
+Lemma eq_term_eq_termp {cf:checker_flags} pb (Σ : global_env_ext) Γ x y :
+  eq_term Σ Σ Γ x y ->
+  eq_termp Σ Γ pb x y.
 Proof.
-  intros t u X. induction X.
-  - symmetry in c; now constructor.
-  - eapply red_conv_conv_inv.
-    + eapply red1_red in r. eauto.
-    + eauto.
-  - eapply red_conv_conv.
-    + eapply red1_red in r. eauto.
-    + eauto.
-Qed.
-
-Definition eq_termp_napp {cf:checker_flags} (Σ : global_env_ext) (pb: conv_pb) napp :=
-  compare_term_napp Σ Σ pb napp.
-
-Notation eq_termp Σ pb := (compare_term Σ Σ pb).
-
-Lemma eq_term_eq_termp {cf:checker_flags} pb (Σ : global_env_ext) x y :
-  eq_term Σ Σ x y ->
-  eq_termp Σ pb x y.
-Proof.
-  destruct pb; [easy|].
-  cbn.
-  apply eq_term_upto_univ_leq; auto.
-  all: typeclasses eauto.
+  apply eq_term_compare_term.
 Qed.
 
 Lemma cumul_App_l {cf:checker_flags} :

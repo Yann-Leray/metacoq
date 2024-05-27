@@ -1135,7 +1135,7 @@ Proof.
   rewrite rev_map_spec.
   eapply Forall2_from_nth_error. len.
   intros n rarg f. len. intros hn hrarg hnthf args Γ'' k' hargs hrarg' <-.
-  eapply PCUICParallelReductionConfluence.nth_error_fix_subst in hnthf. subst f.
+  eapply nth_error_fix_subst in hnthf. subst f.
   move: hrarg.
   rewrite nth_error_rev; len. rewrite List.rev_involutive nth_error_map.
   intros hrarg.

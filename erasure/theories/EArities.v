@@ -457,7 +457,7 @@ Qed.
 
 Lemma leq_term_propositional_sorted_l {Σ Γ v v' u u'} :
   wf_ext Σ ->
-  PCUICEquality.leq_term Σ (global_ext_constraints Σ) v v' ->
+  PCUICEquality.leq_term Σ (global_ext_constraints Σ) Γ v v' ->
   Σ;;; Γ |- v : tSort u ->
   Σ;;; Γ |- v' : tSort u' -> Sort.is_propositional u ->
   leq_sort (global_ext_constraints Σ) u' u.
@@ -468,7 +468,7 @@ Qed.
 
 Lemma leq_term_propopositional_sorted_r {Σ Γ v v' u u'} :
   wf_ext Σ ->
-  PCUICEquality.leq_term Σ (global_ext_constraints Σ) v v' ->
+  PCUICEquality.leq_term Σ (global_ext_constraints Σ) Γ v v' ->
   Σ;;; Γ |- v : tSort u ->
   Σ;;; Γ |- v' : tSort u' -> Sort.is_propositional u' ->
   leq_sort (global_ext_constraints Σ) u u'.

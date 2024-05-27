@@ -47,7 +47,7 @@ Proof.
   eapply lift_typing_f_impl => //.
   2: intros ?? Hf; rewrite -/(lift_context #|Γ''| 0 Δ).
   2: rewrite Nat.add_0_r; rewrite !lift_rename; apply Hf.
-  eapply (H xpredT).
+  apply H.
   split.
   + apply All_local_env_app; auto.
     apply All_local_env_fold, IH.

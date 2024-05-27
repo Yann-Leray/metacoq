@@ -3,7 +3,7 @@ From Equations Require Import Equations.
 From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import config.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICTyping PCUICLiftSubst
-  PCUICReduction PCUICContextReduction.
+  PCUICReduction PCUICContextReduction PCUICEquality.
 
 From Coq Require Import CRelationClasses.
 
@@ -154,4 +154,30 @@ Proof.
       * constructor; [constructor|].
         constructor.
       * apply IHmfix; lia.
+Qed.
+
+Lemma eq_context_upto_names_pres_let_bodies Γ Δ :
+  eq_context_upto_names Γ Δ ->
+  All2_fold (fun _ _ => pres_let_bodies) Γ Δ.
+Proof using Type.
+  induction 1; constructor; auto.
+  destruct r; cbnr.
+Qed.
+
+Lemma red1_eq_context_upto_names Σ Γ Γ' t u :
+  eq_context_upto_names Γ Γ' ->
+  red1 Σ Γ t u ->
+  red1 Σ Γ' t u.
+Proof using Type.
+  move/eq_context_upto_names_pres_let_bodies/context_pres_let_bodies_red1.
+  apply.
+Qed.
+
+Lemma red_eq_context_upto_names Σ Γ Γ' t u :
+  eq_context_upto_names Γ Γ' ->
+  red Σ Γ t u ->
+  red Σ Γ' t u.
+Proof using Type.
+  move/eq_context_upto_names_pres_let_bodies/context_pres_let_bodies_red.
+  apply.
 Qed.

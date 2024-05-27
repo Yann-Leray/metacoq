@@ -18,14 +18,6 @@ Implicit Types (cf : checker_flags) (Σ : global_env_ext).
 Definition conv_cum {cf:checker_flags} pb Σ Γ u v :=
   ∥ Σ ;;; Γ ⊢ u ≤[pb] v ∥.
 
-Lemma eq_term_eq_termp {cf:checker_flags} leq (Σ : global_env_ext) x y :
-  eq_term Σ Σ x y ->
-  eq_termp Σ leq x y.
-Proof.
-  destruct leq; [easy|].
-  apply eq_term_leq_term.
-Qed.
-
 Lemma alt_into_ws_cumul_pb_terms {cf Σ} {wfΣ : wf Σ} {Γ l l'} :
   All2 (convAlgo Σ Γ) l l' ->
   is_closed_context Γ ->
@@ -42,19 +34,18 @@ Lemma red_ctx_rel_par_conv {cf Σ Γ Γ0 Γ0' Γ1 Γ1'} {wfΣ : wf Σ} :
   is_closed_context (Γ ,,, Γ1) ->
   red_ctx_rel Σ Γ Γ0 Γ0' ->
   red_ctx_rel Σ Γ Γ1 Γ1' ->
-  eq_context Σ Σ Γ0' Γ1' ->
+  eq_context_upto_rel Σ (compare_universe Σ) (compare_sort Σ) Conv Γ Γ0' Γ1' ->
   ws_cumul_ctx_pb_rel Conv Σ Γ Γ0 Γ1.
 Proof.
   intros clΓ0 clΓ1 r0 r1 eq.
   apply red_ctx_rel_red_context_rel, red_context_app_same_left in r0; auto.
-  2:{ now eapply on_free_vars_ctx_on_ctx_free_vars_closedP_impl. }
+  2:{ now eapply on_free_vars_ctx_wf_term_ctx. }
   apply red_ctx_rel_red_context_rel, red_context_app_same_left in r1; auto.
-  2:{ now eapply on_free_vars_ctx_on_ctx_free_vars_closedP_impl. }
-  eapply red_ctx_red_context in r0; eapply red_ctx_red_context in r1.
+  2:{ now eapply on_free_vars_ctx_wf_term_ctx. }
   eapply into_closed_red_ctx in r0 => //.
   eapply into_closed_red_ctx in r1 => //.
-  eapply (red_ctx_ws_cumul_ctx_pb (l:=Conv)) in r0.
-  eapply (red_ctx_ws_cumul_ctx_pb (l:=Conv)) in r1.
+  eapply (red_context_ws_cumul_ctx_pb (l:=Conv)) in r0.
+  eapply (red_context_ws_cumul_ctx_pb (l:=Conv)) in r1.
   apply ws_cumul_ctx_pb_rel_app. etransitivity; tea.
   etransitivity. 2: now symmetry.
   eapply eq_context_upto_ws_cumul_ctx_pb. 1-2:fvs.
@@ -130,7 +121,8 @@ Proof.
         rewrite on_free_vars_ctx_subst_instance -lenpars.
         eapply on_free_vars_ctx_impl; tea. apply shiftnP_up. lia. }
       eapply eq_context_upto_cat; [reflexivity|].
-      eapply eq_context_upto_names_subst_instance; tc. 1:reflexivity.
+      apply eq_context_upto_names_eq_context_upto_rel; tea; tc.
+      eapply PCUICUnivSubstitutionConv.eq_context_upto_names_univ_subst_preserved.
       assumption.
     - cbn.
       eapply subst_instance_ws_cumul_ctx_pb_rel => //.
@@ -152,7 +144,7 @@ Qed.
 
 Lemma conv_cum_alt {cf:checker_flags} {pb} {Σ : global_env_ext} {Γ t t'} (wfΣ : ∥ wf Σ ∥) :
   conv_cum pb Σ Γ t t' <->
-  ∥∑ v v', [× Σ ;;; Γ ⊢ t ⇝ v, Σ ;;; Γ ⊢ t' ⇝ v' & eq_termp Σ pb v v']∥.
+  ∥∑ v v', [× Σ ;;; Γ ⊢ t ⇝ v, Σ ;;; Γ ⊢ t' ⇝ v' & eq_termp Σ Γ pb v v']∥.
 Proof.
   destruct wfΣ.
   assert (forall P Q, (P <~> Q) -> (∥P∥ <-> ∥Q∥)) by
@@ -205,17 +197,18 @@ Section fixed.
     rewrite !decompose_app_mkApps; by easy.
   Qed.
 
-  Lemma eq_term_upto_univ_napp_nonind cmp_universe cmp_sort pb napp t t' :
-    eq_term_upto_univ_napp Σ cmp_universe cmp_sort pb napp t t' ->
+  Lemma eq_term_upto_univ_napp_nonind cmp_universe cmp_sort Γ pb napp t t' :
+    eq_term_upto_univ_napp Σ cmp_universe cmp_sort Γ pb napp t t' ->
     isIndConstructApp t = false ->
-    eq_term_upto_univ Σ cmp_universe cmp_sort pb t t'.
+    eq_term_upto_univ Σ cmp_universe cmp_sort Γ pb t t'.
   Proof using Type.
     intros eq not_ind.
     generalize 0.
-    intros k.
-    induction eq in k, not_ind |- *; eauto using eq_term_upto_univ_napp.
+    revert t t' napp eq not_ind.
+    fix aux 4.
+    intros t t' napp [] not_ind napp'; econstructor; eauto using eq_term_upto_univ_napp.
     - rewrite (isIndConstructApp_mkApps _ [u]) in not_ind.
-      constructor; auto.
+      now eapply aux.
     - discriminate not_ind.
     - discriminate not_ind.
   Qed.
@@ -230,11 +223,11 @@ Section fixed.
     apply IHr.
   Qed.
 
-  Lemma eq_termp_mkApps_inv pb v args v' args' :
+  Lemma eq_termp_mkApps_inv Γ pb v args v' args' :
     isApp v = false ->
     isApp v' = false ->
-    eq_termp Σ pb (mkApps v args) (mkApps v' args') ->
-    eq_termp_napp Σ pb #|args| v v' × All2 (fun x y => eq_term Σ Σ x y) args args'.
+    eq_termp Σ Γ pb (mkApps v args) (mkApps v' args') ->
+    eq_termp_napp Σ Γ pb #|args| v v' × All2 (fun x y => eq_term Σ Σ Γ x y) args args'.
   Proof using Type.
     intros noapp1 noapp2 eq.
     apply eq_term_upto_univ_mkApps_inv in eq as (?&?) => //.
@@ -243,7 +236,7 @@ Section fixed.
   Definition conv_cum_napp pb Γ napp t t' :=
     match t with
     | tInd _ _
-    | tConstruct _ _ _ => ∥eq_termp_napp Σ pb napp t t'∥
+    | tConstruct _ _ _ => ∥eq_termp_napp Σ Γ pb napp t t'∥
     | _ => conv_cum pb Σ Γ t t'
     end.
 
@@ -358,19 +351,22 @@ Section fixed.
         * split; auto.
           + rewrite on_free_vars_ctx_app. apply /andP. split; auto.
             eapply on_free_vars_ctx_inst_case_context; tea => //.
-            rewrite test_context_k_closed_on_free_vars_ctx //.
           + len. now setoid_rewrite shiftnP_add in p6.
         * eapply closed_red_refl.
           + rewrite on_free_vars_ctx_app. apply /andP. split; auto.
             eapply on_free_vars_ctx_inst_case_context; tea => //.
-            now rewrite test_context_k_closed_on_free_vars_ctx.
           + eapply red_on_free_vars in r1; tea.
             { len. rewrite (All2_length a4).
               now setoid_rewrite shiftnP_add in p1. }
             len. rewrite -shiftnP_add (All2_length a4).
             eapply on_ctx_free_vars_inst_case_context; auto.
-            1:now rewrite test_context_k_closed_on_free_vars_ctx.
-            now erewrite -> on_free_vars_ctx_on_ctx_free_vars. }
+            now erewrite -> on_free_vars_ctx_on_ctx_free_vars.
+        * eapply PCUICEqualityLemmas.cored_context_eq_term_upto; tea.
+          apply red_context_app_same_left.
+          eapply red_context_rel_inst_case_context; tea.
+          + eauto with fvs.
+          + solve_all. eauto with fvs.
+          + rewrite closedn_ctx_on_free_vars //. }
       eapply (ws_cumul_pb_ws_cumul_ctx (Γ := Γ ,,, inst_case_predicate_context p') (pb':=Conv)) => //.
       symmetry. eapply red_ws_cumul_pb.
       eapply into_closed_red; eauto. 1:fvs.
@@ -408,6 +404,14 @@ Section fixed.
         { eapply closed_red_open_right. eapply into_closed_red; tea.
           { now eapply ws_cumul_ctx_pb_closed_left. }
           move/andP: fv' => []. len. now setoid_rewrite shiftnP_add. }
+        2:{
+          eapply PCUICEqualityLemmas.cored_context_eq_term_upto; tea.
+          apply red_context_app_same_left.
+          rewrite /inst_case_branch_context -e.
+          eapply red_context_rel_inst_case_context; tea.
+          + eauto with fvs.
+          + solve_all. eauto with fvs.
+          + rewrite closedn_ctx_on_free_vars //. rtoProp. now inv_on_free_vars. }
         move/andP: fv => [] fv fvx1. len.
         eapply red_on_free_vars in fvx1; tea.
         { rewrite e (All2_length a0) -e0. now setoid_rewrite shiftnP_add in fvx1. }
@@ -465,8 +469,14 @@ Section fixed.
     set mfix as ctx_fix in |-. set mfix' as ctx_fix' in |-.
     change (fix_context mfix) with (fix_context ctx_fix). change (fix_context mfix') with (fix_context ctx_fix').
     change #|mfix| with #|ctx_fix|. change #|mfix'| with #|ctx_fix'|.
+    intro all1.
+    have red_fix : red_context_rel Σ Γ (fix_context ctx_fix) (fix_context mfix'0).
+    { apply red_context_rel_fix_context; tea.
+      1: eauto with fvs.
+      all: unfold test_def in *; solve_all.
+      all: eauto with fvs. }
     clearbody ctx_fix ctx_fix'.
-    intros all1 all2 all len_eq.
+    intros all2 all len_eq.
     induction all in mfix, mfix', all1, all2, all |- *;
       depelim all1; depelim all2; subst; [constructor|].
     constructor; [|now auto].
@@ -478,12 +488,14 @@ Section fixed.
       { now move/andP: i2. }
     - eapply ws_cumul_pb_alt_closed.
       exists (dbody x), (dbody y).
-      split; [| |easy].
-      all:eapply into_closed_red; auto.
+      split.
+      1-2:eapply into_closed_red; auto.
       * move/andP: i1 => []. now len; rewrite shiftnP_add.
       * eapply PCUICRedTypeIrrelevance.context_pres_let_bodies_red; eauto.
         eapply PCUICRedTypeIrrelevance.fix_context_pres_let_bodies; eauto.
       * move/andP: i2 => []. len. now rewrite len_eq shiftnP_add.
+      * eapply PCUICEqualityLemmas.cored_context_eq_term_upto; tea.
+        now apply red_context_app_same_left.
   Qed.
 
   Lemma conv_cum_tCoFix_inv leq Γ mfix idx mfix' idx' :
@@ -527,8 +539,14 @@ Section fixed.
     set mfix as ctx_fix in |-. set mfix' as ctx_fix' in |-.
     change (fix_context mfix) with (fix_context ctx_fix). change (fix_context mfix') with (fix_context ctx_fix').
     change #|mfix| with #|ctx_fix|. change #|mfix'| with #|ctx_fix'|.
+    intro all1.
+    have red_fix : red_context_rel Σ Γ (fix_context ctx_fix) (fix_context mfix'0).
+    { apply red_context_rel_fix_context; tea.
+      1: eauto with fvs.
+      all: unfold test_def in *; solve_all.
+      all: eauto with fvs. }
     clearbody ctx_fix ctx_fix'.
-    intros all1 all2 all len_eq.
+    intros all2 all len_eq.
     induction all in mfix, mfix', all1, all2, all |- *;
       depelim all1; depelim all2; subst; [constructor|].
     constructor; [|now auto].
@@ -540,12 +558,14 @@ Section fixed.
       { now move/andP: i2. }
     - eapply ws_cumul_pb_alt_closed.
       exists (dbody x), (dbody y).
-      split; [| |easy].
-      all:eapply into_closed_red; auto.
+      split.
+      1-2:eapply into_closed_red; auto.
       * move/andP: i1 => []. now len; rewrite shiftnP_add.
       * eapply PCUICRedTypeIrrelevance.context_pres_let_bodies_red; eauto.
         eapply PCUICRedTypeIrrelevance.fix_context_pres_let_bodies; eauto.
       * move/andP: i2 => []. len. now rewrite len_eq shiftnP_add.
+      * eapply PCUICEqualityLemmas.cored_context_eq_term_upto; tea.
+        now apply red_context_app_same_left.
   Qed.
 
   Lemma conv_cum_tProj_inv leq Γ p c p' c' :

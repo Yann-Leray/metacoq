@@ -3,7 +3,7 @@ From Coq Require Import Morphisms.
 From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import config.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICCases PCUICInduction
-  PCUICLiftSubst PCUICTyping PCUICCumulativity
+  PCUICLiftSubst PCUICRelevance PCUICTyping PCUICEquality PCUICCumulativity
   PCUICClosed PCUICReduction
   PCUICSigmaCalculus PCUICRenameDef PCUICRenameConv PCUICOnFreeVars
   PCUICClosedConv PCUICClosedTyp.
@@ -105,6 +105,14 @@ Proof.
     rewrite -app_context_assoc !nth_error_app_ge // ?app_length in hnth |- *. 1: lia.
     rewrite -hnth. f_equal. lia.
   - rewrite !nth_error_app_lt ?app_length // in hnth |- *. all: lia.
+Qed.
+
+Lemma weakening_mrenaming' P Γ Γ' Γ'' :
+  mrenaming P (marks_of_context (Γ ,,, Γ')) (marks_of_context (Γ ,,, Γ'' ,,, lift_context #|Γ''| 0 Γ'))
+    (lift_renaming #|Γ''| #|Γ'|).
+Proof.
+  rewrite !marks_of_context_app mark_fold_context_k -!marks_of_context_length.
+  apply weakening_mrenaming.
 Qed.
 
 (* Variant lookup_decl_spec Γ Δ i : option context_decl -> Type :=
@@ -264,41 +272,35 @@ Qed.
 
 Lemma weakening_red1 `{cf:checker_flags} {Σ} Γ Γ' Γ'' M N :
   wf Σ ->
-  on_free_vars xpredT M ->
+  wf_term M ->
   red1 Σ (Γ ,,, Γ') M N ->
   red1 Σ (Γ ,,, Γ'' ,,, lift_context #|Γ''| 0 Γ') (lift #|Γ''| #|Γ'| M) (lift #|Γ''| #|Γ'| N).
 Proof.
   intros.
   rewrite !lift_rename.
   eapply red1_rename; eauto.
-  eapply weakening_renaming.
+  - eapply weakening_renaming.
+  - now rewrite <- wf_term_on_free_vars.
 Qed.
 
-Lemma weakening_red `{cf:checker_flags} {Σ:global_env_ext} {wfΣ : wf Σ} {P Γ Γ' Γ'' M N} :
-  on_ctx_free_vars P (Γ ,,, Γ') ->
-  on_free_vars P M ->
+Lemma weakening_red `{cf:checker_flags} {Σ} {wfΣ : wf Σ} {Γ Γ' Γ'' M N} :
+  wf_term_ctx (Γ ,,, Γ') ->
+  wf_term M ->
   red Σ (Γ ,,, Γ') M N ->
   red Σ (Γ ,,, Γ'' ,,, lift_context #|Γ''| 0 Γ') (lift #|Γ''| #|Γ'| M) (lift #|Γ''| #|Γ'| N).
 Proof.
   intros.
   rewrite !lift_rename.
   eapply red_rename; eauto.
-  eapply weakening_renaming.
+  - eapply weakening_renaming.
+  - now rewrite <- wf_term_ctx_on_ctx_free_vars.
+  - now rewrite <- wf_term_on_free_vars.
 Qed.
 
-Lemma weakening_red' `{cf:checker_flags} {Σ:global_env_ext} {wfΣ : wf Σ} {P Γ Γ' Γ'' M N} :
-  on_ctx_free_vars P (Γ ,,, Γ') ->
-  on_free_vars P M ->
-  red Σ (Γ ,,, Γ') M N ->
-  red Σ (Γ ,,, Γ'' ,,, lift_context #|Γ''| 0 Γ') (lift #|Γ''| #|Γ'| M) (lift #|Γ''| #|Γ'| N).
-Proof.
-  now eapply weakening_red.
-Qed.
-
-Lemma weakening_red_0 {cf} {Σ:global_env_ext} {wfΣ : wf Σ} {P Γ Γ' M N n} :
+Lemma weakening_red_0 {cf} {Σ} {wfΣ : wf Σ} {Γ Γ' M N n} :
   n = #|Γ'| ->
-  on_ctx_free_vars P Γ ->
-  on_free_vars P M ->
+  wf_term_ctx Γ ->
+  wf_term M ->
   red Σ Γ M N ->
   red Σ (Γ ,,, Γ') (lift0 n M) (lift0 n N).
 Proof. move=> -> onctx ont; eapply (weakening_red (Γ':=[])); tea. Qed.
@@ -314,68 +316,125 @@ Proof.
   rewrite mapi_length. reflexivity.
 Qed. *)
 
-Lemma weakening_cumul `{CF:checker_flags} {Σ Γ Γ' Γ'' M N} :
-  wf Σ.1 ->
-  on_free_vars xpredT M ->
-  on_free_vars xpredT N ->
-  on_ctx_free_vars xpredT (Γ ,,, Γ') ->
-  Σ ;;; Γ ,,, Γ' |- M <= N ->
-  Σ ;;; Γ ,,, Γ'' ,,, lift_context #|Γ''| 0 Γ' |- lift #|Γ''| #|Γ'| M <= lift #|Γ''| #|Γ'| N.
-Proof.
-  intros.
-  rewrite !lift_rename -rename_context_lift_context.
-  eapply cumul_renameP ; tea.
-  rewrite rename_context_lift_context.
-  now eapply weakening_renaming.
-Qed.
-
 (* Lemma destInd_lift n k t : destInd (lift n k t) = destInd t.
 Proof.
   destruct t; simpl; try congruence.
 Qed. *)
 
-Lemma weakening_conv `{cf:checker_flags} :
-  forall Σ Γ Γ' Γ'' M N,
-    wf Σ.1 ->
-    on_free_vars xpredT M ->
-    on_free_vars xpredT N ->
-    on_ctx_free_vars xpredT (Γ ,,, Γ') ->
-    Σ ;;; Γ ,,, Γ' |- M = N ->
-    Σ ;;; Γ ,,, Γ'' ,,, lift_context #|Γ''| 0 Γ' |- lift #|Γ''| #|Γ'| M = lift #|Γ''| #|Γ'| N.
+Lemma weakening_eq_term_upto_univ_napp {Σ cmp_universe cmp_sort Γ Γ' Γ'' pb napp M N} :
+  wf_term M ->
+  eq_term_upto_univ_napp Σ cmp_universe cmp_sort (Γ ,,, Γ') pb napp M N ->
+  eq_term_upto_univ_napp Σ cmp_universe cmp_sort (Γ ,,, Γ'' ,,, lift_context #|Γ''| 0 Γ') pb napp (lift #|Γ''| #|Γ'| M) (lift #|Γ''| #|Γ'| N).
 Proof.
-  intros.
+  intros HM.
+  rewrite !wf_term_on_free_vars in HM.
   rewrite !lift_rename -rename_context_lift_context.
-  eapply conv_renameP ; tea.
+  eapply eq_term_upto_univ_rename ; tea.
   rewrite rename_context_lift_context.
-  now eapply weakening_renaming.
+  apply weakening_mrenaming'.
 Qed.
 
-Lemma isType_on_free_vars {cf} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ T} :
-  isType Σ Γ T -> on_free_vars xpredT T.
+Lemma weakening_eq_context_upto (Σ : global_env) cmp_universe cmp_sort Γ Γ' Γ'' pb Δ Δ' :
+  wf_term_ctx Δ ->
+  eq_context_upto_rel Σ cmp_universe cmp_sort pb (Γ ,,, Γ'') Δ Δ' ->
+  eq_context_upto_rel Σ cmp_universe cmp_sort pb (Γ ,,, Γ' ,,, lift_context #|Γ'| 0 Γ'') (lift_context #|Γ'| #|Γ''| Δ) (lift_context #|Γ'| #|Γ''| Δ').
+Proof using Type.
+  intros wfΔ H.
+  induction H. 1: constructor.
+  rewrite !lift_context_snoc.
+  cbn in wfΔ; move/andb_and: wfΔ => [wfΔ wfd].
+  constructor. 1: apply IHAll2_fold; assumption.
+  rewrite -(All2_fold_length H).
+  rewrite -{1}(Nat.add_0_r #|Γ''|) -app_context_assoc -lift_context_app -!app_context_length.
+  rewrite -app_context_assoc in p.
+  destruct p; cbn in wfd; econstructor; tas; cbn.
+  all: eapply weakening_eq_term_upto_univ_napp; eauto.
+  all: move/andb_and: wfd => [wfb wft] //.
+Qed.
+
+Lemma weaken_ctx_eq_context_upto (Σ : global_env) cmp_universe cmp_sort Γ Γ' pb Δ Δ' :
+  closed_ctx Γ ->
+  closedn_ctx #|Γ| Δ ->
+  closedn_ctx #|Γ| Δ' ->
+  eq_context_upto_rel Σ cmp_universe cmp_sort pb Γ Δ Δ' ->
+  eq_context_upto_rel Σ cmp_universe cmp_sort pb (Γ' ,,, Γ) Δ Δ'.
+Proof using Type.
+  intros clΓ clΔ clΔ' H.
+  apply closedn_ctx_wf_term_ctx in clΔ as wfΔ.
+  rewrite -(app_context_nil_l Γ) in H.
+  eapply weakening_eq_context_upto in H; tea.
+  rewrite app_context_nil_l !lift_context_closed // in H.
+  apply H.
+Qed.
+
+Lemma weakening_compare_term {cf} {Σ φ Γ Γ' Γ'' pb napp M N} :
+  wf_term M ->
+  compare_term_napp Σ φ (Γ ,,, Γ') pb napp M N ->
+  compare_term_napp Σ φ (Γ ,,, Γ'' ,,, lift_context #|Γ''| 0 Γ') pb napp (lift #|Γ''| #|Γ'| M) (lift #|Γ''| #|Γ'| N).
+Proof. apply weakening_eq_term_upto_univ_napp. Qed.
+
+Lemma weakening_cumul_pb `{CF:checker_flags} {Σ Γ Γ' Γ'' pb M N} :
+  wf Σ.1 ->
+  wf_term_ctx (Γ ,,, Γ') ->
+  wf_term M ->
+  wf_term N ->
+  Σ ;;; Γ ,,, Γ' |- M <=[pb] N ->
+  Σ ;;; Γ ,,, Γ'' ,,, lift_context #|Γ''| 0 Γ' |- lift #|Γ''| #|Γ'| M <=[pb] lift #|Γ''| #|Γ'| N.
+Proof.
+  intros wfΣ HΓ HM HN.
+  rewrite !wf_term_on_free_vars in HM, HN.
+  rewrite wf_term_ctx_on_ctx_free_vars in HΓ.
+  rewrite !lift_rename -rename_context_lift_context.
+  eapply cumul_pb_renameP ; tea.
+  rewrite rename_context_lift_context.
+  apply weakening_renaming.
+Qed.
+
+Lemma weakening_cumul {cf} {Σ Γ Γ' Γ'' M N} :
+  wf Σ.1 ->
+  wf_term_ctx (Γ ,,, Γ') ->
+  wf_term M ->
+  wf_term N ->
+  Σ ;;; Γ ,,, Γ' |- M <= N ->
+  Σ ;;; Γ ,,, Γ'' ,,, lift_context #|Γ''| 0 Γ' |- lift #|Γ''| #|Γ'| M <= lift #|Γ''| #|Γ'| N.
+Proof.
+  apply weakening_cumul_pb.
+Qed.
+
+Lemma weakening_conv {cf} Σ Γ Γ' Γ'' M N :
+  wf Σ.1 ->
+  wf_term_ctx (Γ ,,, Γ') ->
+  wf_term M ->
+  wf_term N ->
+  Σ ;;; Γ ,,, Γ' |- M = N ->
+  Σ ;;; Γ ,,, Γ'' ,,, lift_context #|Γ''| 0 Γ' |- lift #|Γ''| #|Γ'| M = lift #|Γ''| #|Γ'| N.
+Proof.
+  apply weakening_cumul_pb.
+Qed.
+
+Lemma isType_wf_term {cf} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ T} :
+  isType Σ Γ T -> wf_term T.
 Proof.
   intros (_ & s & Hs & _).
-  eapply subject_closed in Hs.
-  rewrite closedP_on_free_vars in Hs.
-  eapply on_free_vars_impl; tea => //.
+  now apply subject_closed, closedn_wf_term in Hs.
 Qed.
 
-Lemma isType_on_ctx_free_vars {cf} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ T} :
-  isType Σ Γ T -> on_ctx_free_vars xpredT Γ.
+Lemma isType_wf_term_ctx {cf} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ T} :
+  isType Σ Γ T -> wf_term_ctx Γ.
 Proof.
   intros (_ & s & Hs & _).
   eapply typing_wf_local in Hs.
-  eapply closed_wf_local in Hs; tea.
-  eapply (closed_ctx_on_free_vars xpredT) in Hs.
-  now eapply on_free_vars_ctx_on_ctx_free_vars_xpredT.
+  eapply closed_wf_local in Hs; tas.
+  now eapply closedn_ctx_wf_term_ctx in Hs.
 Qed.
 
-Lemma weakening_conv_wt `{cf:checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ Γ' Γ'' M N} :
+Lemma weakening_conv_wt {cf} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ Γ' Γ'' M N} :
   isType Σ (Γ ,,, Γ') M -> isType Σ (Γ ,,, Γ') N ->
   Σ ;;; Γ ,,, Γ' |- M = N ->
   Σ ;;; Γ ,,, Γ'' ,,, lift_context #|Γ''| 0 Γ' |- lift #|Γ''| #|Γ'| M = lift #|Γ''| #|Γ'| N.
 Proof.
   intros onM onN.
   eapply weakening_conv; tea.
-  1-2:now eapply isType_on_free_vars.
-  now eapply isType_on_ctx_free_vars in onM.
+  2-3:now eapply isType_wf_term.
+  now eapply isType_wf_term_ctx in onM.
 Qed.

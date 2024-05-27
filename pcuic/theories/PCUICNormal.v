@@ -1190,20 +1190,17 @@ Proof.
     now apply IHΔ.
     destruct a as [na [b|] ty]; constructor; cbn.
     relativize #|Δ|. eapply red_red; tea. 4:auto.
-    erewrite on_free_vars_ctx_on_ctx_free_vars => //; tea.
-    unfold on_free_vars_decl, test_decl in onctx. cbn in onctx.
-    now move/andP: ona.
-    solve_all. rewrite !app_context_length Nat.add_assoc -shiftnP_add addnP_shiftnP //.
+    eauto with fvs.
+    move/andP: ona => [] /= ??. eauto with fvs.
+    solve_all. eauto with fvs.
     relativize #|Δ|. eapply red_red; tea. 4:auto.
-    erewrite on_free_vars_ctx_on_ctx_free_vars => //; tea.
-    unfold on_free_vars_decl, test_decl in onctx. cbn in onctx.
-    now move/andP: ona.
-    solve_all. rewrite !app_context_length Nat.add_assoc -shiftnP_add addnP_shiftnP //.
+    eauto with fvs.
+    move/andP: ona => [] /= ??. eauto with fvs.
+    solve_all. eauto with fvs.
     relativize #|Δ|. eapply red_red; tea. 4:auto.
-    erewrite on_free_vars_ctx_on_ctx_free_vars => //; tea.
-    unfold on_free_vars_decl, test_decl in onctx. cbn in onctx.
-    now move/andP: ona.
-    solve_all. rewrite !app_context_length Nat.add_assoc -shiftnP_add addnP_shiftnP //.
+    eauto with fvs.
+    move/andP: ona => [] /= ??. eauto with fvs.
+    solve_all. eauto with fvs.
 Qed.
 
 Definition fake_params n : context :=
@@ -1264,7 +1261,7 @@ Proof.
   rewrite -b0. eapply red_on_free_vars; tea.
   rewrite shiftnP_add. relativize (#|_| + _); [erewrite on_free_vars_ctx_on_ctx_free_vars|].
   2:len.
-  rewrite on_free_vars_ctx_app clΓ /=.
+  rewrite on_free_vars_ctx_app clΓ /=. inv_on_free_vars.
   eapply on_free_vars_ctx_inst_case_context; trea. solve_all.
 Qed.
 
@@ -1300,13 +1297,11 @@ Proof.
     + eapply All2_trans; eauto.
       typeclasses eauto.
     + etransitivity; [eassumption|].
-      have clp: on_ctx_free_vars (closedP #|Γ,,, inst_case_predicate_context motive| xpredT)
-        (Γ,,, inst_case_predicate_context motive).
-      { rewrite closedP_shiftnP_eq on_free_vars_ctx_on_ctx_free_vars.
-        rewrite on_free_vars_ctx_app onΓ /=.
-        eapply on_free_vars_ctx_inst_case_context => //.
-        rewrite test_context_k_closed_on_free_vars_ctx //. }
-      eapply red_red_ctx. 5:tea. all:eauto; revgoals.
+      have clp: is_closed_context (Γ,,, inst_case_predicate_context motive).
+      { rewrite on_free_vars_ctx_app onΓ /=.
+        eapply on_free_vars_ctx_inst_case_context => //. }
+      apply on_free_vars_ctx_wf_term_ctx in clp.
+      eapply red_red_ctx. 4:tea. all:eauto; revgoals.
       apply red_context_app_right; eauto.
       * apply red_context_refl.
       * rewrite /inst_case_predicate_context /=.
@@ -1324,15 +1319,7 @@ Proof.
         eapply on_free_vars_ctx_impl; tea.
         rewrite /shiftnP. intros i. rewrite !orb_false_r.
         move/Nat.ltb_lt => ?. apply Nat.ltb_lt. lia.
-      * eapply red_on_free_vars; tea.
-        len. rewrite closedP_shiftnP_eq -shiftnP_add //.
-      * rewrite closedP_shiftnP_eq.
-        relativize #|Γ ,,, _|; [erewrite on_free_vars_ctx_on_ctx_free_vars|].
-        2:len.
-        rewrite on_free_vars_ctx_app onΓ /=.
-        eapply on_free_vars_ctx_inst_case_context => //. cbn.
-        eapply red_terms_on_free_vars; tea.
-        rewrite test_context_k_closed_on_free_vars_ctx -(All2_length a) //.
+      * eauto with fvs.
 
     + eapply forallb_All in p3.
       epose proof (br_fvs_pres _ _ _ _ onΓ p p3 a0).
@@ -1349,11 +1336,12 @@ Proof.
       intros br br'; cbn. intuition auto.
       unfold br_fvs in a3.
       move/andP: a3 => [] fvbctx fvbr.
+      have clp: is_closed_context (Γ,,, inst_case_branch_context motive br).
+      { rewrite on_free_vars_ctx_app onΓ /=.
+        eapply on_free_vars_ctx_inst_case_context => //. now inv_on_free_vars. }
+      apply on_free_vars_ctx_wf_term_ctx in clp.
       eapply red_red_ctx. 5:tea. all:eauto; revgoals.
       apply red_context_app_right; eauto.
-      * rewrite closedP_shiftnP_eq on_free_vars_ctx_on_ctx_free_vars.
-        rewrite on_free_vars_ctx_app onΓ /=.
-        eapply on_free_vars_ctx_inst_case_context => //.
       * apply red_context_refl.
       * rewrite /inst_case_branch_context /=.
         rewrite /inst_case_context.
@@ -1371,18 +1359,7 @@ Proof.
         eapply on_free_vars_ctx_impl; tea.
         rewrite /shiftnP. intros i. rewrite !orb_false_r.
         move/Nat.ltb_lt => ?. apply Nat.ltb_lt. lia.
-      * rewrite shiftnP_add.
-        relativize (#|_| + _); [erewrite on_free_vars_ctx_on_ctx_free_vars|].
-        2:len.
-        rewrite on_free_vars_ctx_app onΓ /=.
-        eapply on_free_vars_ctx_inst_case_context => //.
-      * rewrite shiftnP_add.
-        relativize (#|_| + _); [erewrite on_free_vars_ctx_on_ctx_free_vars|].
-        2:len.
-        rewrite on_free_vars_ctx_app onΓ /=.
-        eapply on_free_vars_ctx_inst_case_context => //.
-        eapply red_terms_on_free_vars; tea.
-        now rewrite -(All2_length a).
+      * eauto with fvs.
   - constructor.
     etransitivity; eauto.
   - constructor; etransitivity; eauto.
@@ -1549,7 +1526,7 @@ Qed.
 
 Lemma whne_eq_term_upto_univ_napp f Σ Γ t cmp_universe cmp_sort pb napp t' :
   whne f Σ Γ t ->
-  eq_term_upto_univ_napp Σ cmp_universe cmp_sort pb napp t t' ->
+  eq_term_upto_univ_napp Σ cmp_universe cmp_sort Γ pb napp t t' ->
   whne f Σ Γ t'.
 Proof.
   intros wh eq.
@@ -1560,7 +1537,7 @@ Proof.
     apply eq_term_upto_univ_napp_mkApps_l_inv in eq1 as (?&?&(eq_hds&?)&->).
     depelim eq_hds.
     rewrite <- mkApps_snoc.
-    assert (All2 (eq_term_upto_univ Σ cmp_universe cmp_sort Conv) (args ++ [x0]) (x1 ++ [u']))
+    assert (All2 (eq_term_upto_univ Σ cmp_universe cmp_sort Γ Conv) (args ++ [x0]) (x1 ++ [u']))
            by (now apply All2_app).
     unfold unfold_fix in *.
     destruct (nth_error mfix idx) eqn:nth; [|easy].
@@ -1582,7 +1559,7 @@ Qed.
 
 Lemma whnf_eq_term_upto_univ_napp f Σ Γ t cmp_universe cmp_sort pb napp t' :
   whnf f Σ Γ t ->
-  eq_term_upto_univ_napp Σ cmp_universe cmp_sort pb napp t t' ->
+  eq_term_upto_univ_napp Σ cmp_universe cmp_sort Γ pb napp t t' ->
   whnf f Σ Γ t'.
 Proof.
   intros wh eq.
@@ -1620,7 +1597,7 @@ Qed.
 
 Lemma whnf_eq_term {cf:checker_flags} f Σ φ Γ t t' :
   whnf f Σ Γ t ->
-  eq_term Σ φ t t' ->
+  eq_term Σ φ Γ t t' ->
   whnf f Σ Γ t'.
 Proof.
   apply whnf_eq_term_upto_univ_napp.

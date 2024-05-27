@@ -463,6 +463,18 @@ Proof.
   apply mapi_ext. intros. f_equal. rewrite List.rev_length. f_equal. lia.
 Qed.
 
+Lemma lift_context_closed n k (Γ : context) : closedn_ctx k Γ -> lift_context n k Γ = Γ.
+Proof.
+  induction Γ using ctx_ind => //=.
+  all: intros (clΓ & cld)%andb_and; rewrite lift_context_snoc IHΓ //; f_equal.
+  - cbn in cld. unfold lift_decl, map_decl, vass. cbn; f_equal.
+    now apply lift_closed.
+  - move/andb_and: cld => /= [clb clt].
+    unfold lift_decl, map_decl, vdef. cbn; f_equal.
+    + f_equal; now apply lift_closed.
+    + now apply lift_closed.
+Qed.
+
 Lemma lift_it_mkProd_or_LetIn n k ctx t :
   lift n k (it_mkProd_or_LetIn ctx t) =
   it_mkProd_or_LetIn (lift_context n k ctx) (lift n (length ctx + k) t).

@@ -81,18 +81,21 @@ Section Validity.
     destruct y as [na [b|] t]; now constructor.
   Qed.
 
-  Lemma eq_term_set_binder_name (Σ : global_env_ext) (Δ : context) T U (nas : list aname) :
+  Lemma eq_term_set_binder_name (Σ : global_env_ext) (Γ Δ : context) T U (nas : list aname) :
     All2 (fun x y => eq_binder_annot x y.(decl_name)) nas Δ ->
-    PCUICEquality.eq_term Σ Σ T U ->
-    PCUICEquality.eq_term Σ Σ (it_mkProd_or_LetIn (map2 set_binder_name nas Δ) T) (it_mkProd_or_LetIn Δ U) .
+    PCUICEquality.eq_term Σ Σ (Γ ,,, Δ) T U ->
+    PCUICEquality.eq_term Σ Σ Γ (it_mkProd_or_LetIn (map2 set_binder_name nas Δ) T) (it_mkProd_or_LetIn Δ U) .
   Proof using Type.
     intros a; unshelve eapply eq_binder_annots_eq_ctx in a; tea.
-    induction a in T, U |- *.
+    induction a in Γ, T, U |- *.
     - auto.
     - rewrite /= /mkProd_or_LetIn.
       destruct r => /=; intros; eapply IHa;
-      constructor; auto.
-      all: reflexivity.
+      constructor; auto; trea.
+      all: eapply PCUICEquality.eq_term_upto_univ_eq_ctx_upto_names; tea.
+      all: constructor; trea.
+      all: constructor; trea.
+      all: now symmetry.
   Qed.
 
   Lemma All2_eq_binder_subst_context_inst l s k i Δ Γ :

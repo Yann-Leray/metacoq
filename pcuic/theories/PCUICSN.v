@@ -86,7 +86,7 @@ Section Alpha.
 
   Local Instance substu_pres_eq {T} `{UnivSubst T} : SubstUnivPreserving eq (@eq T).
   Proof using Type.
-    move => s u u' /cmp_universe_instance_eq -> //.
+    move => s u u' /PCUICAlphaDef.cmp_universe_instance_eq -> //.
   Qed.
 
   Lemma cored'_postpone :
@@ -174,7 +174,7 @@ Section Alpha.
     intros Γ Δ u v e h.
     apply cored_alt in h as [h].
     induction h in Δ, e |- *.
-    - constructor. eapply red1_eq_context_upto_names. all: eauto.
+    - constructor. eapply PCUICRedTypeIrrelevance.red1_eq_context_upto_names. all: eauto.
     - eapply cored_trans'.
       + eapply IHh2. assumption.
       + eapply IHh1. assumption.

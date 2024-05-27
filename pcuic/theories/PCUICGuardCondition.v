@@ -2,7 +2,7 @@
 From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import config.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils
-     PCUICEquality PCUICTyping PCUICReduction PCUICSigmaCalculus
+     PCUICEquality PCUICAlphaDef PCUICTyping PCUICReduction PCUICSigmaCalculus
      PCUICNamelessDef PCUICRenameDef PCUICInstDef.
 
 (* AXIOM postulate correctness of the guard condition checker *)
@@ -24,8 +24,8 @@ Class GuardCheckerCorrect :=
     guard b Σ Γ mfix ->
     guard b Σ Γ mfix' ;
 
-  guard_eq_term b Σ Γ mfix mfix' idx :
-    upto_names (tFixCoFix b mfix idx) (tFixCoFix b mfix' idx) ->
+  guard_eq_term b Σ Γ mfix mfix' :
+    alpha_eq_mfixpoint `≡α` mfix mfix' ->
     guard b Σ Γ mfix ->
     guard b Σ Γ mfix' ;
 

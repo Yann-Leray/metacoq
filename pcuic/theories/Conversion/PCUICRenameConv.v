@@ -7,7 +7,7 @@ From MetaCoq.PCUIC Require Import PCUICPrimitive PCUICAst PCUICOnOne PCUICAstUti
   PCUICReduction PCUICGlobalEnv PCUICClosed PCUICEquality PCUICRenameDef PCUICWeakeningEnvConv
   PCUICSigmaCalculus PCUICClosed PCUICOnFreeVars PCUICGuardCondition
   PCUICWeakeningEnvTyp PCUICClosedConv PCUICClosedTyp PCUICViews
-  PCUICTyping.
+  PCUICRelevance PCUICTyping.
 
 Require Import ssreflect ssrbool.
 From Equations Require Import Equations.
@@ -220,39 +220,16 @@ Section Renaming.
 
 Context `{cf : checker_flags}.
 
-Lemma eq_term_upto_univ_rename Σ cmp_universe cmp_sort pb napp u v f :
-    eq_term_upto_univ_napp Σ cmp_universe cmp_sort pb napp u v ->
-    eq_term_upto_univ_napp Σ cmp_universe cmp_sort pb napp (rename f u) (rename f v).
+Lemma urenaming_impl0 (P P' : nat -> bool) Γ Δ f :
+    (forall i, i < #|Γ| -> P' i -> P i) ->
+    urenaming P Γ Δ f ->
+    urenaming P' Γ Δ f.
 Proof using Type.
-  intros h.
-  induction u in v, napp, pb, f, h |- * using term_forall_list_ind.
-  all: dependent destruction h.
-  all: try solve [
-    simpl ; constructor ; eauto
-  ].
-  - simpl. constructor.
-    induction X in a, args' |- *.
-    + inversion a. constructor.
-    + inversion a. subst. simpl. constructor.
-      all: eauto.
-  - simpl. constructor. all: eauto.
-    * rewrite /rename_predicate.
-      destruct X; destruct e as [? [? [ectx ?]]].
-      rewrite (All2_length ectx). red.
-      intuition auto; simpl; solve_all.
-    * red in X0. unfold eq_branches, eq_branch in *. solve_all.
-      rewrite -(All2_length a1).
-      now eapply b0.
-  - simpl. constructor. unfold eq_mfixpoint in *.
-    apply All2_length in e as eq. rewrite <- eq.
-    generalize #|m|. intro k.
-    solve_all.
-  - simpl. constructor. unfold eq_mfixpoint in *.
-    apply All2_length in e as eq. rewrite <- eq.
-    generalize #|m|. intro k.
-    solve_all.
-  - simpl. constructor.
-    eapply onPrims_map_prop; tea. cbn; intuition eauto.
+  intros hP h.
+  intros i decl p e.
+  apply nth_error_Some_length in e as hlen.
+  specialize (h i decl (hP _ hlen p) e) as [decl' [h1 [h2 h3]]].
+  exists decl'. split ; [| split ]; eauto.
 Qed.
 
 Lemma urenaming_impl :
@@ -262,9 +239,8 @@ Lemma urenaming_impl :
     urenaming P' Δ Γ f.
 Proof using Type.
   intros P P' Γ Δ f hP h.
-  intros i decl p e.
-  specialize (h i decl (hP _ p) e) as [decl' [h1 [h2 h3]]].
-  exists decl'. split ; [| split ]; eauto.
+  eapply urenaming_impl0; tea.
+  intros; auto.
 Qed.
 
 Lemma inst_closed σ k t : closedn k t -> t.[⇑^k σ] = t.
@@ -397,6 +373,28 @@ Proof.
   intros i H. rewrite -shiftnP_S //.
 Qed.
 
+Lemma urenaming_vass_xpredT Γ Δ na A f :
+  urenaming xpredT Γ Δ f ->
+  urenaming xpredT (Γ ,, vass na A) (Δ ,, vass na (rename f A)) (shiftn 1 f).
+Proof.
+  intro Hur.
+  eapply urenaming_impl.
+  2: now apply urenaming_vass.
+  intros i H. rewrite shiftnP_xpredT //.
+Qed.
+
+Lemma mrenaming_snoc P Γ Δ r f :
+  mrenaming P Γ Δ f ->
+  mrenaming (shiftnP 1 P) (Γ ,, r) (Δ ,, r) (shiftn 1 f).
+Proof.
+  intros h [|i] decl hP e.
+  - simpl in e. injection e as [= ->] => //.
+  - cbn in e, hP |- *.
+    replace (i - 0) with i in * by lia.
+    eapply h with (2 := e).
+    apply hP.
+Qed.
+
 Lemma mrenaming_snoc' n P Γ Δ r f :
   mrenaming (shiftnP n P) Γ Δ f ->
   mrenaming (shiftnP (S n) P) (Γ ,, r) (Δ ,, r) (shiftn 1 f).
@@ -444,6 +442,16 @@ Proof.
   eapply urenaming_impl.
   2: now apply urenaming_vdef.
   intros i H. rewrite -shiftnP_S //.
+Qed.
+
+Lemma urenaming_vdef_xpredT Γ Δ na b B f :
+  urenaming xpredT Γ Δ f ->
+  urenaming xpredT (Γ ,, vdef na b B) (Δ ,, vdef na (rename f b) (rename f B)) (shiftn 1 f).
+Proof.
+  intro Hur.
+  eapply urenaming_impl.
+  2: now apply urenaming_vdef.
+  intros i H. rewrite shiftnP_xpredT //.
 Qed.
 
 Lemma urenaming_ext :
@@ -524,6 +532,41 @@ Proof.
   intros i H. rewrite shiftnP_add //.
 Qed.
 
+Lemma urenaming_context_xpredT Γ Δ Ξ f :
+  urenaming xpredT Γ Δ f ->
+  urenaming xpredT (Γ ,,, Ξ) (Δ ,,, rename_context f Ξ) (shiftn #|Ξ| f).
+Proof.
+  intro Hur.
+  eapply urenaming_impl.
+  2: now apply urenaming_context.
+  intros i H. rewrite shiftnP_xpredT //.
+Qed.
+
+Lemma mrenaming_app P Γ Δ Ξ f :
+  mrenaming P Γ Δ f ->
+  mrenaming (shiftnP #|Ξ| P) (Γ ,,, Ξ) (Δ ,,, Ξ) (shiftn #|Ξ| f).
+Proof.
+  intro H.
+  induction Ξ; cbn; auto.
+  - eapply mrenaming_ext; tea.
+    + rewrite shiftnP0 //.
+    + rewrite shiftn0 //.
+  - eapply mrenaming_snoc' in IHΞ.
+    rewrite -!app_context_cons in IHΞ.
+    eapply mrenaming_ext; tea.
+    + reflexivity.
+    + rewrite shiftnS //.
+    + apply IHΞ.
+Qed.
+
+Lemma mrenaming_context P Γ Δ Ξ f :
+  mrenaming P (marks_of_context Γ) (marks_of_context Δ) f ->
+  mrenaming (shiftnP #|Ξ| P) (marks_of_context (Γ ,,, Ξ)) (marks_of_context (Δ ,,, rename_context f Ξ)) (shiftn #|Ξ| f).
+Proof.
+  rewrite !marks_of_context_app mark_fold_context_k -marks_of_context_length.
+  apply mrenaming_app.
+Qed.
+
 Lemma mrenaming_app' n P Γ Δ Ξ f :
   mrenaming (shiftnP n P) Γ Δ f ->
   mrenaming (shiftnP (#|Ξ| + n) P) (Γ ,,, Ξ) (Δ ,,, Ξ) (shiftn #|Ξ| f).
@@ -540,8 +583,6 @@ Proof.
     + rewrite shiftnS //.
     + apply IHΞ.
 Qed.
-
-Definition rename_branch := (map_branch_shift rename shiftn).
 
 (* TODO MOVE *)
 Lemma isLambda_rename :
@@ -812,11 +853,11 @@ Proof using Type.
 Qed.
 
 Lemma rename_inst_case_context_wf f pars puinst ctx :
-  test_context_k (fun k : nat => on_free_vars (closedP k xpredT)) #|pars| ctx ->
+  on_free_vars_ctx (closedP #|pars| xpredT) ctx ->
   rename_context f (inst_case_context pars puinst ctx) =
     inst_case_context (map (rename f) pars) puinst ctx.
 Proof using Type.
-  rewrite test_context_k_closed_on_free_vars_ctx => H.
+  intro H.
   rewrite rename_inst_case_context. f_equal.
   now rewrite rename_closedn_ctx // closedn_ctx_on_free_vars.
 Qed.
@@ -994,6 +1035,68 @@ Proof using Type.
   now rewrite rename_closedn_ctx.
 Qed.
 
+Lemma eq_term_upto_univ_rename P f Σ Γ Δ cmp_universe cmp_sort pb napp u v :
+  mrenaming P (marks_of_context Γ) (marks_of_context Δ) f ->
+  on_free_vars P u ->
+  eq_term_upto_univ_napp Σ cmp_universe cmp_sort Γ pb napp u v ->
+  eq_term_upto_univ_napp Σ cmp_universe cmp_sort Δ pb napp (rename f u) (rename f v).
+Proof using Type.
+  intros hmr hav h.
+  induction h in Δ, hmr, P, hav, f |- *.
+  all: try solve [
+    try (cbn in hav; rtoProp);
+    simpl ; constructor ; eauto
+  ].
+  all: cbn in hav; inv_on_free_vars.
+  - simpl. constructor. cbn in hav.
+    solve_all.
+  - simpl. rtoProp. constructor; eauto.
+    eapply IHh2; tea.
+    now apply mrenaming_snoc.
+  - simpl. rtoProp. constructor; eauto.
+    eapply IHh2; tea.
+    now apply mrenaming_snoc.
+  - simpl. rtoProp. constructor; eauto.
+    eapply IHh3; tea.
+    now apply mrenaming_snoc.
+  - simpl. constructor. all: eauto.
+    * rewrite /rename_predicate.
+      destruct X as (? & ? & ectx & ?).
+      rewrite -(All2_length ectx). red. cbn.
+      intuition auto; simpl; solve_all.
+      eapply b0; eauto.
+      rewrite /inst_case_predicate_context /= -rename_inst_case_context_wf //.
+      rewrite !marks_of_context_app !mark_fold_context_k marks_of_context_univ_subst.
+      rewrite -marks_of_context_length.
+      now apply mrenaming_app.
+    * red in X0. unfold eq_branches, eq_branch in *. solve_all.
+      inv_on_free_vars.
+      rewrite -(All2_length a4).
+      eapply b; tea.
+      rewrite /inst_case_branch_context /= -rename_inst_case_context_wf //.
+      rewrite !marks_of_context_app !mark_fold_context_k marks_of_context_univ_subst.
+      rewrite -marks_of_context_length.
+      now apply mrenaming_app.
+  - simpl. constructor. unfold eq_mfixpoint in *.
+    rewrite !rename_fix_context -(All2_length X) -fix_context_length in hav |- *.
+    set Ξ := fix_context mfix in X, hav |- *; clearbody Ξ.
+    solve_all; inv_on_free_vars; eauto.
+    eapply b0; tea.
+    rewrite !marks_of_context_app !mark_fold_context_k -marks_of_context_length.
+    now apply mrenaming_app.
+  - simpl. constructor. unfold eq_mfixpoint in *.
+    rewrite !rename_fix_context -(All2_length X) -fix_context_length in hav |- *.
+    set Ξ := fix_context mfix in X, hav |- *; clearbody Ξ.
+    solve_all; inv_on_free_vars; eauto.
+    eapply b0; tea.
+    rewrite !marks_of_context_app !mark_fold_context_k -marks_of_context_length.
+    now apply mrenaming_app.
+  - simpl. constructor.
+    destruct X; cbn in hav |- *; inv_on_free_vars;
+      constructor; cbn; intuition eauto.
+    solve_all.
+Qed.
+
 Lemma red1_rename :
   forall P Σ Γ Δ u v f,
     wf Σ ->
@@ -1011,7 +1114,7 @@ Proof using cf.
     try eapply urenaming_vdef ;
     eassumption
   ].
-  all:simpl in hav |- *; try toAll.
+  all: simpl in hav |- *; inv_on_free_vars; try toAll.
   - rewrite rename_subst10. constructor.
   - rewrite rename_subst10. constructor.
   - destruct (nth_error Γ i) eqn:hnth; noconf H.
@@ -1029,12 +1132,8 @@ Proof using cf.
   - rewrite rename_mkApps. simpl.
     rewrite rename_iota_red //.
     * rewrite skipn_length; lia.
-    * change (bcontext br) with (bcontext (rename_branch f br)).
-      move/and5P: hav => [_ _ _ _ hbrs].
-      eapply nth_error_forallb in hbrs; tea. simpl in hbrs.
-      move/andP: hbrs => [] clbctx clbod.
-      rewrite closedn_ctx_on_free_vars.
-      now rewrite test_context_k_closed_on_free_vars_ctx in clbctx.
+    * eapply All_nth_error in b as hbr; tea. cbn in hbr. inv_on_free_vars.
+      rewrite closedn_ctx_on_free_vars //.
     * constructor.
       + rewrite nth_error_map H /= //.
       + simpl. now len.
@@ -1055,12 +1154,10 @@ Proof using cf.
       eapply declared_constant_closed_body. all: eauto.
   - rewrite rename_mkApps. simpl.
     econstructor. rewrite nth_error_map. rewrite H. reflexivity.
-  - move/and4P: hav=> [hpars hret hc hbrs].
-    rewrite rename_predicate_set_pparams. econstructor.
+  - rewrite rename_predicate_set_pparams. econstructor.
     simpl. eapply OnOne2_map. repeat toAll.
     eapply OnOne2_All_mix_left in X; eauto. solve_all. red; eauto.
-  - move/and4P: hav=> [_ hret hpctx _].
-    rewrite rename_predicate_set_preturn.
+  - rewrite rename_predicate_set_preturn.
     eapply case_red_return; eauto.
     simpl.
     eapply IHh; eauto.
@@ -1068,15 +1165,14 @@ Proof using cf.
     rewrite -rename_inst_case_context_wf //.
     relativize #|pcontext p|; [apply urenaming_context; tea|].
     now len.
-  - move/and5P: hav=> [_ _ _ _ hbrs].
-    eapply case_red_brs; eauto.
+  - eapply case_red_brs; eauto.
     eapply OnOne2_map. toAll.
-    eapply OnOne2_All_mix_left in X; tea. clear hbrs.
-    solve_all.
+    eapply OnOne2_All_mix_left in X; tea.
+    solve_all. inv_on_free_vars.
     simpl. red. split; auto.
     rewrite /inst_case_branch_context /=.
-    rewrite -b0 //.
-    eapply b1; tea.
+    rewrite -b1 //.
+    eapply b2; tea.
     rewrite -rename_inst_case_context_wf //.
     relativize #|bcontext x|; [apply urenaming_context; tea|].
     now len.
@@ -1120,19 +1216,8 @@ Proof using cf.
     solve_all.
 Qed.
 
-Lemma red_on_free_vars {P : nat -> bool} {Σ:global_env_ext} {Γ u v} {wfΣ : wf Σ} :
-  on_ctx_free_vars P Γ ->
-  on_free_vars P u ->
-  red Σ Γ u v ->
-  on_free_vars P v.
-Proof using Type.
-  intros onΓ on r.
-  induction r; auto.
-  now eapply red1_on_free_vars.
-Qed.
-
 Lemma red_rename :
-  forall P (Σ : global_env_ext) Γ Δ u v f,
+  forall P Σ Γ Δ u v f,
     wf Σ ->
     urenaming P Γ Δ f ->
     on_ctx_free_vars P Γ ->
@@ -1149,6 +1234,29 @@ Proof using Type.
     * eapply IHX1_2. eapply red_on_free_vars; eauto.
 Qed.
 
+Lemma cumul_pb_renameP P Σ Γ Δ f pb t u :
+  wf Σ.1 ->
+  urenaming P Γ Δ f ->
+  on_free_vars P t ->
+  on_free_vars P u ->
+  on_ctx_free_vars P Γ ->
+  Σ ;;; Γ |- t <=[pb] u ->
+  Σ ;;; Δ |- rename f t <=[pb] rename f u.
+Proof using Type.
+  intros hΣ hf hA hB hΓ h.
+  apply urenaming_mrenaming in hf as hfm.
+  induction h.
+  - eapply cumul_refl. eapply eq_term_upto_univ_rename. all: eassumption.
+  - eapply cumul_red_l.
+    + eapply red1_rename. all: eassumption.
+    + apply IHh.
+      * eapply red1_on_free_vars; tea.
+      * auto.
+  - eapply cumul_red_r.
+    + eapply IHh; eauto. eapply (red1_on_free_vars); tea.
+    + eapply red1_rename. all: try eassumption.
+Qed.
+
 Lemma conv_renameP :
   forall P Σ Γ Δ f A B,
     wf Σ.1 ->
@@ -1159,17 +1267,8 @@ Lemma conv_renameP :
     Σ ;;; Γ |- A = B ->
     Σ ;;; Δ |- rename f A = rename f B.
 Proof using Type.
-  intros P Σ Γ Δ f A B hΣ hf hA hB hΓ h.
-  induction h.
-  - eapply cumul_refl. eapply eq_term_upto_univ_rename. assumption.
-  - eapply cumul_red_l.
-    + eapply red1_rename. all: try eassumption.
-    + apply IHh.
-      * eapply red1_on_free_vars; tea.
-      * auto.
-  - eapply cumul_red_r.
-    + eapply IHh; eauto. eapply (red1_on_free_vars); tea.
-    + eapply red1_rename. all: try eassumption.
+  intros P Σ Γ Δ f A B.
+  apply cumul_pb_renameP.
 Qed.
 
 Lemma cumul_renameP :
@@ -1182,17 +1281,8 @@ Lemma cumul_renameP :
     Σ ;;; Γ |- A <= B ->
     Σ ;;; Δ |- rename f A <= rename f B.
 Proof using Type.
-  intros P Σ Γ Δ f A B hΣ hf hA hB hΓ h.
-  induction h.
-  - eapply cumul_refl. eapply eq_term_upto_univ_rename. assumption.
-  - eapply cumul_red_l.
-    + eapply red1_rename. all: try eassumption.
-    + apply IHh.
-      * eapply red1_on_free_vars; tea.
-      * auto.
-  - eapply cumul_red_r.
-    + eapply IHh; eauto. eapply red1_on_free_vars; tea.
-    + eapply red1_rename. all: try eassumption.
+  intros P Σ Γ Δ f A B.
+  apply cumul_pb_renameP.
 Qed.
 
 End Renaming2.

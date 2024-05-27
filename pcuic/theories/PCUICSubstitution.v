@@ -3,7 +3,7 @@ From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import config.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICTactics PCUICInduction
      PCUICLiftSubst PCUICEquality PCUICPosition PCUICCases PCUICSigmaCalculus
-     PCUICUnivSubst PCUICContextSubst PCUICRelevance PCUICTyping
+     PCUICUnivSubst PCUICContextSubst PCUICRelevance PCUICRelevanceTerm PCUICTyping
      PCUICWeakeningEnvConv PCUICWeakeningEnv PCUICWeakeningEnvTyp PCUICClosed PCUICClosedConv PCUICClosedTyp
      PCUICReduction PCUICWeakeningConv PCUICWeakeningTyp PCUICCumulativity PCUICUnivSubstitutionConv
      PCUICRenameDef PCUICRenameConv PCUICInstDef PCUICInstConv PCUICInstTyp PCUICOnFreeVars.
@@ -1195,6 +1195,91 @@ Proof.
         now replace (n - #|Γ'| - #|s| + S #|Γ'|) with (S (n - #|s|)) by lia.
 Qed.
 
+Lemma wf_subst_subst {s k} :
+  forallb wf_term s ->
+  wf_subst (⇑^k (s ⋅n ids)).
+Proof using Type.
+  intros wfs n.
+  apply wf_term_Upn.
+  apply wf_term_subst_fn.
+  apply wfs.
+Qed.
+
+Lemma marks_valid_subst {cf} {Σ : global_env} {wfΣ : wf Σ} {Γ Γ' s Δ} :
+  marks_subslet Σ Γ s Γ' ->
+  valid_subst Σ (Γ ,,, Γ' ,,, Δ) (⇑^#|Δ| (s ⋅n ids)) (Γ ,,, Δ).
+Proof using Type.
+  intros hty.
+  intros n r.
+  apply All2_length in hty as hlen.
+  unfold app_context.
+  case: nth_error_appP => // r' hnth h [=] e; subst r'.
+  2: move: hnth; case: nth_error_appP => // r' hnth h' [=] e; subst r'.
+  - rewrite {1}Upn_eq subst_consn_lt; len => //. rewrite /subst_fn.
+    rewrite idsn_lt //.
+    constructor.
+    rewrite nth_error_app_lt //.
+  - rewrite {1}Upn_eq subst_consn_ge; len => //.
+    rewrite subst_consn_compose.
+    rewrite subst_consn_lt; len.
+    unfold subst_fn. rewrite nth_error_map.
+    eapply All2_nth_error_Some_r in hty as (t & -> & hty); tea.
+    cbn.
+    rewrite -rename_inst -lift0_rename.
+    now eapply @weakening_isTermRel with (Γ' := []).
+  - rewrite Upn_subst_consn_ge. 1: lia.
+    rewrite compose_ids_l.
+    rewrite /shiftk.
+    constructor.
+    rewrite nth_error_app_ge. 1: lia.
+    rewrite -hnth. f_equal. lia.
+Qed.
+
+Lemma marks_valid_subst' {cf} {Σ : global_env} {wfΣ : wf Σ} {Γ Γ' s Δ} :
+  marks_subslet Σ (marks_of_context Γ) s (marks_of_context Γ') ->
+  valid_subst Σ (marks_of_context (Γ,,, Γ',,, Δ))
+    (⇑^#|Δ| (s ⋅n ids))
+    (marks_of_context (Γ,,, subst_context s 0 Δ)).
+Proof.
+  rewrite !marks_of_context_app mark_fold_context_k -marks_of_context_length.
+  apply marks_valid_subst.
+Qed.
+
+Lemma All_equal_subst_equal_subst {Σ : global_env} {cmp_universe cmp_sort} {Γ Γ'' s s' pb} :
+  forallb wf_term s ->
+  All2 (eq_term_upto_univ Σ cmp_universe cmp_sort Γ pb) s s' ->
+  All2 (eq_term_upto_univ Σ cmp_universe cmp_sort Γ Conv) s s' ->
+  All_equal_subst Σ cmp_universe cmp_sort (Γ,,, subst_context s 0 Γ'') pb (⇑^#|Γ''| (s ⋅n ids)) (⇑^#|Γ''| (s' ⋅n ids)).
+Proof.
+  intros hty eqpb eq.
+  intro n. split.
+  { apply wf_term_Upn. apply wf_term_subst_fn. apply hty. }
+  apply All2_length in eq as eqlen.
+  destruct (Nat.ltb n #|Γ''|) eqn:lt; [apply Nat.ltb_lt in lt|apply Nat.ltb_nlt in lt].
+  2: destruct (Nat.ltb (n - #|Γ''|) #|s|) eqn:lt'; [apply Nat.ltb_lt in lt'|apply Nat.ltb_nlt in lt'].
+  - rewrite !Upn_eq !subst_consn_lt. 1-2: now len. rewrite /subst_fn.
+    rewrite idsn_lt //.
+    do 2 constructor.
+  - rewrite !Upn_eq !subst_consn_ge; len => //.
+    rewrite !subst_consn_compose.
+    rewrite !subst_consn_lt; len.
+    unfold subst_fn. rewrite !nth_error_map.
+    eapply nth_error_Some' in lt' as (t & hnth). rewrite hnth.
+    eapply nth_error_forallb in hty; tea.
+    eapply All2_nth_error_Some in eqpb as (t' & hnth' & heqpb); tea. rewrite hnth'.
+    eapply All2_nth_error in eq as heq; tea.
+    cbn.
+    rewrite -{1 3}rename_inst -rename_inst -{1 3}lift0_rename -lift0_rename.
+    erewrite <- subst_context_length.
+    split; eapply @weakening_eq_term_upto_univ_napp with (Γ' := []); tas.
+  - rewrite !Upn_subst_consn_ge. 1-2: lia.
+    rewrite {1}compose_ids_l {1}compose_ids_l.
+    rewrite /shiftk.
+    rewrite -eqlen.
+    do 2 constructor.
+Qed.
+
+
 Lemma subst_skipn {n s k t} : n <= #|s| -> subst (skipn n s) k t = subst s k (lift n k t).
 Proof.
   intros Hn.
@@ -1205,29 +1290,102 @@ Proof.
   rewrite -{3}H. now rewrite simpl_subst_k.
 Qed.
 
-Lemma subst_compare_term {cf:checker_flags} Σ (φ : ConstraintSet.t) pb (l : list term) (k : nat) (T U : term) :
-  compare_term Σ φ pb T U -> compare_term Σ φ pb (subst l k T) (subst l k U).
-Proof.
-  destruct pb; simpl.
-  - apply subst_eq_term.
-  - apply subst_leq_term.
+Lemma eq_term_upto_univ_napp_subst_same (Σ : global_env) cmp_universe cmp_sort Γ Γ' Γ'' pb napp s M N :
+  RelationClasses.Reflexive (cmp_universe Conv) ->
+  RelationClasses.Reflexive (cmp_universe pb) ->
+  RelationClasses.Reflexive (cmp_sort Conv) ->
+  RelationClasses.Reflexive (cmp_sort pb) ->
+  forallb wf_term s ->
+  wf_term M ->
+  eq_term_upto_univ_napp Σ cmp_universe cmp_sort (Γ ,,, Γ' ,,, Γ'') pb napp M N ->
+  eq_term_upto_univ_napp Σ cmp_universe cmp_sort (Γ ,,, subst_context s 0 Γ'') pb napp (subst s #|Γ''| M) (subst s #|Γ''| N).
+Proof using Type.
+  intros ??? Hs wfs H.
+  rewrite !subst_inst.
+  eapply eq_term_upto_univ_inst_same; tc.
+  now eapply wf_subst_subst.
 Qed.
 
-Lemma subst_compare_decl `{checker_flags} {Σ ϕ pb l k d d'} :
-  compare_decl Σ ϕ pb d d' -> compare_decl Σ ϕ pb (subst_decl l k d) (subst_decl l k d').
-Proof.
-  intros []; constructor; auto; destruct pb;
-    intuition eauto using subst_compare_term, subst_eq_term, subst_leq_term.
+Lemma eq_term_upto_univ_napp_subst (Σ : global_env) cmp_universe cmp_sort Γ Γ' Γ'' pb napp s s' M N :
+  All2 (eq_term_upto_univ Σ cmp_universe cmp_sort Γ Conv) s s' ->
+  All2 (eq_term_upto_univ Σ cmp_universe cmp_sort Γ pb) s s' ->
+  forallb wf_term s ->
+  wf_term M ->
+  eq_term_upto_univ_napp Σ cmp_universe cmp_sort (Γ ,,, Γ' ,,, Γ'') pb napp M N ->
+  eq_term_upto_univ_napp Σ cmp_universe cmp_sort (Γ ,,, subst_context s 0 Γ'') pb napp (subst s #|Γ''| M) (subst s' #|Γ''| N).
+Proof using Type.
+  intros ?? wfs wfM H.
+  rewrite !subst_inst.
+  eapply eq_term_upto_univ_inst; tea; tc.
+  eapply All_equal_subst_equal_subst; tas.
 Qed.
 
-Lemma subst_compare_context `{checker_flags} Σ φ pb l l' n k :
-  compare_context Σ φ pb l l' ->
-  compare_context Σ φ pb (subst_context n k l) (subst_context n k l').
-Proof.
-  induction 1; rewrite ?subst_context_snoc /=; constructor; auto.
-  erewrite (All2_fold_length X). simpl.
-  apply (subst_compare_decl p).
+Lemma eq_term_upto_univ_napp_subst' (Σ : global_env) cmp_universe cmp_sort Γ Γ' Γ'' pb napp s s' M N :
+  RelationClasses.subrelation (cmp_universe Conv) (cmp_universe pb) ->
+  RelationClasses.subrelation (cmp_sort Conv) (cmp_sort pb) ->
+  All2 (eq_term_upto_univ Σ cmp_universe cmp_sort Γ Conv) s s' ->
+  forallb wf_term s ->
+  wf_term M ->
+  eq_term_upto_univ_napp Σ cmp_universe cmp_sort (Γ ,,, Γ' ,,, Γ'') pb napp M N ->
+  eq_term_upto_univ_napp Σ cmp_universe cmp_sort (Γ ,,, subst_context s 0 Γ'') pb napp (subst s #|Γ''| M) (subst s' #|Γ''| N).
+Proof using Type.
+  intros ?? Hs wfs wfM H.
+  eapply eq_term_upto_univ_napp_subst; tea.
+  apply All2_impl with (1 := Hs) => t t' e.
+  eapply eq_term_upto_univ_leq; trea.
 Qed.
+
+Lemma eq_context_upto_subst_context (Σ : global_env) cmp_universe cmp_sort Γ Γ' Γ'' pb s s' Δ Δ' :
+  RelationClasses.subrelation (cmp_universe Conv) (cmp_universe pb) ->
+  RelationClasses.subrelation (cmp_sort Conv) (cmp_sort pb) ->
+  All2 (eq_term_upto_univ Σ cmp_universe cmp_sort Γ Conv) s s' ->
+  forallb wf_term s ->
+  wf_term_ctx Δ ->
+  eq_context_upto_rel Σ cmp_universe cmp_sort pb (Γ ,,, Γ' ,,, Γ'') Δ Δ' ->
+  eq_context_upto_rel Σ cmp_universe cmp_sort pb (Γ ,,, subst_context s 0 Γ'') (subst_context s #|Γ''| Δ) (subst_context s' #|Γ''| Δ').
+Proof using Type.
+  intros ?? Hs wfs wfΔ H.
+  induction H. 1: constructor.
+  rewrite !subst_context_snoc.
+  cbn in wfΔ; move/andb_and: wfΔ => [wfΔ wfd].
+  constructor. 1: apply IHAll2_fold; assumption.
+  rewrite -(All2_fold_length H).
+  rewrite -{1}(Nat.add_0_r #|Γ''|) -app_context_assoc -subst_context_app -!app_context_length.
+  rewrite -app_context_assoc in p.
+  destruct p; cbn in wfd; econstructor; tas; cbn.
+  all: eapply eq_term_upto_univ_napp_subst'; eauto.
+  1-2: reflexivity.
+  all: move/andb_and: wfd => [wfb wft] //.
+Qed.
+
+Lemma eq_term_upto_univ_napp_subst0 (Σ : global_env) cmp_universe cmp_sort Γ Γ' pb napp s s' M N :
+  RelationClasses.subrelation (cmp_universe Conv) (cmp_universe pb) ->
+  RelationClasses.subrelation (cmp_sort Conv) (cmp_sort pb) ->
+  All2 (eq_term_upto_univ Σ cmp_universe cmp_sort Γ Conv) s s' ->
+  forallb wf_term s ->
+  wf_term M ->
+  eq_term_upto_univ_napp Σ cmp_universe cmp_sort (Γ ,,, Γ') pb napp M N ->
+  eq_term_upto_univ_napp Σ cmp_universe cmp_sort Γ pb napp (subst0 s M) (subst0 s' N).
+Proof using Type. now apply eq_term_upto_univ_napp_subst' with (Γ'' := []). Qed.
+
+Lemma eq_context_upto_subst_context0 (Σ : global_env) cmp_universe cmp_sort Γ Γ' pb s s' Δ Δ' :
+  RelationClasses.subrelation (cmp_universe Conv) (cmp_universe pb) ->
+  RelationClasses.subrelation (cmp_sort Conv) (cmp_sort pb) ->
+  All2 (eq_term_upto_univ Σ cmp_universe cmp_sort Γ Conv) s s' ->
+  forallb wf_term s ->
+  wf_term_ctx Δ ->
+  eq_context_upto_rel Σ cmp_universe cmp_sort pb (Γ ,,, Γ') Δ Δ' ->
+  eq_context_upto_rel Σ cmp_universe cmp_sort pb Γ (subst_context s 0 Δ) (subst_context s' 0 Δ').
+Proof using Type.
+  now apply eq_context_upto_subst_context with (Γ'' := []).
+Qed.
+
+Lemma compare_term_subst {cf} {Σ : global_env} {φ} {Γ Γ' Γ'' pb s M N} :
+  forallb wf_term s ->
+  wf_term M ->
+  compare_term Σ φ (Γ ,,, Γ' ,,, Γ'') pb M N ->
+  compare_term Σ φ (Γ ,,, subst_context s 0 Γ'') pb (subst s #|Γ''| M) (subst s #|Γ''| N).
+Proof using Type. apply eq_term_upto_univ_napp_subst_same; tc. Qed.
 
 From Coq Require Import ssrbool.
 
@@ -1295,7 +1453,7 @@ Reserved Notation " Σ ;;; Γ |-[ P ] t <=[ le ] u" (at level 50, Γ, t, u at ne
   format "Σ  ;;;  Γ  |-[ P ]  t  <=[ le ]  u").
 
 Inductive cumulP {cf} (pb : conv_pb) (Σ : global_env_ext) (P : nat -> bool) (Γ : context) : term -> term -> Type :=
-| wt_cumul_refl t u : compare_term Σ.1 (global_ext_constraints Σ) pb t u -> Σ ;;; Γ |-[P] t <=[pb] u
+| wt_cumul_refl t u : compare_term Σ.1 (global_ext_constraints Σ) Γ pb t u -> Σ ;;; Γ |-[P] t <=[pb] u
 | wt_cumul_red_l t u v : red1P P Σ Γ t v -> Σ ;;; Γ |-[P] v <=[pb] u -> Σ ;;; Γ |-[P] t <=[pb] u
 | wt_cumul_red_r t u v : Σ ;;; Γ |-[P] t <=[pb] v -> red1P P Σ Γ u v -> Σ ;;; Γ |-[P] t <=[pb] u
 where " Σ ;;; Γ |-[ P ] t <=[ pb ] u " := (cumulP pb Σ P Γ t u) : type_scope.
@@ -1319,16 +1477,16 @@ Proof.
 Qed.
 
 Section SubstitutionLemmas.
-  Context {cf} {Σ} {wfΣ : wf Σ}.
 
-  Lemma isType_closedPT Γ T : isType Σ Γ T -> on_free_vars (closedP #|Γ| xpredT) T.
-  Proof using wfΣ.
+  Lemma isType_closedPT {cf} {Σ} {wfΣ : wf Σ} Γ T : isType Σ Γ T -> on_free_vars (closedP #|Γ| xpredT) T.
+  Proof using Type.
     move/isType_closed/(closedn_on_free_vars (P:=xpred0)).
     now rewrite shiftnPF_closedPT.
   Qed.
 
-  Lemma wt_cumul_pb_equalityP {pb} {Γ : context} {T U} : wt_cumul_pb pb Σ Γ T U -> cumulP pb Σ (closedP #|Γ| xpredT) Γ T U.
-  Proof using wfΣ.
+  Lemma wt_cumul_pb_equalityP {cf} {Σ} {wfΣ : wf Σ} {pb} {Γ : context} {T U} :
+    wt_cumul_pb pb Σ Γ T U -> cumulP pb Σ (closedP #|Γ| xpredT) Γ T U.
+  Proof using Type.
     move=> [] dom.
     move: (isType_wf_local dom) => /closed_wf_local clΓ.
     rewrite closed_ctx_on_ctx_free_vars in clΓ; tea.
@@ -1346,33 +1504,48 @@ Section SubstitutionLemmas.
       * econstructor; [|split]; tea.
   Qed.
 
-  Lemma substitution_red1 {Γ Γ' Γ'' s M N} :
+  Lemma substitution_red1 {cf} {Σ} {wfΣ : wf Σ} {Γ Γ' Γ'' s M N} :
     subs Σ Γ s Γ' -> wf_local Σ Γ ->
-    is_open_term (Γ,,, Γ',,, Γ'') M ->
+    wf_term M ->
     red1 Σ (Γ ,,, Γ' ,,, Γ'') M N ->
     red Σ (Γ ,,, subst_context s 0 Γ'') (subst s #|Γ''| M) (subst s #|Γ''| N).
-  Proof using wfΣ.
+  Proof using Type.
     intros Hs wfΓ H.
     rewrite !subst_inst.
     eapply red1_inst; eauto.
     now eapply subs_usubst.
   Qed.
 
-  Lemma substitution_let_red {Γ Δ Γ' s M N} :
+  Lemma substitution_let_red {cf} {Σ} {wfΣ : wf Σ} {Γ Δ Γ' s M N} :
     subslet Σ Γ s Δ ->
-    is_open_term (Γ,,, Δ,,, Γ') M ->
+    wf_term M ->
     red1 Σ (Γ ,,, Δ ,,, Γ') M N ->
     red Σ (Γ ,,, subst_context s 0 Γ') (subst s #|Γ'| M) (subst s #|Γ'| N).
-  Proof using wfΣ.
+  Proof using Type.
     intros Hs wfΓ H.
     rewrite !subst_inst.
     eapply red1_inst; eauto.
     now eapply (subslet_usubst Hs).
   Qed.
 
+  Lemma substitution_red {cf} {Σ} {wfΣ : wf Σ} {Γ Δ Γ' s M N} :
+    subslet Σ Γ s Δ -> wf_local Σ Γ ->
+    wf_term M ->
+    wf_term_ctx (Γ,,, Δ,,, Γ') ->
+    red Σ (Γ ,,, Δ ,,, Γ') M N ->
+    red Σ (Γ ,,, subst_context s 0 Γ') (subst s #|Γ'| M) (subst s #|Γ'| N).
+  Proof using Type.
+    intros Hs Hl onM onctx Hred. induction Hred; trea.
+    - eapply substitution_let_red; eauto.
+    - etransitivity; [eapply IHHred1|eapply IHHred2]; tea.
+      eapply red_wf_term in Hred1; eauto.
+  Qed.
+
+  Context {cf} {Σ : global_env} {wfΣ : wf Σ}.
+
   Lemma substitution_untyped_let_red {Γ Δ Γ' s M N} :
     untyped_subslet Γ s Δ ->
-    is_open_term (Γ,,, Δ,,, Γ') M ->
+    wf_term M ->
     red1 Σ (Γ ,,, Δ ,,, Γ') M N ->
     red Σ (Γ ,,, subst_context s 0 Γ') (subst s #|Γ'| M) (subst s #|Γ'| N).
   Proof using wfΣ.
@@ -1384,8 +1557,8 @@ Section SubstitutionLemmas.
 
   Lemma substitution_untyped_red {Γ Δ Γ' s M N} :
     untyped_subslet Γ s Δ ->
-    is_open_term (Γ ,,, Δ ,,, Γ') M ->
-    on_ctx_free_vars (shiftnP #|Γ,,, Δ,,, Γ'| xpred0) (Γ,,, Δ,,, Γ') ->
+    wf_term M ->
+    wf_term_ctx (Γ,,, Δ,,, Γ') ->
     red Σ (Γ ,,, Δ ,,, Γ') M N ->
     red Σ (Γ ,,, subst_context s 0 Γ') (subst s #|Γ'| M) (subst s #|Γ'| N).
   Proof using wfΣ.
@@ -1393,20 +1566,7 @@ Section SubstitutionLemmas.
     induction 1; trea.
     - eapply substitution_untyped_let_red; eassumption.
     - etransitivity; [eapply IHX1|eapply IHX2]; tea.
-      eapply red_on_free_vars in X1; tea.
-  Qed.
-
-  Lemma substitution_red {Γ Δ Γ' s M N} :
-    subslet Σ Γ s Δ -> wf_local Σ Γ ->
-    is_open_term (Γ ,,, Δ ,,, Γ') M ->
-    on_ctx_free_vars (shiftnP #|Γ,,, Δ,,, Γ'| xpred0) (Γ,,, Δ,,, Γ') ->
-    red Σ (Γ ,,, Δ ,,, Γ') M N ->
-    red Σ (Γ ,,, subst_context s 0 Γ') (subst s #|Γ'| M) (subst s #|Γ'| N).
-  Proof using wfΣ.
-    intros Hs Hl onM onctx Hred. induction Hred; trea.
-    - eapply substitution_let_red; eauto.
-    - etransitivity; [eapply IHHred1|eapply IHHred2]; tea.
-      eapply red_on_free_vars in Hred1; eauto.
+      eapply red_wf_term in X1; tea.
   Qed.
 
   (* Lemma red_red_onctx {P Γ Δ Γ' s s' ctx} :
@@ -1442,7 +1602,7 @@ Section SubstitutionLemmas.
        end.
 
   Lemma subst_inst_case_context_wf s k pars puinst ctx :
-    test_context_k (fun k : nat => on_free_vars (closedP k xpredT)) #|pars| ctx ->
+    closedn_ctx #|pars| ctx ->
     subst_context s k (inst_case_context pars puinst ctx) =
     inst_case_context (map (subst s k) pars) puinst ctx.
   Proof using Type.
@@ -1469,112 +1629,88 @@ Proof using Type.
   rewrite subst_context_app. lia_f_equal.
 Qed.
 
-  Lemma red_red {P Γ Δ Γ' s s' b} :
-    on_ctx_free_vars P (Γ ,,, Δ ,,, Γ') ->
-    on_free_vars P b ->
+  Lemma red_red {Γ Δ Γ' s s' b} :
+    wf_term_ctx (Γ ,,, Δ ,,, Γ') ->
+    wf_term b ->
     All2 (red Σ Γ) s s' ->
-    All (on_free_vars (addnP (#|Γ'| + #|Δ|) P)) s ->
+    All wf_term s ->
     untyped_subslet Γ s Δ ->
     red Σ (Γ ,,, subst_context s 0 Γ') (subst s #|Γ'| b) (subst s' #|Γ'| b).
   Proof using wfΣ.
     intros onΓ onb Hall ons Hsubs.
-    revert P b onb Γ Δ Γ' onΓ Hall Hsubs ons.
-    apply: term_on_free_vars_ind;
-          intros; match goal with
-                    |- context [tRel _] => idtac
-                  | |- _ => cbn -[plus]
-                  end; try easy;
-        autorewrite with map;
-        rewrite ?Nat.add_assoc;
-        try solve [f_equal; auto; solve_all].
+    revert b onb Γ Δ Γ' onΓ Hall Hsubs ons.
+    apply: wf_term_ind; intros; cbn; try easy.
 
-    - unfold subst.
-      destruct (#|Γ'| <=? i) eqn:Heq.
+    - destruct (#|Γ'| <=? i) eqn:Heq.
       + destruct nth_error eqn:Heq'.
         * destruct (All2_nth_error_Some _ _ Hall Heq') as [t' [-> Ptt']].
           intros. relativize #|Γ'|; [eapply (weakening_red (Γ':=[]))|]; tea.
-          2:now eapply nth_error_all in ons; tea.
-          2:now len.
-          simpl.
-          rewrite !on_ctx_free_vars_app in onΓ.
-          setoid_rewrite addnP_add in onΓ.
-          rewrite Nat.add_comm in onΓ. now move/and3P: onΓ => [].
-         * rewrite (All2_nth_error_None _ Hall Heq').
-           apply All2_length in Hall as ->. reflexivity.
+          -- rewrite !wf_term_ctx_app in onΓ. now rtoProp.
+          -- now eapply nth_error_all in ons; tea.
+          -- now len.
+        * rewrite (All2_nth_error_None _ Hall Heq').
+          apply All2_length in Hall as ->. reflexivity.
       + reflexivity.
 
-    - apply red_evar. eapply All2_map, All_All2; tea. intuition auto.
-      specialize (X1 _ _ _ onΓ). now simpl_IHs.
+    - apply red_evar.
+      eapply All2_map, All_All2; tea. intros t IHt.
+      eapply IHt; tea.
+
     - apply red_prod; eauto.
       specialize (X0 Γ Δ (Γ' ,, vass na dom)).
       rewrite subst_context_snoc Nat.add_0_r in X0. apply X0 => //.
-      * rewrite /= on_ctx_free_vars_snoc onΓ /=; auto with fvs.
-      * cbn. eapply (All_impl ons) => ?; now rewrite (addnP_shiftnP_k 1).
+      rewrite /=/test_decl//=. auto.
 
     - apply red_abs_alt; eauto.
       specialize (X0 Γ Δ (Γ' ,, vass na ty)).
       rewrite subst_context_snoc Nat.add_0_r in X0. apply X0 => //.
-      * rewrite /= on_ctx_free_vars_snoc onΓ /=; auto with fvs.
-      * cbn. apply (All_impl ons) => ?; now rewrite (addnP_shiftnP_k 1).
+      rewrite /=/test_decl//=. auto.
 
     - apply red_letin_alt; eauto.
       specialize (X1 Γ Δ (Γ' ,, vdef na def ty)).
       rewrite subst_context_snoc Nat.add_0_r in X1. apply X1 => //.
-      * rewrite /= on_ctx_free_vars_snoc onΓ /=; auto with fvs.
-      * cbn. apply (All_impl ons) => ?; now rewrite (addnP_shiftnP_k 1).
+      rewrite /=/test_decl//=. auto.
 
     - apply red_app; eauto.
-    - eapply (red_case (p:=(map_predicate_k id (subst s) #|Γ'| pred))); simpl; solve_all.
-      * eapply All_All2; tea. solve_all. eapply b; eauto; solve_all.
-      * rewrite /map_predicate_k /= /PCUICCases.inst_case_predicate_context /=.
+
+    - eapply (red_case (p:=(map_predicate_k id (subst s) #|Γ'| pred))); simpl.
+      * eapply All2_map, All_All2; tea. intros t IHt. eapply IHt; eauto.
+      * rewrite /map_predicate_k /= /inst_case_predicate_context /=.
         rewrite map_subst_inst.
         rewrite -inst_inst_case_context_wf //.
-        { rewrite test_context_k_closed_on_free_vars_ctx //. }
         rewrite -subst_context_inst_context -app_context_assoc -(subst_context_app' _ 0).
-        relativize (_ + _); [eapply X2|]; tea; auto; len; solve_all.
-        { rewrite !app_context_assoc.
-          relativize #|pcontext pred|; [erewrite on_ctx_free_vars_extend|]; len => //.
-          rewrite onΓ => /=.
-          eapply on_free_vars_ctx_inst_case_context; trea; revgoals.
-          { erewrite test_context_k_closed_on_free_vars_ctx; tea. }
-          { solve_all. } }
-        { len. rewrite Nat.add_comm -addnP_add Nat.add_comm -addnP_add addnP_shiftnP addnP_add Nat.add_comm //. }
-      * eapply X3; eauto; solve_all.
-      * red. solve_all.
-        eapply All_All2; tea => /=. solve_all; unfold on_Trel; simpl.
-        + rewrite /inst_case_branch_context /= map_subst_inst -inst_inst_case_context_wf //.
-          { rewrite test_context_k_closed_on_free_vars_ctx //. apply X. }
-          rewrite -subst_context_inst_context -app_context_assoc -(subst_context_app' _ 0).
-          relativize (_ + _); [eapply X|]; tea; auto; len; solve_all.
-          { rewrite !app_context_assoc.
-            relativize #|bcontext x|; [erewrite on_ctx_free_vars_extend|]; len => //.
-            rewrite onΓ => /=. eapply on_free_vars_ctx_inst_case_context; trea; solve_all.
-            erewrite test_context_k_closed_on_free_vars_ctx; tea. apply X. }
-        { len. rewrite Nat.add_comm -addnP_add Nat.add_comm -addnP_add addnP_shiftnP addnP_add Nat.add_comm //. }
+        relativize (_ + _); [eapply X0|]; tea; auto; len.
+        rewrite !app_context_assoc.
+        now apply wf_term_ctx_app_inst_case_context.
+      * eapply X1; eauto.
+      * eapply All2_map, All_All2; tea. intros br [clbctx Hbr IHbr]. simpl. split => //.
+        rewrite /map_branch_k /inst_case_branch_context /= map_subst_inst -inst_inst_case_context_wf //.
+        rewrite -subst_context_inst_context -app_context_assoc -(subst_context_app' _ 0).
+        relativize (_ + _); [eapply IHbr|]; tea; auto; len.
+        rewrite !app_context_assoc.
+        now apply wf_term_ctx_app_inst_case_context.
+
     - apply red_proj_c; eauto.
+
     - apply red_fix_congr; eauto.
-      solve_all. eapply All_All2; tea; simpl; solve_all.
-      * eapply a; tea; solve_all.
+      eapply All2_map, All_All2; tea; intros d [IHty IHbod]; repeat split => //=.
+      * eapply IHty; eauto.
       * rewrite subst_fix_context.
-        specialize (b1 Γ Δ (Γ' ,,, (fix_context m))).
-        rewrite (subst_context_app' _ 0) !app_context_assoc /= in b1. len in b1.
-        eapply b1; eauto; len; solve_all.
-        { relativize #|m|; [erewrite on_ctx_free_vars_extend|]; len => //.
-          rewrite onΓ. apply on_free_vars_fix_context. rewrite /test_def. solve_all.
-          now len in b2. }
-        now rewrite -Nat.add_assoc addnP_shiftnP_k.
+        specialize (IHbod Γ Δ (Γ' ,,, (fix_context mfix))).
+        rewrite (subst_context_app' _ 0) !app_context_assoc /= in IHbod. len in IHbod.
+        eapply IHbod; eauto; len.
+        now apply wf_term_app_fix_context.
+
     - apply red_cofix_congr; eauto.
-      solve_all. eapply All_All2; tea; simpl; solve_all.
-      * eapply a; tea; solve_all.
+      eapply All2_map, All_All2; tea; intros d [IHty IHbod]; repeat split => //=.
+      * eapply IHty; eauto.
       * rewrite subst_fix_context.
-        specialize (b1 Γ Δ (Γ' ,,, (fix_context m))).
-        rewrite (subst_context_app' _ 0) !app_context_assoc /= in b1. len in b1.
-        eapply b1; eauto; len; solve_all.
-        { relativize #|m|; [erewrite on_ctx_free_vars_extend|]; len => //.
-          rewrite onΓ. apply on_free_vars_fix_context. rewrite /test_def. solve_all.
-          now len in b2. }
-        now rewrite -Nat.add_assoc addnP_shiftnP_k.
-    - destruct pr as [? []] => //.
+        specialize (IHbod Γ Δ (Γ' ,,, (fix_context mfix))).
+        rewrite (subst_context_app' _ 0) !app_context_assoc /= in IHbod. len in IHbod.
+        eapply IHbod; eauto; len.
+        now apply wf_term_app_fix_context.
+
+    - destruct p as [? []] => //.
       eapply red_primArray_congr => //.
       * cbn. solve_all. cbn in X1. destruct X1 as [? []].
         eapply All_All2; tea; simpl; solve_all. eapply b1; tea; solve_all.
@@ -1582,106 +1718,136 @@ Qed.
       * cbn in X, X0; intuition eauto.
   Qed.
 
+  Lemma red_red_ctx_rel {Γ Γ' Γ'' s s' Δ} :
+    wf_term_ctx (Γ ,,, Γ' ,,, Γ'') ->
+    wf_term_ctx Δ ->
+    All2 (red Σ Γ) s s' ->
+    forallb wf_term s ->
+    untyped_subslet Γ s Γ' ->
+    red_context_rel Σ (Γ ,,, subst_context s 0 Γ'') (subst_context s #|Γ''| Δ) (subst_context s' #|Γ''| Δ).
+  Proof using wfΣ.
+    intros wfΓ wfΔ Hss' wfs Hs.
+    induction Δ. 1: constructor.
+    rewrite !subst_context_snoc.
+    cbn in wfΔ; move/andb_and: wfΔ => [wfΔ wfd].
+    constructor. 1: apply IHΔ; assumption.
+    rewrite -{1}(Nat.add_0_r #|Γ''|) -app_context_assoc -subst_context_app -app_context_length.
+    assert (wf_term_ctx (Γ ,,, Γ' ,,, (Γ'' ,,, Δ)))
+      by rewrite app_context_assoc wf_term_ctx_app wfΓ //.
+    apply forallb_All in wfs.
+    destruct a as [na [b|] t]; cbn; constructor; cbn.
+    all: eapply red_red; eauto.
+    all: move/andP: wfd => [] //.
+  Qed.
+
+  Lemma red_red_ctx_rel0 {Γ Γ' s s' Δ} :
+    wf_term_ctx (Γ ,,, Γ') ->
+    wf_term_ctx Δ ->
+    All2 (red Σ Γ) s s' ->
+    forallb wf_term s ->
+    untyped_subslet Γ s Γ' ->
+    red_context_rel Σ Γ (subst_context s 0 Δ) (subst_context s' 0 Δ).
+  Proof using wfΣ.
+    apply @red_red_ctx_rel with (Γ'' := []).
+  Qed.
+
   Lemma untyped_substitution_red {Γ Δ Γ' s M N} :
     untyped_subslet Γ s Δ ->
-    on_ctx_free_vars (shiftnP #|Γ,,, Δ,,, Γ'| xpred0) (Γ ,,, Δ ,,, Γ') ->
-    is_open_term (Γ ,,, Δ ,,, Γ') M ->
+    wf_term_ctx (Γ ,,, Δ ,,, Γ') ->
+    wf_term M ->
     red Σ (Γ ,,, Δ ,,, Γ') M N ->
     red Σ (Γ ,,, subst_context s 0 Γ') (subst s #|Γ'| M) (subst s #|Γ'| N).
   Proof using wfΣ.
     intros Hs onΓ onM Hred. induction Hred; trea.
     - eapply substitution_untyped_let_red; eauto.
     - etransitivity; [eapply IHHred1|eapply IHHred2]; eauto.
-      eapply red_on_free_vars in Hred1; tea.
+      eapply red_wf_term in Hred1; tea.
   Qed.
 
+End SubstitutionLemmas.
+Section SubstitutionLemmas.
+  Context {cf} {Σ} {wfΣ : wf Σ}.
   (** The cumulativity relation is substitutive, yay! *)
 
-  Lemma substitution_untyped_cumul {Γ Γ' Γ'' s M N} :
+  Lemma substitution_untyped_cumul {Γ Γ' Γ'' pb s M N} :
     untyped_subslet Γ s Γ' ->
-    is_open_term (Γ ,,, Γ' ,,, Γ'') M ->
-    is_open_term (Γ ,,, Γ' ,,, Γ'') N ->
-    on_ctx_free_vars (shiftnP #|Γ ,,, Γ' ,,, Γ''| xpred0) (Γ ,,, Γ' ,,, Γ'') ->
-    Σ ;;; Γ ,,, Γ' ,,, Γ'' |- M <= N ->
-    Σ ;;; Γ ,,, subst_context s 0 Γ'' |- subst s #|Γ''| M <= subst s #|Γ''| N.
+    forallb wf_term s ->
+    wf_term M ->
+    wf_term N ->
+    wf_term_ctx (Γ ,,, Γ' ,,, Γ'') ->
+    Σ ;;; Γ ,,, Γ' ,,, Γ'' |- M <=[pb] N ->
+    Σ ;;; Γ ,,, subst_context s 0 Γ'' |- subst s #|Γ''| M <=[pb] subst s #|Γ''| N.
   Proof using wfΣ.
-    intros Hs onN onM onΓ h. induction h.
+    intros Hs Hs' onN onM onΓ h. induction h.
     - constructor.
-      now apply subst_leq_term.
+      now eapply compare_term_subst.
     - epose proof (substitution_untyped_let_red Hs onN r); tea.
-      eapply red_cumul_cumul; eauto.
-      eapply IHh; tea. eapply red1_on_free_vars in r; tea.
+      eapply red_cumul_pb_cumul_pb; eauto.
+      eapply IHh; tea. eapply red1_wf_term in r; tea.
     - epose proof (substitution_untyped_let_red Hs onM r).
-      eapply red_cumul_cumul_inv; eauto.
-      eapply IHh; tea. eapply red1_on_free_vars in r; tea.
+      eapply red_cumul_pb_cumul_pb_inv; eauto.
+      eapply IHh; tea. eapply red1_wf_term in r; tea.
   Qed.
 
-  Lemma substitution_cumul0 {Γ na t u u' a} :
-    on_ctx_free_vars (shiftnP #|Γ ,, vass na t| xpred0) (Γ ,, vass na t) ->
-    is_open_term (Γ ,, vass na t) u ->
-    is_open_term (Γ ,, vass na t) u' ->
+  Lemma substitution_cumul0 Γ Γ' pb s M N :
+    untyped_subslet Γ s Γ' ->
+    forallb wf_term s ->
+    wf_term M ->
+    wf_term N ->
+    wf_term_ctx (Γ ,,, Γ') ->
+    Σ ;;; Γ ,,, Γ' |- M <=[pb] N ->
+    Σ ;;; Γ |- subst0 s M <=[pb] subst0 s N.
+  Proof using wfΣ.
+    apply @substitution_untyped_cumul with (Γ'' := []).
+  Qed.
+
+  Lemma substitution_cumul10 {Γ na t u u' a} :
+    wf_term_ctx (Γ ,, vass na t) ->
+    wf_term a ->
+    wf_term u ->
+    wf_term u' ->
     Σ ;;; Γ ,, vass na t |- u <= u' ->
     Σ ;;; Γ |- subst10 a u <= subst10 a u'.
   Proof using wfΣ.
-    move=> onΓ onu onu' Hu.
-    pose proof (@substitution_untyped_cumul Γ [vass na t] [] [a] u u').
-    forward X.
-    { constructor. constructor. }
-    simpl in X. now apply X.
+    move=> onΓ ona onu onu'.
+    apply substitution_cumul0 with (Γ' := [_]); tas.
+    - constructor. constructor.
+    - rewrite /= ona //.
   Qed.
 
   Lemma substitution_cumul_let {Γ na t ty u u'} :
-  on_ctx_free_vars (shiftnP #|Γ ,, vdef na t ty| xpred0) (Γ ,, vdef na t ty) ->
-  is_open_term (Γ ,, vdef na t ty) u ->
-  is_open_term (Γ ,, vdef na t ty) u' ->
-  Σ ;;; Γ ,, vdef na t ty |- u <= u' ->
+    wf_term_ctx (Γ ,, vdef na t ty) ->
+    wf_term u ->
+    wf_term u' ->
+    Σ ;;; Γ ,, vdef na t ty |- u <= u' ->
     Σ ;;; Γ |- subst10 t u <= subst10 t u'.
   Proof using wfΣ.
     move=> onΓ onu onu' Hu.
-    pose proof (@substitution_untyped_cumul Γ [vdef na t ty] [] [t] u u').
-    forward X.
-    { rewrite - {1}(subst_empty 0 t). constructor. constructor. }
-    simpl in X. now apply X.
+    apply substitution_cumul0 with (Γ' := [vdef na t ty]); tas.
+    - rewrite - {1}(subst_empty 0 t). constructor. constructor.
+    - move/andP : onΓ => [] _ /andP[] /= ont _.
+      rewrite ont //.
   Qed.
 
   Lemma usubst_well_subst {Γ σ Δ} :
     usubst Γ σ Δ ->
     (forall x decl, nth_error Γ x = Some decl ->
       Σ ;;; Δ |- σ x : (decl.(decl_type)).[↑^(S x) ∘s σ]) ->
+    (forall n, wf_term (σ n)) ->
     well_subst Σ Γ σ Δ.
   Proof using Type.
-    intros us hty. split; eauto.
+    intros us hty wfs. repeat split; eauto.
     intros x decl hnth. specialize (hty x decl hnth). now sigma.
   Qed.
 
-  Lemma marks_valid_subst {Σ1 : global_env} {wfΣ1 : wf Σ1} {Γ Γ' s Δ} :
-    marks_subslet Σ1 Γ s Γ' ->
-    valid_subst Σ1 (Γ ,,, Γ' ,,, Δ) (⇑^#|Δ| (s ⋅n ids)) (Γ ,,, Δ).
-  Proof using Type.
-    intros hty.
-    intros n r.
-    apply All2_length in hty as hlen.
-    unfold app_context.
-    case: nth_error_appP => // r' hnth h [=] e; subst r'.
-    2: move: hnth; case: nth_error_appP => // r' hnth h' [=] e; subst r'.
-    - rewrite {1}Upn_eq subst_consn_lt; len => //. rewrite /subst_fn.
-      rewrite idsn_lt //.
-      constructor.
-      rewrite nth_error_app_lt //.
-    - rewrite {1}Upn_eq subst_consn_ge; len => //.
-      rewrite subst_consn_compose.
-      rewrite subst_consn_lt; len.
-      unfold subst_fn. rewrite nth_error_map.
-      eapply All2_nth_error_Some_r in hty as (t & -> & hty); tea.
-      cbn.
-      rewrite -rename_inst -lift0_rename.
-      now eapply @weakening_isTermRel with (Γ' := []).
-    - rewrite Upn_subst_consn_ge. 1: lia.
-      rewrite compose_ids_l.
-      rewrite /shiftk.
-      constructor.
-      rewrite nth_error_app_ge. 1: lia.
-      rewrite -hnth. f_equal. lia.
+  Lemma subslet_wf_term {Γ s Δ} :
+    subslet Σ Γ s Δ ->
+    forallb wf_term s.
+  Proof.
+    intro hs.
+    apply All_forallb.
+    induction hs in |- *; constructor; auto.
+    all: eapply PCUICClosedTyp.subject_wf_term; tea.
   Qed.
 
   Lemma subslet_well_subst {Γ Γ' s Δ} :
@@ -1745,6 +1911,8 @@ Qed.
           rewrite subst_consn_compose shift_subst_consn_ge; len; try lia.
           rewrite H. rewrite shiftk_compose. lia_f_equal.
       }
+    * apply wf_subst_subst.
+      now eapply subslet_wf_term.
   Qed.
 
   Lemma All_local_env_inst {Γ0 Γ' Δ s} :
@@ -1913,37 +2081,43 @@ Qed.
 
 Lemma substitution_wt_cumul_pb {cf} {Σ} {wfΣ : wf Σ} {pb Γ Γ' Γ'' s M N} :
   subslet Σ Γ s Γ' ->
+  wf_term_ctx (Γ ,,, Γ' ,,, Γ'') ->
+  wf_term M ->
+  wf_term N ->
   wt_cumul_pb pb Σ (Γ ,,, Γ' ,,, Γ'') M N ->
   wt_cumul_pb pb Σ (Γ ,,, subst_context s 0 Γ'') (subst s #|Γ''| M) (subst s #|Γ''| N).
 Proof.
-  move=> Hs wteq; split.
+  move=> Hs onΓ onM onN wteq; split.
   + eapply (isType_substitution Hs), wteq.
   + eapply (isType_substitution Hs), wteq.
-  + move/wt_cumul_pb_equalityP: wteq; elim.
-    - intros t u cmp.
-      constructor. now eapply subst_compare_term.
-    - move=> t u v red cum.
-      destruct pb.
-      * eapply red_conv_conv.
-        eapply substitution_let_red; tea; eauto with wf; apply red.
-      * eapply red_cumul_cumul.
-        eapply substitution_let_red; tea; eauto with wf; apply red.
-    - move=> t u v red cum red'.
-      destruct pb.
-      * eapply red_conv_conv_inv; tea.
-        eapply substitution_let_red; tea; apply red'.
-      * eapply red_cumul_cumul_inv; tea.
-        eapply substitution_let_red; tea; apply red'.
+  + move/wt_cumul_pb_equalityP: wteq onM onN; elim.
+    - intros t u cmp ont onu.
+      constructor. eapply compare_term_subst; tea.
+      now eapply subslet_wf_term.
+    - move=> t u v red cum IH ont onu.
+      eapply red1_wf_term in ont as onv; tea. 2: apply red. do 2 forward IH by assumption.
+      eapply red_cumul_pb_cumul_pb; tea.
+      eapply substitution_let_red; tea; eauto with wf. apply red.
+    - move=> t u v cum IH red ont onu.
+      eapply red1_wf_term in onu as onv; tea. 2: apply red. do 2 forward IH by assumption.
+      eapply red_cumul_pb_cumul_pb_inv; tea.
+      eapply substitution_let_red; tea. apply red.
 Qed.
 
 Lemma substitution_cumul {cf} {Σ} {wfΣ : wf Σ} {Γ Γ' Γ'' s M N} :
   subslet Σ Γ s Γ' ->
+  wf_term_ctx (Γ ,,, Γ' ,,, Γ'') ->
+  wf_term M ->
+  wf_term N ->
   Σ ;;; Γ ,,, Γ' ,,, Γ'' |- M <= N ✓ ->
   Σ ;;; Γ ,,, subst_context s 0 Γ'' |-  subst s #|Γ''| M <= subst s #|Γ''| N ✓.
 Proof. apply substitution_wt_cumul_pb. Qed.
 
 Lemma substitution_conv {cf} {Σ} {wfΣ : wf Σ} {Γ Γ' Γ'' s M N} :
   subslet Σ Γ s Γ' ->
+  wf_term_ctx (Γ ,,, Γ' ,,, Γ'') ->
+  wf_term M ->
+  wf_term N ->
   Σ ;;; Γ ,,, Γ' ,,, Γ'' |- M = N ✓ ->
   Σ ;;; Γ ,,, subst_context s 0 Γ'' |-  subst s #|Γ''| M = subst s #|Γ''| N ✓.
 Proof. apply substitution_wt_cumul_pb. Qed.

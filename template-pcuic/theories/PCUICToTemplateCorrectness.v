@@ -1436,19 +1436,19 @@ Proof.
   destruct X; cbn; auto.
 Qed.
 
-Lemma trans_eq_term_upto_univ {cf} Σ cmp_universe cmp_sort pb napp t u :
-    PCUICEquality.eq_term_upto_univ_napp Σ cmp_universe cmp_sort pb napp t u ->
+Lemma trans_eq_term_upto_univ {cf} Σ cmp_universe cmp_sort Γ pb napp t u :
+    PCUICEquality.eq_term_upto_univ_napp Σ cmp_universe cmp_sort Γ pb napp t u ->
     TermEquality.eq_term_upto_univ_napp (trans_global_env Σ) cmp_universe cmp_sort pb napp (trans t) (trans u).
 Proof.
   intros e.
-  induction t using term_forall_list_ind in pb, napp, u, e |- *.
+  induction t using term_forall_list_ind in Γ, pb, napp, u, e |- *.
   all: invs e; cbn.
   all: try solve [ constructor ; auto ].
   all: try solve [
-    repeat constructor ;
+    repeat constructor ; tas ;
     match goal with
-    | ih : forall Rle u (napp : nat), _ |- _ =>
-      eapply ih ; auto
+    | ih : forall Γ pb (napp : nat), _ |- _ =>
+      eapply ih ; eauto
     end
   ].
   1,6,7: try solve [ constructor; unfold eq_mfixpoint in *; solve_all ].
@@ -1457,7 +1457,7 @@ Proof.
   - destruct X1 as [Hpars [Huinst [Hctx Hret]]].
     destruct X as [IHpars [IHctx IHret]].
     unfold eq_branches, eq_branch in *.
-    constructor; cbn; auto. solve_all.
+    constructor; cbn; eauto. solve_all.
     red in X0.
     eapply trans_eq_context_gen_eq_binder_annot in Hctx.
     now rewrite !map_context_trans.
@@ -1468,8 +1468,8 @@ Proof.
     repeat (constructor; tas).
 Qed.
 
-Lemma trans_leq_term {cf} Σ ϕ T U :
-  PCUICEquality.leq_term Σ ϕ T U ->
+Lemma trans_leq_term {cf} Σ ϕ Γ T U :
+  PCUICEquality.leq_term Σ ϕ Γ T U ->
   TermEquality.leq_term (trans_global_env Σ) ϕ (trans T) (trans U).
 Proof.
   eapply trans_eq_term_upto_univ ; eauto.
@@ -1487,7 +1487,7 @@ Section wtcumul.
   Reserved Notation " Σ ;;; Γ |-- t <= u " (at level 50, Γ, t, u at next level).
 
   Inductive wt_cumul `{checker_flags} (Σ : global_env_ext) (Γ : context) : term -> term -> Type :=
-  | wt_cumul_refl t u : leq_term Σ.1 (global_ext_constraints Σ) t u -> Σ ;;; Γ |-- t <= u
+  | wt_cumul_refl t u : leq_term Σ.1 (global_ext_constraints Σ) Γ t u -> Σ ;;; Γ |-- t <= u
   | wt_cumul_red_l t u v : wt_red1 Σ Γ t v -> Σ ;;; Γ |-- v <= u -> Σ ;;; Γ |-- t <= u
   | wt_cumul_red_r t u v : Σ ;;; Γ |-- t <= v -> wt_red1 Σ Γ u v -> Σ ;;; Γ |-- t <= u
   where " Σ ;;; Γ |-- t <= u " := (wt_cumul Σ Γ t u) : type_scope.

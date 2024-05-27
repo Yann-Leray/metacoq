@@ -352,22 +352,6 @@ Qed.
 
 (** ** Prelim on typing *)
 
-Inductive red_decls Σ Γ Γ' : forall (x y : context_decl), Type :=
-| conv_vass na na' T T' : isType Σ Γ' T' -> red Σ Γ T T' ->
-  eq_binder_annot na na' ->
-  red_decls Σ Γ Γ' (vass na T) (vass na' T')
-
-| conv_vdef_type na na' b T T' : isType Σ Γ' T' -> red Σ Γ T T' ->
-  eq_binder_annot na na' ->
-  red_decls Σ Γ Γ' (vdef na b T) (vdef na' b T')
-
-| conv_vdef_body na na' b b' T : isType Σ Γ' T ->
-  eq_binder_annot na na' ->
-  Σ ;;; Γ' |- b' : T -> red Σ Γ b b' ->
-  red_decls Σ Γ Γ' (vdef na b T) (vdef na' b' T).
-
-Notation red_context Σ := (All2_fold (red_decls Σ)).
-
 Lemma conv_context_app (Σ : global_env_ext) (Γ1 Γ2 Γ1' : context) :
   wf Σ ->
   wf_local Σ (Γ1 ,,, Γ2) ->

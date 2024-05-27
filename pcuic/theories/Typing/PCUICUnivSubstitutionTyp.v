@@ -96,8 +96,8 @@ Proof.
   - rewrite !subst_instance_mkApps.
     eapply cumul_proj. now rewrite nth_error_map Hargs.
   - eapply cumul_Trans; intuition eauto.
-    * rewrite on_free_vars_ctx_subst_instance; eauto.
-    * rewrite on_free_vars_subst_instance. unfold is_open_term.
+    * rewrite closedn_subst_instance_context; eauto.
+    * rewrite closedn_subst_instance.
       replace #|Γ@[u]| with #|Γ|; eauto. rewrite map_length; eauto.
   - eapply cumul_Evar. eapply All2_map.
     repeat toAll.

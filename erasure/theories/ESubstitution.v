@@ -3,7 +3,7 @@
 From Coq Require Import Program ssreflect.
 From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import config.
-From MetaCoq.PCUIC Require Import PCUICAst PCUICLiftSubst PCUICTyping
+From MetaCoq.PCUIC Require Import PCUICAst PCUICLiftSubst PCUICTyping PCUICEquality
      PCUICGlobalEnv PCUICWeakeningConv PCUICWeakeningTyp PCUICSubstitution
      PCUICWeakeningEnv PCUICWeakeningEnvTyp PCUICOnFreeVars PCUICElimination PCUICFirstorder.
 From MetaCoq.Erasure Require Import EGlobalEnv Extract Prelim.
@@ -174,6 +174,7 @@ Proof.
   intros hctx.
   rewrite /inst_case_branch_context /= /id.
   rewrite -rename_context_lift_context.
+  rewrite test_context_k_closed_on_free_vars_ctx in hctx.
   rewrite PCUICRenameConv.rename_inst_case_context_wf //.
   f_equal. apply map_ext => x.
   now setoid_rewrite <- PCUICSigmaCalculus.lift_rename.
@@ -245,7 +246,7 @@ Proof.
       intros (hnth & ? & ? & ? & (? & ?) & ? & ?) []. split => //.
       rewrite lift_inst_case_branch_context //.
       { rewrite test_context_k_closed_on_free_vars_ctx.
-        eapply alpha_eq_on_free_vars. symmetry; tea.
+        eapply eq_context_upto_names_on_free_vars. symmetry; tea.
         rewrite -closedn_ctx_on_free_vars.
         rewrite (wf_predicate_length_pars H0).
         rewrite (declared_minductive_ind_npars isdecl).
@@ -391,8 +392,8 @@ Lemma subst_case_branch_context {cf : checker_flags} {Σ : global_env_ext} {wfΣ
 Proof.
   intros decl wfp a.
   rewrite (PCUICCasesContexts.inst_case_branch_context_eq a).
-  rewrite subst_inst_case_context_wf.  rewrite test_context_k_closed_on_free_vars_ctx.
-  eapply alpha_eq_on_free_vars. symmetry; eassumption.
+  rewrite subst_inst_case_context_wf.  rewrite closedn_ctx_on_free_vars.
+  eapply eq_context_upto_names_on_free_vars. symmetry; eassumption.
   rewrite (wf_predicate_length_pars wfp).
   rewrite (PCUICGlobalEnv.declared_minductive_ind_npars decl).  rewrite -closedn_ctx_on_free_vars.
   eapply PCUICClosedTyp.closed_cstr_branch_context; tea.

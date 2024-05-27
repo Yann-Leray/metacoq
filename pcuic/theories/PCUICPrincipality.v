@@ -388,30 +388,30 @@ Proof.
   now symmetry.
 Qed.
 
-Lemma eq_term_leq_term {cf:checker_flags} {Σ : global_env_ext} {x y} :
-  eq_term Σ Σ x y ->
-  leq_term Σ Σ x y.
+Lemma eq_term_leq_term {cf:checker_flags} {Σ : global_env_ext} {Γ} {x y} :
+  eq_term Σ Σ Γ x y ->
+  leq_term Σ Σ Γ x y.
 Proof.
   eapply eq_term_upto_univ_impl; auto; typeclasses eauto.
 Qed.
 
-Lemma eq_term_empty_leq_term {cf:checker_flags} {Σ : global_env_ext} {x y} :
-  eq_term empty_global_env Σ x y ->
-  leq_term empty_global_env Σ x y.
+Lemma eq_term_empty_leq_term {cf:checker_flags} {Σ : global_env_ext} {Γ} {x y} :
+  eq_term empty_global_env Σ Γ x y ->
+  leq_term empty_global_env Σ Γ x y.
 Proof.
   eapply eq_term_upto_univ_impl; auto; typeclasses eauto.
 Qed.
 
-Lemma eq_term_empty_eq_term {cf:checker_flags} {Σ : global_env_ext} {x y} :
-  eq_term empty_global_env Σ x y ->
-  eq_term Σ Σ x y.
+Lemma eq_term_empty_eq_term {cf:checker_flags} {Σ : global_env_ext} {Γ} {x y} :
+  eq_term empty_global_env Σ Γ x y ->
+  eq_term Σ Σ Γ x y.
 Proof.
   eapply eq_term_upto_univ_empty_impl; auto; typeclasses eauto.
 Qed.
 
-Lemma leq_term_empty_leq_term {cf:checker_flags} {Σ : global_env_ext} {x y} :
-  leq_term empty_global_env Σ x y ->
-  leq_term Σ Σ x y.
+Lemma leq_term_empty_leq_term {cf:checker_flags} {Σ : global_env_ext} {Γ} {x y} :
+  leq_term empty_global_env Σ Γ x y ->
+  leq_term Σ Σ Γ x y.
 Proof.
   eapply eq_term_upto_univ_empty_impl; auto; typeclasses eauto.
 Qed.
@@ -426,17 +426,17 @@ Proof.
   all: eapply eq_term_upto_univ_empty_impl; tea; tc.
 Qed.
 
-Lemma eq_context_upto_inst_case_context {cf : checker_flags} {Σ : global_env_ext} pars pars' puinst puinst' ctx :
-  All2 (eq_term_upto_univ empty_global_env (compare_universe Σ) (compare_sort Σ) Conv) pars pars' ->
+Lemma eq_context_upto_inst_case_context {cf : checker_flags} {Σ : global_env_ext} {Γ} pars pars' puinst puinst' ctx :
+  forallb wf_term pars ->
+  closedn_ctx #|pars| ctx ->
+  All2 (eq_term_upto_univ empty_global_env (compare_universe Σ) (compare_sort Σ) Γ Conv) pars pars' ->
   cmp_universe_instance (eq_universe Σ) puinst puinst' ->
-  eq_context_upto Σ.1 (compare_universe Σ) (compare_sort Σ) Conv (inst_case_context pars puinst ctx)
+  eq_context_upto_rel Σ.1 (compare_universe Σ) (compare_sort Σ) Conv Γ (inst_case_context pars puinst ctx)
     (inst_case_context pars' puinst' ctx).
 Proof.
-  intros onps oninst.
-  rewrite /inst_case_context.
-  eapply eq_context_upto_subst_context. 1,2: tc.
-  eapply eq_context_upto_univ_subst_instance; tc; auto.
-  eapply All2_rev. eapply All2_impl; tea.
+  intros wfpars clctx onps oninst.
+  eapply PCUICEqualityLemmas.eq_context_inst_case_context; tc; trea.
+  eapply All2_impl; tea.
   intros. now eapply eq_term_empty_eq_term.
 Qed.
 
@@ -447,7 +447,7 @@ Lemma typing_leq_term {cf:checker_flags} (Σ : global_env_ext) Γ t t' T T' :
   on_udecl Σ.1 Σ.2 ->
   Σ ;;; Γ |- t : T ->
   Σ ;;; Γ |- t' : T' ->
-  leq_term empty_global_env Σ t' t ->
+  leq_term empty_global_env Σ Γ t' t ->
   (* No cumulativity of inductive types, as they can relate
     inductives in different sorts. *)
   Σ ;;; Γ |- t' : T.
@@ -457,11 +457,11 @@ Proof.
   eapply (typing_ind_env
   (fun Σ Γ t T =>
     forall (onu : on_udecl Σ.1 Σ.2),
-    forall t' T' : term, Σ ;;; Γ |- t' : T' -> leq_term empty_global_env Σ t' t -> Σ;;; Γ |- t' : T)
+    forall t' T' : term, Σ ;;; Γ |- t' : T' -> leq_term empty_global_env Σ Γ t' t -> Σ;;; Γ |- t' : T)
   (fun Σ Γ j =>
     on_udecl Σ.1 Σ.2 ->
     lift_typing0 (fun t T =>
-      forall t' T' : term, Σ ;;; Γ |- t' : T' -> leq_term empty_global_env Σ t' t -> Σ;;; Γ |- t' : T)
+      forall t' T' : term, Σ ;;; Γ |- t' : T' -> leq_term empty_global_env Σ Γ t' t -> Σ;;; Γ |- t' : T)
     j)
   (fun Σ Γ => wf_local Σ Γ)).
   { intros ???? H ?; apply lift_typing_impl with (1 := H) => ??[] HT IH //. now apply IH. }
@@ -470,7 +470,7 @@ Proof.
   all: intros Σ wfΣ Γ wfΓ; intros.
 
   1-13:match goal with
-    [ H : leq_term _ _ _ _ |- _ ] => depelim H
+    [ H : leq_term _ _ _ _ _ |- _ ] => depelim H
     end.
   all:try solve [econstructor; eauto].
 
@@ -486,6 +486,8 @@ Proof.
       eassumption. constructor. eauto. }
     all:eauto.
     2:{ pcuic. }
+    eapply eq_term_upto_univ_eq_ctx in X5_2.
+    2: { constructor. 2: constructor; tea. reflexivity. }
     specialize (X3 onu _ _ Hb X5_2).
     econstructor; eauto.
     { specialize (X1 onu). rewrite e. apply lift_sorting_it_impl_gen with X1 => // IH. eapply IH; tea. 1: now eapply unlift_TypUniv in Ha. }
@@ -497,13 +499,15 @@ Proof.
     constructor. now symmetry.
 
   - eapply inversion_Lambda in X4 as (B & dom & codom & cum); auto.
-    apply eq_term_empty_eq_term in X5_1.
+    apply eq_term_empty_eq_term in X5_1 as X5_1'.
     assert(conv_context cumulAlgo_gen Σ (Γ ,, vass na0 ty) (Γ ,, vass na t)).
     { repeat constructor; pcuic. }
     specialize (X3 onu t0 B).
     forward X3 by eapply context_conversion; eauto; pcuic.
     eapply (type_ws_cumul_pb (pb:=Conv)).
     * econstructor. eauto. instantiate (1 := bty).
+      eapply eq_term_upto_univ_eq_ctx in X5_2.
+      2: { constructor. 2: constructor; tea. reflexivity. }
       eapply context_conversion; eauto; pcuic.
       constructor; pcuic. constructor; pcuic. symmetry; constructor; auto.
     * have tyl := type_Lambda _ _ _ _ _ _ X0 X2.
@@ -516,11 +520,13 @@ Proof.
 
   - eapply inversion_LetIn in X4 as (A & dombod & codom & cum); auto.
     apply unlift_TermTyp in dombod as dombod', X0 as X0'.
-    apply eq_term_empty_eq_term in X5_1.
-    apply eq_term_empty_eq_term in X5_2.
+    apply eq_term_empty_eq_term in X5_1 as X5_1'.
+    apply eq_term_empty_eq_term in X5_2 as X5_2'.
     assert(Σ ⊢ Γ ,, vdef na0 t ty = Γ ,, vdef na b b_ty).
     { constructor. eapply ws_cumul_ctx_pb_refl. fvs. constructor => //.
       constructor; fvs. constructor; fvs. }
+    eapply eq_term_upto_univ_eq_ctx in X5_3.
+    2: { constructor. 2: constructor; tea. reflexivity. }
     specialize (X3 onu u A).
     forward X3 by eapply closed_context_conversion; eauto; pcuic.
     specialize (X3 X5_3).
@@ -617,13 +623,16 @@ Proof.
       { eapply on_free_vars_subst. eapply inds_is_open_terms.
         len. len in cld. rewrite shiftnP_add.
         now rewrite on_free_vars_subst_instance. }
-      eapply PCUICEquality.subst_eq_term.
+      eapply @compare_term_subst with (Γ' := arities_context (ind_bodies mdecl)) (Γ'' := []).
+      { eapply wf_term_inds. }
+      { rewrite wf_term_subst_instance. eauto with fvs. }
       eapply PCUICUnivSubstitutionConv.eq_term_upto_univ_subst_instance; eauto; typeclasses eauto.
 
   - eassert (ctx_inst _ _ _ _) as Hctxi by now eapply ctx_inst_impl with (1 := X5).
     assert (isType Σ Γ (mkApps ptm (indices ++ [c]))).
     { eapply validity. econstructor; eauto. all:split; eauto.
       solve_all. }
+    apply subject_wf_term in X9 as wft. PCUICClosed.inv_wf_term.
     eapply inversion_Case in X9 as (mdecl' & idecl' & decli' & indices' & data & cum); auto.
     unshelve epose proof (isdecl_ := declared_inductive_to_gen isdecl); eauto.
     unshelve epose proof (decli'_ := declared_inductive_to_gen decli'); eauto.
@@ -645,9 +654,17 @@ Proof.
       eapply PCUICEquality.eq_term_upto_univ_it_mkLambda_or_LetIn; tea. tc.
       rewrite /predctx.
       rewrite /case_predicate_context /case_predicate_context_gen.
-      eapply eq_context_upto_names_map2_set_binder_name. tea.
-      rewrite /pre_case_predicate_context_gen.
-      eapply eq_context_upto_inst_case_context => //.
+      eapply PCUICAlpha.eq_context_upto_names_map2_set_binder_name; tea.
+      { apply eq_annots_inst_case_context. apply eq_context_upto_names_binder_annot. congruence. }
+      eapply eq_context_upto_subst_context0 with (Γ' := PCUICEqualityLemmas.fake_params #|pparams p0|); tea. 1,2: tc.
+      { apply All2_rev. solve_all. now apply eq_term_empty_eq_term. }
+      { rewrite forallb_rev //. }
+      { rewrite PCUICClosed.wf_term_ctx_subst_instance. eapply PCUICClosed.closedn_ctx_wf_term_ctx, PCUICClosed.closed_ind_predicate_context; tea. eapply declared_minductive_closed. apply isdecl. }
+      eapply PCUICUnivSubstitutionConv.eq_context_upto_names_subst_instance; trea; tc.
+      eapply eq_term_upto_univ_eq_ctx_upto_names; tea.
+      apply All2_app; trea. symmetry.
+      apply PCUICAlpha.inst_case_predicate_context_eq; tea. now symmetry.
+
       eapply All2_app. 2:constructor; pcuic.
       specialize (X3 _ _ scrut_ty (eq_term_empty_leq_term X10)).
       unshelve epose proof (principal_type_ind scrut_ty X3) as [[_ indconv] _]; tea.
@@ -747,7 +764,7 @@ Lemma typing_eq_term {cf:checker_flags} (Σ : global_env_ext) Γ t t' T T' :
   wf_ext Σ ->
   Σ ;;; Γ |- t : T ->
   Σ ;;; Γ |- t' : T' ->
-  eq_term empty_global_env Σ t t' ->
+  eq_term empty_global_env Σ Γ t t' ->
   Σ ;;; Γ |- t' : T.
 Proof.
   intros wfΣ ht ht' eq.

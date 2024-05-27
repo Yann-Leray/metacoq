@@ -1315,12 +1315,41 @@ Qed.
 #[global]
 Hint Rewrite test_context_map : map.
 
+Lemma test_context_mapi (p : term -> bool) (f : nat -> term -> term) ctx k :
+  test_context p (mapi_context (shiftf f k) ctx) = test_context_k (fun k => p ∘ f k) k ctx.
+Proof using Type.
+  induction ctx; simpl; auto.
+  rewrite IHctx. f_equal.
+  now rewrite test_decl_map_decl.
+Qed.
+#[global]
+Hint Rewrite test_context_mapi : map.
+
+Lemma test_context_k_ctx (p : term -> bool) k ctx :
+  test_context p ctx = test_context_k (fun k => p) k ctx.
+Proof using Type.
+  induction ctx; simpl; auto.
+Qed.
+#[global]
+Hint Rewrite test_context_k_ctx : map.
+
 Lemma test_context_app (p : term -> bool) Γ Δ :
   test_context p (Γ ,,, Δ) = test_context p Γ && test_context p Δ.
 Proof using Type.
   induction Δ; simpl; auto.
   - now rewrite andb_true_r.
   - now rewrite IHΔ andb_assoc.
+Qed.
+
+Lemma test_context_ext (p q : term -> bool) (Γ : context) :
+  (p =1 q) ->
+  test_context p Γ = test_context q Γ.
+Proof.
+  intros hfg.
+  induction Γ; simpl; auto.
+  rewrite IHΓ /test_decl {2}hfg.
+  destruct decl_body => //=.
+  now rewrite hfg.
 Qed.
 
 Lemma onctx_test P (p q : term -> bool) ctx :

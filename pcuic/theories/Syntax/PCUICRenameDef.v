@@ -49,7 +49,8 @@ Definition urenaming (P : nat -> bool) Γ Δ f :=
 Definition renaming P Σ Γ Δ f :=
   wf_local Σ Δ × urenaming P Γ Δ f.
 
-Definition renaming_closed Γ Δ f := urenaming (closedP #|Γ| xpredT) Γ Δ f.
+(* [nth_error Γ i = Some decl] already implies [i < #|Γ|] *)
+Definition renaming_closed Γ Δ f := urenaming xpredT Γ Δ f.
 
 Lemma urenaming_mrenaming P Γ Δ f :
   urenaming P Γ Δ f -> mrenaming P (marks_of_context Γ) (marks_of_context Δ) f.

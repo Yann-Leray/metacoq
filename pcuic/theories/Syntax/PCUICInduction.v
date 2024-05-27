@@ -371,6 +371,13 @@ Proof.
   + apply X; cbn.
 Qed.
 
+Lemma ctx_ind (P :  context -> Type)
+  (pnil : P []) (pvass : forall na A Γ, P Γ -> P (Γ ,, vass na A))
+  (pdef : forall na b B Γ, P Γ -> P (Γ ,, vdef na b B)) Γ : P Γ.
+Proof.
+  induction Γ as [| [na [b|] ty] Γ ] => //; eauto.
+Qed.
+
 Lemma ctx_length_ind (P : context -> Type) (p0 : P [])
   (pS : forall d Γ, (forall Γ', #|Γ'| <= #|Γ| -> P Γ') -> P (d :: Γ))
   Γ : P Γ.

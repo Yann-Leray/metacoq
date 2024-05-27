@@ -4,7 +4,7 @@ From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import config.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICLiftSubst PCUICTyping PCUICCumulativity
      PCUICReduction PCUICWeakeningConv PCUICWeakeningTyp PCUICEquality PCUICUnivSubstitutionConv
-     PCUICSigmaCalculus PCUICContextReduction
+     PCUICSigmaCalculus PCUICContextReduction PCUICEqualityLemmas
      PCUICParallelReduction PCUICParallelReductionConfluence PCUICClosedConv PCUICClosedTyp
      PCUICRedTypeIrrelevance PCUICOnFreeVars PCUICConfluence PCUICSubstitution.
 
@@ -37,7 +37,7 @@ Implicit Types (cf : checker_flags) (Σ : global_env_ext).
 Inductive ws_cumul_pb {cf} (pb : conv_pb) (Σ : global_env_ext) (Γ : context) : term -> term -> Type :=
 | ws_cumul_pb_compare (t u : term) :
   is_closed_context Γ -> is_open_term Γ t -> is_open_term Γ u ->
-  compare_term Σ.1 (global_ext_constraints Σ) pb t u -> Σ ;;; Γ ⊢ t ≤[pb] u
+  compare_term Σ.1 (global_ext_constraints Σ) Γ pb t u -> Σ ;;; Γ ⊢ t ≤[pb] u
 | ws_cumul_pb_red_l (t u v : term) :
   is_closed_context Γ ->
   is_open_term Γ t -> is_open_term Γ u -> is_open_term Γ v ->
@@ -66,7 +66,7 @@ Proof.
   move=> x y; elim.
   - move=> t u clΓ clt clu eq.
     constructor 1; eauto with fvs.
-    cbn in *; now symmetry.
+    apply eq_term_upto_univ_sym; tea; tc.
   - move=> t u v clΓ clt clu clv r c c'.
     econstructor 3; tea.
   - move=> t u v clΓ clt clu clv r c c'.
@@ -125,7 +125,7 @@ Lemma ws_cumul_pb_alt `{cf : checker_flags} {pb} {Σ : global_env_ext} {wfΣ : w
   Σ ;;; Γ ⊢ t ≤[pb] u <~>
   ∑ v v',
     [× is_closed_context Γ, is_open_term Γ t, is_open_term Γ u,
-      red Σ Γ t v, red Σ Γ u v' & compare_term Σ (global_ext_constraints Σ) pb v v'].
+      red Σ Γ t v, red Σ Γ u v' & compare_term Σ (global_ext_constraints Σ) Γ pb v v'].
 Proof.
   split.
   - induction 1.
@@ -172,20 +172,20 @@ Proof.
   eapply ws_cumul_pb_alt.
   destruct (red_confluence (Γ := exist Γ clΓ) (t:=exist u clu) uu' uu'') as [u'nf [ul ur]].
   destruct pb; cbn in *.
-  { eapply red_eq_term_upto_univ_r in ul as [tnf [redtnf ?]]; tea; try tc.
-    eapply red_eq_term_upto_univ_l in ur as [unf [redunf ?]]; tea; try tc.
+  { eapply red_eq_term_upto_univ_r in ul as [tnf [redtnf ?]]; tea; try tc; eauto with fvs.
+    eapply red_eq_term_upto_univ_l in ur as [unf [redunf ?]]; tea; try tc; eauto with fvs.
     exists tnf, unf.
     split; auto; eauto with fvs.
     - now transitivity t'.
     - now transitivity v'.
-    - now transitivity u'nf. }
-  { eapply red_eq_term_upto_univ_r in ul as [tnf [redtnf ?]]; tea; try tc.
-    eapply red_eq_term_upto_univ_l in ur as [unf [redunf ?]]; tea; try tc.
+    - eapply eq_term_upto_univ_trans; tea; tc. }
+  { eapply red_eq_term_upto_univ_r in ul as [tnf [redtnf ?]]; tea; try tc; eauto with fvs.
+    eapply red_eq_term_upto_univ_l in ur as [unf [redunf ?]]; tea; try tc; eauto with fvs.
     exists tnf, unf.
     split; eauto with fvs.
     - now transitivity t'.
     - now transitivity v'.
-    - now transitivity u'nf. }
+    - eapply eq_term_upto_univ_trans; tea; tc. }
 Qed.
 
 Arguments wt_cumul_pb_dom {cf pb Σ Γ T U}.
@@ -294,7 +294,7 @@ Lemma ws_cumul_pb_alt_closed {cf} {pb} {Σ : global_env_ext} {wfΣ : wf Σ} Γ t
   Σ ;;; Γ ⊢ t ≤[pb] u <~>
   ∑ v v',
     [× closed_red Σ Γ t v, closed_red Σ Γ u v' &
-       compare_term Σ (global_ext_constraints Σ) pb v v'].
+       compare_term Σ (global_ext_constraints Σ) Γ pb v v'].
 Proof.
   etransitivity. apply ws_cumul_pb_alt.
   split; intros (v & v' & cl); exists v, v'; intuition.

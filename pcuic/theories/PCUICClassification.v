@@ -961,10 +961,8 @@ Section classification.
       pose proof (subject_is_open_term t0).
       eapply substitution_let in t0; eauto.
       eapply subject_reduction in t0.
-      3:{ eapply (red_red (Δ := [vass na t]) (Γ' := [])); eauto. 3:repeat constructor.
-          cbn. rewrite addnP_shiftnP. eapply type_is_open_term in t0'. now erewrite t0'.
-          repeat constructor. cbn. rewrite addnP_shiftnP.
-          eapply subject_is_open_term in t0'. cbn in t0'. now setoid_rewrite shiftnP0 in t0'. }
+      3:{ eapply (red_red (Δ := [vass na t]) (Γ' := [])); eauto. 3,4:repeat constructor.
+          all: eauto with fvs. }
       apply t0. auto.
 
     - redt (subst_instance u body); auto.

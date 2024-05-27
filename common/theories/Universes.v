@@ -1397,6 +1397,9 @@ Section Univ.
   Global Instance leq_universe_antisym φ : Antisymmetric _ (eq_universe φ) (leq_universe φ).
   Proof using Type. intros t u tu ut. now apply eq_universe_leq_universe. Qed.
 
+  Global Instance compare_universe_antisym φ pb : Antisymmetric _ (eq_universe φ) (compare_universe φ pb).
+  Proof using Type. intros t u tu ut. destruct pb => //. now apply eq_universe_leq_universe. Qed.
+
   Global Instance leq_universe_partial_order φ
     : PartialOrder (eq_universe φ) (leq_universe φ).
   Proof.
@@ -1981,6 +1984,11 @@ Section SortCompare.
 
   End GeneralLemmas.
 
+  Global Instance compare_sort_antisym φ pb : Antisymmetric _ (eq_sort φ) (compare_sort φ pb).
+  Proof using Type.
+    destruct pb => //.
+    apply leq_sort_antisym.
+  Qed.
 
   (** Universes with linear hierarchy *)
   Definition concrete_sort := Sort.t_ nat.

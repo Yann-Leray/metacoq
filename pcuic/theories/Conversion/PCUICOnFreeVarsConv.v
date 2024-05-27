@@ -146,6 +146,11 @@ Proof.
   rewrite shiftnP0; eauto.
 Defined.
 
+Lemma wf_term_rename f u :
+  wf_term u -> wf_term (rename f u).
+Proof.
+  rewrite !wf_term_on_free_vars on_free_vars_rename //.
+Defined.
 
 
 
@@ -158,8 +163,7 @@ Lemma on_free_vars_ctx_inst_case_context
   on_free_vars_ctx P (Γ,,, inst_case_context pars puinst pctx).
 Proof.
   intros. rewrite on_free_vars_ctx_app H1 /=.
-  eapply on_free_vars_ctx_inst_case_context; trea; solve_all.
-  rewrite test_context_k_closed_on_free_vars_ctx //.
+  now eapply on_free_vars_ctx_inst_case_context.
 Qed.
 
 

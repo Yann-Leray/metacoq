@@ -243,6 +243,30 @@ Module Environment (T : Term).
     | [] => Γ
     end.
 
+  Lemma is_assumption_context_app Γ Γ' :
+    is_assumption_context (Γ ,,, Γ') = is_assumption_context Γ && is_assumption_context Γ'.
+  Proof.
+    induction Γ' => //=; rewrite andb_comm => //=.
+    destruct decl_body => //. rewrite andb_comm => //.
+  Qed.
+
+  Lemma is_assumption_context_fold_context_k f Γ :
+    is_assumption_context (fold_context_k f Γ) = is_assumption_context Γ.
+  Proof.
+    induction Γ => //=.
+    rewrite fold_context_k_snoc0 /=.
+    destruct decl_body => //=.
+  Qed.
+
+  Lemma is_assumption_context_smash_context Γ Δ :
+    is_assumption_context (smash_context Δ Γ) = is_assumption_context Δ.
+  Proof.
+    induction Γ in Δ |- * => //=.
+    destruct a as [na [b|] ty]; cbn; auto.
+    - rewrite IHΓ is_assumption_context_fold_context_k //.
+    - rewrite IHΓ is_assumption_context_app //.
+  Qed.
+
   Lemma smash_context_length Γ Γ' : #|smash_context Γ Γ'| = #|Γ| + context_assumptions Γ'.
   Proof.
     induction Γ' as [|[na [body|] ty] tl] in Γ |- *; cbn; eauto.
@@ -306,6 +330,14 @@ Module Environment (T : Term).
 
   Definition fix_context (m : mfixpoint term) : context :=
     List.rev (mapi (fun i d => vass d.(dname) (lift i 0 d.(dtype))) m).
+
+  Lemma is_assumption_context_fix_context mfix :
+    is_assumption_context (fix_context mfix).
+  Proof.
+    rewrite /fix_context /mapi /=. generalize 0 at 2.
+    induction mfix => //= n.
+    rewrite is_assumption_context_app /= IHmfix //.
+  Qed.
 
   (** *** Environments *)
 
@@ -1224,6 +1256,13 @@ Module Environment (T : Term).
   Notation on_decls P := (fun Γ Γ' => All_decls (P Γ Γ')).
   Notation on_contexts P := (All2_fold (on_decls P)).
   Notation on_contexts_over P Γ Γ' := (All2_fold (All_over (on_decls P) Γ Γ')).
+
+  Lemma on_contexts_over_nil P Γ Γ' :
+    on_contexts_over P [] [] Γ Γ' <~> on_contexts P Γ Γ'.
+  Proof.
+    split; intro X; eapply All2_fold_impl; tea; clear Γ Γ' X.
+    all: cbv -[app]; intros ????; rewrite !app_nil_r //.
+  Qed.
 
 End Environment.
 

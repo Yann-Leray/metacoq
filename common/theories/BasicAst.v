@@ -32,6 +32,22 @@ Definition map_binder_annot {A B} (f : A -> B) (b : binder_annot A) : binder_ann
 Definition eq_binder_annot {A B} (b : binder_annot A) (b' : binder_annot B) : Prop :=
   b.(binder_relevance) = b'.(binder_relevance).
 
+#[global]
+Instance eq_binder_annot_equiv {A} : RelationClasses.Equivalence (@eq_binder_annot A A).
+Proof.
+  split.
+  - red. reflexivity.
+  - red; now symmetry.
+  - intros x y z; unfold eq_binder_annot.
+    apply transitivity.
+Qed.
+
+Definition eq_binder_annot_refl {A} x : @eq_binder_annot A A x x.
+Proof. reflexivity. Qed.
+
+#[global]
+Hint Resolve eq_binder_annot_refl : core.
+
 (** Type of annotated names *)
 Definition aname := binder_annot name.
 #[global] Instance anqme_eqdec : Classes.EqDec aname := _.
@@ -398,6 +414,14 @@ Section ContextTest.
     | d :: Γ => test_context Γ && test_decl f d
     | [] => true
     end.
+
+  Lemma test_context_forallb c :
+    test_context c = forallb (test_decl f) c.
+  Proof.
+    induction c => //=.
+    rewrite andb_comm IHc //.
+  Qed.
+
 End ContextTest.
 
 #[global] Instance test_context_proper {term} : Proper (`=1` ==> Logic.eq ==> Logic.eq) (@test_context term).
@@ -638,25 +662,31 @@ Section Contexts.
     now rewrite fold_context_k_alt /mapi alli_mapi.
   Qed.
 
-  Lemma test_decl_map_decl f g x : (@test_decl term) f (map_decl g x) = @test_decl term (f ∘ g) x.
+  Lemma test_decl_map_decl f g x : (@test_decl term) f (map_decl g x) = @test_decl term' (f ∘ g) x.
   Proof using Type.
     rewrite /test_decl /map_decl /=.
     f_equal. rewrite /option_default.
     destruct (decl_body x) => //.
   Qed.
 
-  Lemma map_fold_context_k (f : term' -> term) (g : nat -> term'' -> term') ctx :
+  Lemma map_decl_fold_context_k (f : term' -> term) (g : nat -> term'' -> term') ctx :
     map (map_decl f) (fold_context_k g ctx) = fold_context_k (fun i => f ∘ g i) ctx.
   Proof using Type.
     rewrite !fold_context_k_alt map_mapi.
     apply mapi_ext => i d. now rewrite compose_map_decl.
   Qed.
 
+  Lemma map_fold_context_k (f : term' -> term) (g : nat -> term'' -> term') ctx :
+    map_context f (fold_context_k g ctx) = fold_context_k (fun i => f ∘ g i) ctx.
+  Proof using Type.
+    apply map_decl_fold_context_k.
+  Qed.
+
   Lemma map_context_mapi_context (f : term' -> term) (g : nat -> term'' -> term') (ctx : list (BasicAst.context_decl term'')) :
     map_context f (mapi_context g ctx) =
     mapi_context (fun i => f ∘ g i) ctx.
   Proof using Type.
-    rewrite !mapi_context_fold. now unfold map_context; rewrite map_fold_context_k.
+    rewrite !mapi_context_fold. now rewrite map_fold_context_k.
   Qed.
 
   Lemma mapi_context_map (f : nat -> term' -> term) (g : context_decl term'' -> context_decl term') ctx :

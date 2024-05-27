@@ -577,10 +577,10 @@ Section CheckEnv.
 
   Notation eqb_term_conv X conv_pb := (eqb_term_upto_univ (abstract_env_compare_universe X) (abstract_env_compare_sort X) (abstract_env_compare_global_instance _ X) conv_pb).
 
-  Program Definition check_eq_term pb X_ext t u
+  Program Definition check_eq_term pb X_ext Γ t u
      (wft : forall Σ, abstract_env_ext_rel X_ext Σ -> wf_universes Σ t)
      (wfu : forall Σ, abstract_env_ext_rel X_ext Σ -> wf_universes Σ u) :
-      typing_result (forall Σ, abstract_env_ext_rel X_ext Σ -> ∥ compare_term Σ Σ pb t u ∥) :=
+      typing_result (forall Σ, abstract_env_ext_rel X_ext Σ -> ∥ compare_term Σ Σ Γ pb t u ∥) :=
      check <- check_eq_true (eqb_term_conv X_ext pb t u) (Msg "Terms are not equal") ;;
     ret _.
     Next Obligation.
@@ -588,23 +588,23 @@ Section CheckEnv.
       eapply cmpb_term_correct in check; sq; eauto.
     Qed.
 
-  Program Definition check_eq_decl pb X_ext d d'
+  Program Definition check_eq_decl pb X_ext Γ d d'
      (wfd : forall Σ, abstract_env_ext_rel X_ext Σ -> wf_decl_universes Σ d)
      (wfd' : forall Σ, abstract_env_ext_rel X_ext Σ -> wf_decl_universes Σ d') :
-     typing_result (forall Σ, abstract_env_ext_rel X_ext Σ -> ∥ compare_decl Σ Σ pb d d' ∥) :=
+     typing_result (forall Σ, abstract_env_ext_rel X_ext Σ -> ∥ compare_decl Σ Σ Γ pb d d' ∥) :=
     match d, d' return (forall Σ, abstract_env_ext_rel X_ext Σ -> wf_decl_universes Σ d) ->
                        (forall Σ, abstract_env_ext_rel X_ext Σ -> wf_decl_universes Σ d') ->
                        typing_result _ with
     | {| decl_name := na; decl_body := Some b; decl_type := ty |},
       {| decl_name := na'; decl_body := Some b'; decl_type := ty' |} => fun _ _ =>
       eqna <- check_eq_true (eqb_binder_annot na na') (Msg "Binder annotations do not match") ;;
-      eqb <- check_eq_term Conv X_ext b b' _ _;;
-      leqty <- check_eq_term pb X_ext ty ty' _ _;;
+      eqb <- check_eq_term Conv X_ext Γ b b' _ _;;
+      leqty <- check_eq_term pb X_ext Γ ty ty' _ _;;
       ret (fun Σ wfΣ => _)
     | {| decl_name := na; decl_body := None; decl_type := ty |},
       {| decl_name := na'; decl_body := None; decl_type := ty' |} => fun _ _ =>
       eqna <- check_eq_true (eqb_binder_annot na na') (Msg "Binder annotations do not match") ;;
-      cumt <- check_eq_term pb X_ext ty ty' _ _ ;;
+      cumt <- check_eq_term pb X_ext Γ ty ty' _ _ ;;
       ret (fun Σ wfΣ => _)
     | _, _ => fun _ _ => raise (Msg "While checking syntactic cumulativity of contexts: declarations do not match")
     end wfd wfd'.
@@ -641,7 +641,7 @@ Section CheckEnv.
     | [], [] => fun _ _ => ret (fun Σ wfΣ => sq (All2_fold_nil _))
     | decl :: Γ, decl' :: Δ => fun _ _ =>
       cctx <- check_compare_context pb X_ext Γ Δ _ _ ;;
-      cdecl <- check_eq_decl pb X_ext decl decl' _ _ ;;
+      cdecl <- check_eq_decl pb X_ext Γ decl decl' _ _ ;;
       ret (fun Σ wfΣ => _)
     | _, _ => fun _ _ => raise (Msg "While checking ws_cumul_pb of contexts: contexts do not have the same length")
     end wfΓ wfΔ.
@@ -662,16 +662,16 @@ Section CheckEnv.
       constructor; auto.
     Qed.
 
-  Program Fixpoint check_leq_terms (pb : conv_pb) X_ext l l'
+  Program Fixpoint check_leq_terms (pb : conv_pb) X_ext Γ l l'
     (wfl : forall Σ, abstract_env_ext_rel X_ext Σ -> forallb (wf_universes Σ) l)
     (wfl' : forall Σ, abstract_env_ext_rel X_ext Σ -> forallb (wf_universes Σ) l') :
-    typing_result (forall Σ, abstract_env_ext_rel X_ext Σ -> ∥ All2 (compare_term Σ Σ pb) l l' ∥) :=
+    typing_result (forall Σ, abstract_env_ext_rel X_ext Σ -> ∥ All2 (compare_term Σ Σ Γ pb) l l' ∥) :=
     match l, l' return (forall Σ, abstract_env_ext_rel X_ext Σ -> forallb (wf_universes Σ) l) ->
                        (forall Σ, abstract_env_ext_rel X_ext Σ -> forallb (wf_universes Σ) l') -> _ with
     | [], [] => fun  _ _ => ret (fun Σ wfΣ => sq _)
     | t :: l, t' :: l' => fun _ _ =>
-      cctx <- check_leq_terms pb X_ext l l' _ _ ;;
-      cdecl <- check_eq_term pb X_ext t t' _ _;;
+      cctx <- check_leq_terms pb X_ext Γ l l' _ _ ;;
+      cdecl <- check_eq_term pb X_ext Γ t t' _ _;;
       ret (fun Σ wfΣ => _)
     | _, _ => fun _ _ => raise (Msg "While checking ws_cumul_pb of term lists: lists do not have the same length")
     end wfl wfl'.
@@ -1547,7 +1547,7 @@ Section CheckEnv.
             (subst_instance u' (expand_lets_ctx (ind_params mdecl) (smash_context [] (cstr_args cs))))
              _ _) ;;
         check_indices <- wrap_error _ X' (string_of_kername id)
-          (check_leq_terms Conv X'
+          (check_leq_terms Conv X' []
             (map (subst_instance u ∘ expand_lets (ind_params mdecl ,,, cs.(cstr_args))) (cstr_indices cs))
             (map (subst_instance u' ∘ expand_lets (ind_params mdecl ,,, cs.(cstr_args))) (cstr_indices cs))
             _ _ ) ;;
@@ -1598,6 +1598,20 @@ Section CheckEnv.
     wf_ctx_universes Σ (Γ ,,, Δ) = wf_ctx_universes Σ Γ && wf_ctx_universes Σ Δ.
   Proof using Type.
     now rewrite /wf_ctx_universes /app_context forallb_app andb_comm.
+  Qed.
+
+  Lemma eq_context_cumul_Spec_rel Σ Ξ0 Γ Δ :
+    compare_context Σ Cumul Γ Δ -> cumul_ctx_rel cumulSpec0 Σ Ξ0 Γ Δ.
+  Proof using cf.
+    intros e.
+    eapply All2_fold_impl. 1: tea. cbn; intros.
+    destruct X.
+    - econstructor 1; eauto.
+      eapply eq_term_upto_univ_cumulSpec; eauto.
+      now eapply eq_term_upto_univ_ctx_cheat.
+    - econstructor 2; eauto.
+      all: eapply eq_term_upto_univ_cumulSpec; eauto.
+      all: now eapply eq_term_upto_univ_ctx_cheat.
   Qed.
 
   Next Obligation.
@@ -1686,10 +1700,10 @@ Section CheckEnv.
       intros v0 [= <-].
       red. rewrite -Heq_anonymous.
       split; auto. erewrite (abstract_env_irr _ _ wfΣ0); eauto.
-      now eapply PCUICContextConversionTyp.eq_context_cumul_Spec_rel.
+      now eapply eq_context_cumul_Spec_rel.
       clear check_args.
       eapply All2_impl. eauto. simpl; intros. erewrite (abstract_env_irr _ _ wfΣ0); eauto.
-      now eapply eq_term_upto_univ_cumulSpec.
+      now eapply eq_term_upto_univ_cumulSpec, eq_term_upto_univ_ctx_cheat.
       Unshelve. all: eauto.
     Qed.
     Next Obligation.
@@ -2076,7 +2090,7 @@ End monad_Alli_nth_forall.
     unfold on_variance in mdeclvar.
     rewrite -eqvar in mdeclvar.
     destruct (ind_universes mdecl) as [|[inst cstrs]] => //.
-    now eapply PCUICContextConversionTyp.eq_context_cumul_Spec_rel.
+    now eapply eq_context_cumul_Spec_rel.
   Qed.
 
   Next Obligation.

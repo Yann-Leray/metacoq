@@ -58,8 +58,7 @@ Lemma weakening_closed_red {cf} {Σ} {wfΣ : wf Σ} {Γ Γ' Γ'' M N} :
 Proof.
   intros onf onctx.
   eapply into_closed_red.
-  - destruct onf. eapply weakening_red; tea.
-    now rewrite on_free_vars_ctx_on_ctx_free_vars.
+  - destruct onf. eapply weakening_red; tea; eauto with fvs.
   - eapply is_closed_context_lift; eauto with fvs.
   - eapply is_open_term_lift; eauto with fvs.
 Qed.
@@ -1458,11 +1457,7 @@ Proof.
       rewrite {1}H.
       change (tRel  (#|Δ'| + (n - #|Δ'|))) with
           (lift0 #|Δ'| (tRel (n - #|Δ'|))).
-      eapply (weakening_red (Γ' := [])); auto.
-      { erewrite on_free_vars_ctx_on_ctx_free_vars; tea.
-        clear X.
-        now eapply wf_local_closed_context in wf. }
-      { cbn. rewrite /PCUICOnFreeVars.shiftnP app_length. nat_compare_specs => //. }
+      eapply (weakening_red (Γ' := [])); eauto with fvs.
       simpl.
       set (i := n - #|Δ'|) in *. clearbody i.
       clear l Hle H.
@@ -1484,21 +1479,14 @@ Proof.
         autorewrite with len in H.
         rewrite -{}H.
         rewrite -{3 4}Hf.
-        eapply (weakening_red (Γ' := [])); auto. simpl.
-        { clear X; apply wf_local_closed_context in wf.
-          move: wf.
-          erewrite on_free_vars_ctx_on_ctx_free_vars.
-          rewrite !on_free_vars_ctx_app => /andP[] onΓ. erewrite onΓ => /=.
-          rewrite -{1}(firstn_skipn (S i) Δ) on_free_vars_ctx_app => /andP[] //.
-        }
-        { clear X; eapply (All_local_env_nth_error (n:=i)) in wf.
-          2: rewrite nth_error_app_lt; eassumption.
-          rewrite skipn_app in wf.
-          replace (S i - #|Δ|) with 0 in wf. 2:lia.
-          rewrite skipn_0 in wf.
-          rewrite /= in wf.
-          move: wf => [] /subject_closed //.
-          rewrite is_open_term_closed //. }
+        eapply (weakening_red (Γ' := [])).
+        { have wfΓΔ : wf_term_ctx (Γ ,,, Δ) by eauto with fvs.
+          rewrite !wf_term_ctx_app in wfΓΔ |- *; rtoProp; repeat split; auto.
+          now apply wf_term_ctx_skipn. }
+        { have wfΓΔ : wf_term_ctx (Γ ,,, Δ) by eauto with fvs.
+          rewrite wf_term_ctx_app in wfΓΔ. move/andP: wfΓΔ => [] _ wfΔ.
+          eapply nth_error_wf_term_ctx in wfΔ; tea.
+          move/andP: wfΔ => [] //. }
         rewrite skipn_length; simpl.
         apply All_local_env_over_2 in X.
         eapply (All_local_env_nth_error (n:=i)) in X.
@@ -3178,31 +3166,6 @@ Section WfEnv.
     All (is_open_term Γ) s.
   Proof using wfΣ.
     induction 1; try constructor; eauto using subject_is_open_term.
-  Qed.
-
-  Lemma ctx_inst_eq_context {Γ Δ : context} {args args'} :
-    wf_local Σ (Γ ,,, List.rev Δ) ->
-    PCUICTyping.ctx_inst
-          (fun (Γ : context) (u A : term) =>
-          forall v : term, upto_names' u v -> Σ;;; Γ |- v : A) Γ args Δ ->
-    ctx_inst Σ Γ args Δ ->
-    All2 upto_names' args args' ->
-    ctx_inst Σ Γ args' Δ.
-  Proof using wfΣ.
-    intros wf ctxi ctxi' a.
-    eapply All2_ctx_inst; tea.
-    2:exact ctxi. 2:auto.
-    cbn; clear -wfΣ; intros.
-    eapply substitution_ws_cumul_ctx_pb.
-    now eapply subslet_untyped_subslet.
-    now eapply subslet_untyped_subslet.
-    eapply All2_rev.
-    move/All_local_env_app_inv: X => [] /All_local_env_app_inv[] /wf_local_closed_context clΓ0 _ _.
-    eapply subslet_open_terms, All_rev_inv in X0.
-    eapply subslet_open_terms, All_rev_inv in X1.
-    solve_all. eapply into_ws_cumul_pb; tea.
-    constructor. now apply upto_names_impl_eq_term.
-    all:eauto with fvs.
   Qed.
 
 End WfEnv.

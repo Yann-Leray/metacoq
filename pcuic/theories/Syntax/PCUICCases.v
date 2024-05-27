@@ -385,13 +385,13 @@ Qed.
 
 (** *** Helper functions for reduction/conversion *)
 
-Definition fix_subst (l : mfixpoint term) :=
-  let fix aux n :=
+Definition fix_subst (mfix : mfixpoint term) :=
+  let fix fix_subst n :=
       match n with
       | 0 => []
-      | S n => tFix l n :: aux n
+      | S n => tFix mfix n :: fix_subst n
       end
-  in aux (List.length l).
+  in fix_subst #|mfix|.
 
 Definition unfold_fix (mfix : mfixpoint term) (idx : nat) :=
   match List.nth_error mfix idx with
@@ -399,13 +399,13 @@ Definition unfold_fix (mfix : mfixpoint term) (idx : nat) :=
   | None => None
   end.
 
-Definition cofix_subst (l : mfixpoint term) :=
-  let fix aux n :=
+Definition cofix_subst (mfix : mfixpoint term) :=
+  let fix cofix_subst n :=
       match n with
       | 0 => []
-      | S n => tCoFix l n :: aux n
+      | S n => tCoFix mfix n :: cofix_subst n
       end
-  in aux (List.length l).
+  in cofix_subst #|mfix|.
 
 Definition unfold_cofix (mfix : mfixpoint term) (idx : nat) :=
   match List.nth_error mfix idx with
@@ -413,6 +413,33 @@ Definition unfold_cofix (mfix : mfixpoint term) (idx : nat) :=
   | None => None
   end.
 
+Lemma nth_error_fix_subst mfix n b :
+  nth_error (fix_subst mfix) n = Some b ->
+  b = tFix mfix (#|mfix| - S n).
+Proof using Type.
+  unfold fix_subst.
+  generalize #|mfix| as k.
+  induction k in n, b |- *.
+  1: now rewrite nth_error_nil //.
+  simpl.
+  destruct n; simpl.
+  - intros [= <-]. f_equal. lia.
+  - apply IHk.
+Qed.
+
+Lemma nth_error_cofix_subst mfix n b :
+  nth_error (cofix_subst mfix) n = Some b ->
+  b = tCoFix mfix (#|mfix| - S n).
+Proof using Type.
+  unfold cofix_subst.
+  generalize #|mfix| as k.
+  induction k in n, b |- *.
+  1: now rewrite nth_error_nil //.
+  simpl.
+  destruct n; simpl.
+  - intros [= <-]. f_equal. lia.
+  - apply IHk.
+Qed.
 
 Lemma fix_subst_length mfix : #|fix_subst mfix| = #|mfix|.
 Proof.

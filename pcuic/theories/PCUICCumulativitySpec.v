@@ -4,7 +4,7 @@ From Equations.Type Require Import Relation Relation_Properties.
 From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import config BasicAst Reflect.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICOnOne PCUICAstUtils PCUICEquality
-     PCUICLiftSubst PCUICUnivSubst PCUICCases PCUICOnFreeVars.
+     PCUICLiftSubst PCUICUnivSubst PCUICCases PCUICClosed PCUICOnFreeVars.
 
 Set Default Goal Selector "!".
 
@@ -60,12 +60,12 @@ Definition cumul_Construct_univ {cf} (Σ : global_env_ext) pb  i k napp :=
 
 (** * Definition of cumulativity and conversion relations *)
 Local Unset Elimination Schemes.
-Inductive cumulSpec0 {cf : checker_flags} (Σ : global_env_ext) Γ (pb : conv_pb) : term -> term -> Type :=
+Inductive cumulSpec0 {cf : checker_flags} (Σ : global_env_ext) (Γ : context) (pb : conv_pb) : term -> term -> Type :=
 
 (* transitivity *)
 
 | cumul_Trans : forall t u v,
-    is_closed_context Γ -> is_open_term Γ u ->
+    closed_ctx Γ -> closedn #|Γ| u ->
     Σ ;;; Γ ⊢ t ≤s[pb] u ->
     Σ ;;; Γ ⊢ u ≤s[pb] v ->
     Σ ;;; Γ ⊢ t ≤s[pb] v
@@ -325,11 +325,11 @@ Lemma cumulSpec0_rect :
 
     (* transitivity *)
     (forall (Γ : context) (pb : conv_pb) (t u v : term)
-            (Hclosed_ctx : is_closed_context Γ) (Hopen_term : is_open_term Γ u)
+            (clΓ : closed_ctx Γ) (clu : closedn #|Γ| u)
             (Htu : cumulSpec0 Σ Γ pb t u) (_ : P cf Σ Γ pb t u Htu)
             (Huv : cumulSpec0 Σ Γ pb u v) (_ : P cf Σ Γ pb u v Huv),
         P cf Σ Γ pb t v
-          (cumul_Trans _ _ _ _ _ _ Hclosed_ctx Hopen_term Htu Huv)) ->
+          (cumul_Trans _ _ _ _ _ _ clΓ clu Htu Huv)) ->
 
     (* symmetry *)
     (forall (Γ : context) (pb : conv_pb) (t u : term)
@@ -599,11 +599,11 @@ Lemma convSpec0_ind_all :
 
         (* transitivity *)
        (forall (Γ : context) (t u v : term)
-               (Hclosed_ctx : is_closed_context Γ) (Hopen_term : is_open_term Γ u)
+               (clΓ : closed_ctx Γ) (clu : closedn #|Γ| u)
                (Htu : cumulSpec0 Σ Γ Conv t u) (_ : P cf Σ Γ Conv t u Htu)
                (Huv : cumulSpec0 Σ Γ Conv u v) (_ : P cf Σ Γ Conv u v Huv),
            P cf Σ Γ Conv t v
-             (cumul_Trans _ _ _ _ _ _ Hclosed_ctx Hopen_term Htu Huv)) ->
+             (cumul_Trans _ _ _ _ _ _ clΓ clu Htu Huv)) ->
 
         (* symmetry *)
        (forall (Γ : context) (t u : term)

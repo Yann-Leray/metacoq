@@ -17,7 +17,7 @@ From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICPrimitive
 
 From MetaCoq.PCUIC Require Import PCUICArities PCUICSpine.
 From MetaCoq.PCUIC Require PCUICWcbvEval.
-From MetaCoq.PCUIC Require Import PCUICEquality PCUICAlpha.
+From MetaCoq.PCUIC Require Import PCUICEquality PCUICAlphaDef PCUICAlpha.
 
 Section firstorder.
 
@@ -722,10 +722,9 @@ Lemma firstorder_value_alpha Σ t t' :
   t = t'.
 Proof.
   intros Ha H. induction H in t', Ha |- using firstorder_value_inds.
-  eapply eq_term_upto_univ_napp_mkApps_l_inv in Ha as (? & ? & [] & ->).
+  eapply alpha_eq_term_mkApps_l_inv in Ha as (? & args' & -> & e & a).
   invs e. repeat f_equal.
-  - now eapply cmp_universe_instance_eq.
-  - revert x0 a. clear - H0. induction H0; intros; invs a; f_equal; eauto.
+  - revert args' a. clear - H0. induction H0; intros; invs a; f_equal; eauto.
 Qed.
 
 End cf.

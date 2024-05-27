@@ -28,23 +28,12 @@ Definition red_one_ctx_rel (Σ : global_env) (Γ : context) :=
   OnOne2_local_env
     (on_one_decl (fun (Δ : context) (t t' : term) => red Σ (Γ,,, Δ) t t')).
 
+Definition red_ctx Σ := clos_refl_trans (red1_ctx Σ).
 Definition red_ctx_rel Σ Γ := clos_refl_trans (red1_ctx_rel Σ Γ).
- *)
-(*
-Inductive red_decls Σ (Γ Γ' : context) : forall (x y : context_decl), Type :=
-| red_vass na T T' :
-    red Σ Γ T T' ->
-    red_decls Σ Γ Γ' (vass na T) (vass na T')
 
-| red_vdef_body na b b' T T' :
-    red Σ Γ b b' ->
-    red Σ Γ T T' ->
-    red_decls Σ Γ Γ' (vdef na b T) (vdef na b' T').
-Derive Signature NoConfusion for red_decls.
-
-Definition red_context Σ := All2_fold (red_decls Σ).
+Definition red_context Σ := All2_fold (on_decls (fun Γ _ => red Σ Γ)).
 Definition red_context_rel Σ Γ :=
-  All2_fold (fun Δ Δ' => red_decls Σ (Γ ,,, Δ) (Γ ,,, Δ')).
+  All2_fold (on_decls (fun Δ Δ' => red Σ (Γ ,,, Δ))).
 
 
   Inductive term_context :=

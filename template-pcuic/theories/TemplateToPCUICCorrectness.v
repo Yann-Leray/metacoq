@@ -858,14 +858,14 @@ Section Trans_Global.
     induction 1 in l' |- *; intros H; depelim H; intros H'; depelim H'; cbn; constructor; auto.
   Qed.
 
-  Lemma trans_eq_term_upto_univ {cmp_universe cmp_sort pb napp t u} :
+  Lemma trans_eq_term_upto_univ {cmp_universe cmp_sort Γ pb napp t u} :
     WfAst.wf Σ t ->
     WfAst.wf Σ u ->
     SEq.eq_term_upto_univ_napp Σ cmp_universe cmp_sort pb napp t u ->
-    eq_term_upto_univ_napp (trans_global_env Σ) cmp_universe cmp_sort pb napp (trans (trans_global_env Σ) t) (trans (trans_global_env Σ) u).
+    eq_term_upto_univ_napp (trans_global_env Σ) cmp_universe cmp_sort Γ pb napp (trans (trans_global_env Σ) t) (trans (trans_global_env Σ) u).
   Proof.
     intros wt wu e.
-    induction t using Induction.term_forall_list_rect in pb, napp, wt, u, wu, e |- *.
+    induction t using Induction.term_forall_list_rect in Γ, pb, napp, wt, u, wu, e |- *.
     all: invs e; cbn.
     all: try solve [ constructor ; auto ].
     all: repeat (match goal with
@@ -875,7 +875,7 @@ Section Trans_Global.
     all: try solve [
       repeat constructor ; auto ;
       match goal with
-      | ih : forall pb napp (u : Ast.term), _ |- _ =>
+      | ih : forall Γ pb napp (u : Ast.term), _ |- _ =>
         now eapply ih
       end
     ].
@@ -900,7 +900,7 @@ Section Trans_Global.
       destruct X.
       constructor. all: try solve [
         match goal with
-        | ih : forall pb napp u, _ |- _ =>
+        | ih : forall Γ pb napp u, _ |- _ =>
           now eapply ih
         end
       ].
@@ -977,27 +977,27 @@ Section Trans_Global.
       + solve_all.
   Qed.
 
-  Lemma trans_leq_term ϕ T U :
+  Lemma trans_leq_term ϕ Γ T U :
     WfAst.wf Σ T -> WfAst.wf Σ U -> SEq.leq_term Σ ϕ T U ->
-    leq_term (trans_global_env Σ) ϕ (trans Σ' T) (trans Σ' U).
+    leq_term (trans_global_env Σ) ϕ Γ (trans Σ' T) (trans Σ' U).
   Proof.
     intros HT HU H.
     eapply trans_eq_term_upto_univ ; eauto.
   Qed.
 
-  Lemma trans_eq_term φ t u :
+  Lemma trans_eq_term φ Γ t u :
     WfAst.wf Σ t -> WfAst.wf Σ u -> SEq.eq_term Σ φ t u ->
-    eq_term (trans_global_env Σ) φ (trans Σ' t) (trans Σ' u).
+    eq_term (trans_global_env Σ) φ Γ (trans Σ' t) (trans Σ' u).
   Proof.
     intros HT HU H.
     eapply trans_eq_term_upto_univ ; eauto.
   Qed.
 
-  Lemma trans_eq_term_list {φ l l'} :
+  Lemma trans_eq_term_list {φ Γ l l'} :
       All (WfAst.wf Σ) l ->
       All (WfAst.wf Σ) l' ->
       All2 (SEq.eq_term Σ φ) l l' ->
-      All2 (eq_term (trans_global_env Σ) φ) (List.map (trans Σ') l) (List.map (trans Σ') l').
+      All2 (eq_term (trans_global_env Σ) φ Γ) (List.map (trans Σ') l) (List.map (trans Σ') l').
   Proof.
     intros w w' h.
     eapply All2_map.

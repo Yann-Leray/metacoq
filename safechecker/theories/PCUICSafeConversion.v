@@ -39,15 +39,16 @@ Qed.
 Lemma closed_red_mkApps_tConst_axiom {cf} {Σ} {wfΣ : wf Σ} {Γ} {cst u} {args : list term} {cb c} :
   declared_constant Σ cst cb -> cst_body cb = None ->
   Σ ;;; Γ ⊢ mkApps (tConst cst u) args ⇝ c ->
-  ∑ args' : list term,
-  (c = mkApps (tConst cst u) args') * (red_terms Σ Γ args args').
+  ∑ args',
+    c = mkApps (tConst cst u) args' × red_terms Σ Γ args args'.
 Proof.
   intros decl hcb [clΓ clt r].
-  eapply (PCUICConfluence.red_mkApps_tConst_axiom (Γ := exist Γ clΓ)) in decl as [args' [eq r']]; tea.
+  eapply (PCUICConfluence.red_mkApps_tConst_axiom) in decl as [args' [eq r']]; tea.
   * exists args'; split; auto.
     eapply into_red_terms; auto.
     inv_on_free_vars. solve_all.
-  * cbn. inv_on_free_vars; solve_all.
+  * now eapply on_free_vars_ctx_wf_term_ctx.
+  * cbn. inv_on_free_vars; solve_all. now eapply on_free_vars_wf_term.
 Qed.
 
 (** * Conversion for PCUIC without fuel
@@ -162,8 +163,8 @@ Section Conversion.
 
   Definition eqt u v := ∥ u = v :> term ∥.
 
-  Lemma eqt_eqterm {Σ} {wfΣ : abstract_env_ext_rel X Σ} {u v} :
-    u = v -> eq_term Σ Σ u v.
+  Lemma eqt_eqterm {Σ} {wfΣ : abstract_env_ext_rel X Σ} {Γ u v} :
+    u = v -> eq_term Σ Σ Γ u v.
   Proof using Type.
     intros <-.
     reflexivity.
@@ -182,7 +183,7 @@ Section Conversion.
     intros u v p vp e.
     destruct e as [e'].
     eapply eq_term_valid_pos. all: eauto. now eapply eqt_eqterm.
-    Unshelve. all:eauto.
+    Unshelve. all:eauto. constructor.
   Qed.
 
   Definition weqt {Γ} (u v : wterm Γ) :=
@@ -1916,8 +1917,8 @@ Qed.
       depelim a2. clear a1 a2.
       destruct p0 as [p0 _].
       cbn in p0.
-      eapply PCUICConfluence.eq_context_upto_names_on_free_vars.
-      2:symmetry; exact p0.
+      eapply eq_context_upto_names_on_free_vars.
+      1:symmetry; exact p0.
       rewrite <-closedn_ctx_on_free_vars.
       destruct ci. cbn.
       eapply PCUICClosed.closedn_ctx_upwards.
@@ -1946,8 +1947,8 @@ Qed.
     - eapply (wf_predicate_length_pars wf_pred0).
     - etransitivity; tea.
       now symmetry.
-    - eapply PCUICConfluence.eq_context_upto_names_on_free_vars.
-      2:symmetry; exact p0.
+    - eapply eq_context_upto_names_on_free_vars.
+      1:symmetry; exact p0.
       rewrite <- closedn_ctx_on_free_vars.
       destruct ci. cbn.
       eapply PCUICClosed.closedn_ctx_upwards.
@@ -2051,6 +2052,7 @@ Qed.
     - unfold app_context. rewrite <- app_assoc. eapply ws_cumul_ctx_pb_app_same; auto.
       rewrite on_free_vars_ctx_app.
       apply andb_true_iff. split; auto. 1:now apply ws_cumul_ctx_pb_closed_left in hx.
+      rewrite test_context_k_closed_on_free_vars_ctx in clm'.
       eapply on_free_vars_ctx_inst_case_context; trea.
       destruct hp.
       now eapply (ws_cumul_pb_terms_open_terms_right a).
@@ -2685,11 +2687,11 @@ Qed.
     - revert hl'. apply reflect_iff, wf_instanceP.
   Qed.
 
-  Lemma cmpb_term_correct Σ (wfΣ : abstract_env_ext_rel X Σ) pb napp t u :
+  Lemma cmpb_term_correct Σ (wfΣ : abstract_env_ext_rel X Σ) Γ pb napp t u :
     wf_universes Σ t ->
     wf_universes Σ u ->
     cmpb_term_napp pb napp t u <~>
-    compare_term_napp Σ Σ pb napp t u.
+    compare_term_napp Σ Σ Γ pb napp t u.
   Proof.
     intros ht hu.
     eassert _ as H.
@@ -3069,8 +3071,8 @@ Qed.
       #|pparams p| p.(pcontext)).
     { rewrite test_context_k_closed_on_free_vars_ctx.
       destruct hcase.
-      eapply PCUICConfluence.eq_context_upto_names_on_free_vars.
-      2:symmetry; exact conv_pctx.
+      eapply eq_context_upto_names_on_free_vars.
+      1:symmetry; exact conv_pctx.
       rewrite <- closedn_ctx_on_free_vars.
       eapply PCUICClosed.closedn_ctx_upwards.
       { eapply (closed_ind_predicate_context); tea.
@@ -3092,8 +3094,8 @@ Qed.
       now symmetry.
     - now rewrite <- test_context_k_closed_on_free_vars_ctx.
     - rewrite test_context_k_closed_on_free_vars_ctx.
-      eapply PCUICConfluence.eq_context_upto_names_on_free_vars.
-      2:symmetry; exact conv_pctx0.
+      eapply eq_context_upto_names_on_free_vars.
+      1:symmetry; exact conv_pctx0.
       rewrite <- closedn_ctx_on_free_vars.
       relativize #|pparams p'|.
       { eapply (closed_ind_predicate_context); tea.
@@ -3201,6 +3203,7 @@ Qed.
       rewrite on_free_vars_ctx_app.
       apply andb_true_iff. split; auto.
       1:now eapply ws_cumul_ctx_pb_closed_left in hx.
+      rewrite test_context_k_closed_on_free_vars_ctx in i2.
       eapply on_free_vars_ctx_inst_case_context; trea.
       fvs.
      - destruct (case_conv_preds_inv _ wfΣ h1 _ _ _ h2 hx (conv_params Σ wfΣ)) as []; tea.

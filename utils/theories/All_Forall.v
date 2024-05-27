@@ -689,8 +689,9 @@ Lemma All2_impl {A B} {P Q : A -> B -> Type} {l l'} :
     (forall x y, P x y -> Q x y) ->
     All2 Q l l'.
 Proof.
-  induction 1; constructor; auto.
-Qed.
+  intros H f.
+  induction H; constructor; auto.
+Defined.
 
 Lemma All2_eq_eq {A} (l l' : list A) : l = l' -> All2 (fun x y => x = y) l l'.
 Proof.
@@ -1078,54 +1079,48 @@ Proof.
   intros A R P hhd htl l l' h. induction h ; eauto.
 Qed.
 
-Lemma OnOne2_impl_exist_and_All :
-  forall A (l1 l2 l3 : list A) R1 R2 R3,
-    OnOne2 R1 l1 l2 ->
-    All2 R2 l3 l2 ->
-    (forall x x' y, R1 x y -> R2 x' y -> ∑ z : A, R3 x z × R2 x' z) ->
-    ∑ l4, OnOne2 R3 l1 l4 × All2 R2 l3 l4.
+Lemma OnOne2_All2_forallb_exists A (l1 l2 l3 : list A) P p Q R :
+  OnOne2 P l1 l2 ->
+  forallb p l1 ->
+  All2 R l1 l3 ->
+  (forall x y z, P x y -> p x -> R x z -> ∑ t : A, Q z t × R y t) ->
+  ∑ l4, OnOne2 Q l3 l4 × All2 R l2 l4.
 Proof.
-  intros A l1 l2 l3 R1 R2 R3 h1 h2 h.
-  induction h1 in l3, h2 |- *.
-  - destruct l3.
-    + inversion h2.
-    + inversion h2. subst.
-    specialize (h _ _ _ p X) as hh.
-    destruct hh as [? [? ?]].
+  intros h1 h2 h3 H.
+  induction h1 in l3, h2, h3 |- *.
+  - destruct l3; inversion h3; subst.
+    apply andb_and in h2 as [h21 h2].
+    specialize (H _ _ _ p0 h21 X) as [? [? ?]].
     eexists. constructor.
       * constructor. eassumption.
       * constructor ; eauto.
-  - destruct l3.
-    + inversion h2.
-    + inversion h2. subst.
-    specialize (IHh1 _ X0). destruct IHh1 as [? [? ?]].
+  - destruct l3; inversion h3; subst.
+    apply andb_and in h2 as [h21 h2].
+    specialize (IHh1 _ h2 X0) as [? [? ?]].
     eexists. constructor.
       * eapply OnOne2_tl. eassumption.
       * constructor ; eauto.
 Qed.
 
-Lemma OnOne2_impl_exist_and_All_r :
-  forall A (l1 l2 l3 : list A) R1 R2 R3,
-    OnOne2 R1 l1 l2 ->
-    All2 R2 l2 l3 ->
-    (forall x x' y, R1 x y -> R2 y x' -> ∑ z : A, R3 x z × R2 z x') ->
-    ∑ l4, ( OnOne2 R3 l1 l4 × All2 R2 l4 l3 ).
+Lemma OnOne2_All2_forallb_exists_r A (l1 l2 l3 : list A) P p Q R :
+  OnOne2 P l1 l2 ->
+  forallb p l1 ->
+  All2 R l3 l2 ->
+  (forall x y z, P x y -> p x -> R z y -> ∑ t : A, Q x t × R z t) ->
+  ∑ l4, OnOne2 Q l1 l4 × All2 R l3 l4.
 Proof.
-  intros A l1 l2 l3 R1 R2 R3 h1 h2 h.
-  induction h1 in l3, h2 |- *.
-  - destruct l3.
-    + inversion h2.
-    + inversion h2. subst.
-      specialize (h _ _ _ p X) as hh.
-      destruct hh as [? [? ?]].
-      eexists. split.
+  intros h1 h2 h3 H.
+  induction h1 in l3, h2, h3 |- *.
+  - destruct l3; inversion h3; subst.
+    apply andb_and in h2 as [h21 h2].
+    specialize (H _ _ _ p0 h21 X) as [? [? ?]].
+    eexists. constructor.
       * constructor. eassumption.
       * constructor ; eauto.
-  - destruct l3.
-    + inversion h2.
-    + inversion h2. subst.
-      specialize (IHh1 _ X0). destruct IHh1 as [? [? ?]].
-      eexists. split.
+  - destruct l3; inversion h3; subst.
+    apply andb_and in h2 as [h21 h2].
+    specialize (IHh1 _ h2 X0) as [? [? ?]].
+    eexists. constructor.
       * eapply OnOne2_tl. eassumption.
       * constructor ; eauto.
 Qed.
@@ -3580,6 +3575,14 @@ Proof.
   induction Γ in Δ |- *; split; auto. constructor.
   depelim X. specialize (IHΓ Δ). intuition auto.
   depelim X. constructor; auto. specialize (IHΓ Δ); intuition auto.
+Qed.
+
+Lemma All2_fold_All_mix_left {A} P Q (Γ Γ' : list A) :
+  All P Γ ->
+  All2_fold Q Γ Γ' ->
+  All2_fold (fun Γ Γ' d d' => P d × Q Γ Γ' d d') Γ Γ'.
+Proof.
+  induction 1 in Γ' |- *; intros H; depelim H; constructor; auto.
 Qed.
 
 Lemma All2_fold_All_fold_mix_left {A} P Q (Γ Γ' : list A) :

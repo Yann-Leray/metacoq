@@ -200,7 +200,7 @@ Proof.
   { len. by apply wf_branch_length. }
   eapply on_free_vars_ctx_inst_case_context ; tea.
   1: reflexivity.
-  rewrite test_context_k_closed_on_free_vars_ctx -closedn_ctx_on_free_vars.
+  rewrite -closedn_ctx_on_free_vars.
   erewrite wf_predicate_length_pars ; eauto.
   erewrite <- onNpars.
   2: eapply PCUICInductives.oi.

@@ -539,7 +539,7 @@ Proof.
   { eapply eq_context_upto_ws_cumul_ctx_pb => //.
     rewrite is_closed_context_set_binder_name //.
     apply eq_context_upto_cat. reflexivity.
-    apply eq_context_upto_names_eq_context_upto; tc.
+    apply eq_context_upto_names_eq_context_upto_rel; tc.
     apply eq_binder_annots_eq => //. }
   depelim a; cbn in *; constructor; auto;
   eapply (ws_cumul_pb_ws_cumul_ctx (pb':=Conv)); tea.
@@ -664,21 +664,20 @@ Qed. *)
 Lemma red_one_decl_red_ctx {cf} {Σ} {wfΣ : wf Σ} {Γ Δ Δ'} :
   is_closed_context (Γ ,,, Δ) ->
   OnOne2_local_env (fun Δ : context => on_one_decl (red1 Σ (Γ ,,, Δ))) Δ Δ' ->
-  red_ctx Σ (Γ ,,, Δ) (Γ ,,, Δ').
+  red_context Σ (Γ ,,, Δ) (Γ ,,, Δ').
 Proof.
   intros iscl o.
-  eapply red_ctx_red_context.
+  have wfΓΔ : wf_term_ctx (Γ ,,, Δ) by eauto with fvs.
   apply red_context_app.
   eapply red_context_refl.
-  apply red_ctx_rel_red_context_rel. tea.
-  now apply on_free_vars_ctx_on_ctx_free_vars_closedP_impl.
+  apply red_ctx_rel_red_context_rel; tea.
   constructor. exact o.
 Qed.
 
 Lemma into_closed_red_ctx {cf} {Σ} {wfΣ : wf Σ} {Γ Δ} :
   is_closed_context Γ ->
-  red_ctx Σ Γ Δ ->
-  closed_red_ctx Σ Γ Δ.
+  red_context Σ Γ Δ ->
+  closed_red_context Σ Γ Δ.
 Proof.
   intros iscl red.
   apply on_free_vars_ctx_All_fold in iscl.
@@ -708,7 +707,7 @@ Lemma red_one_decl_ws_cumul_ctx_pb {cf} {Σ} {wfΣ : wf Σ} {Γ Δ Δ'} :
   OnOne2_local_env (fun Δ : context => on_one_decl (red1 Σ (Γ ,,, Δ))) Δ Δ' ->
   Σ ⊢ Γ ,,, Δ = Γ ,,, Δ'.
 Proof.
-  intros; now eapply red_ctx_ws_cumul_ctx_pb, red_one_decl_red_context.
+  intros; now eapply red_context_ws_cumul_ctx_pb, red_one_decl_red_context.
 Qed.
 
 Lemma red1_it_mkLambda_or_LetIn_ctx {cf} {Σ} {wfΣ : wf Σ} Γ Δ Δ' u :
@@ -1260,7 +1259,7 @@ Proof.
   intros eqctx []; split; auto.
   - eapply eq_context_upto_names_on_free_vars; tea.
   - now rewrite -(All2_length eqctx).
-  - eapply red1_eq_context_upto_names; tea.
+  - eapply PCUICRedTypeIrrelevance.red1_eq_context_upto_names; tea.
 Qed.
 
 Lemma closed_red1_ws_cumul_pb {cf} {Σ} {wfΣ : wf Σ} {Γ} {t u} :
@@ -1319,7 +1318,7 @@ Proof.
   intros r cl. split => //.
   apply is_closed_context_lift => //. apply r.
   apply is_open_term_lift, r.
-  apply weakening_red1 => //. eapply on_free_vars_impl, r => //.
+  apply weakening_red1 => //. eauto with fvs.
   apply r.
 Qed.
 
@@ -1662,14 +1661,12 @@ Proof.
     eapply type_Cumul_alt; [eapply type_App| |]; eauto with wf.
     eapply validity.
     eapply type_App; eauto. eapply red_cumul_inv.
-    eapply (@red_red _ _ wf _ Γ [vass na A] [] [u] [N2]); eauto.
-    erewrite -> on_free_vars_ctx_on_ctx_free_vars.
-    eapply on_free_vars_ctx_snoc_ass; tea.
-    eapply type_closed in typeu. now eapply closedn_on_free_vars.
-    eapply type_closed in typet. cbn in typet; repeat inv_on_free_vars.
-    cbn. now eapply closedn_on_free_vars. constructor. apply: red1_red Hu. constructor.
-    all:repeat constructor. cbn.
-    rewrite -(shiftnP_add 1) addnP_shiftnP. repeat inv_on_free_vars => //.
+    apply subject_closed, closedn_wf_term in IHB; inv_wf_term.
+    eapply (@red_red _ _ wf Γ [vass na A] [] [u] [N2]); eauto.
+    + rewrite /=/test_decl/=; eauto with fvs.
+    + repeat constructor. apply: Hu.
+    + repeat constructor. eauto with fvs.
+    + repeat constructor.
 
   - (* Constant unfolding *)
     unshelve epose proof (H' := declared_constant_to_gen H); eauto.
@@ -2179,8 +2176,8 @@ Proof.
       now eapply wf_local_closed_context.
       now eapply wf_local_closed_context.
       eapply upto_names_conv_context.
-      eapply eq_context_upto_cat. apply eq_context_upto_refl; tc.
-      now apply eq_context_upto_names_eq_context_alpha. }
+      eapply All2_app; trea.
+      now apply PCUICAlphaDef.eq_context_upto_names_alpha_eq_context. }
     epose proof (wf_case_branches_types' (p:=set_pparams p params') ps _ brs isdecl isty' wfp').
     cbv zeta in X9; forward_keep X9.
     { eapply closed_context_conversion; tea. }
@@ -2433,7 +2430,7 @@ Proof.
     + now eapply validity in typecofix.
     + eapply conv_cumul.
       rewrite (subst_app_simpl [mkApps (subst0 (cofix_subst mfix) (dbody d)) args0]) (subst_app_simpl [mkApps (tCoFix mfix idx) args0]).
-      eapply conv_sym, PCUICCumulativity.red_conv.
+      eapply PCUICEqualityLemmas.conv_sym, PCUICCumulativity.red_conv.
       destruct (on_declared_projection isdecl) as [[oi hctors] onp].
       eassert (projsubs := subslet_projs (args := args) isdecl).
       set (oib := declared_inductive_inv _ _ _ _) in *. simpl in onp, projsubs.
@@ -2881,15 +2878,13 @@ Proof.
         eapply (weakening_red1 _ []); auto.
         2:eapply red.
         pose proof (Hs := HT.2.π2.1.1).
-        eapply subject_closed in Hs.
-        eapply (closedn_on_free_vars (P:=xpredT)) in Hs.
-        now eapply on_free_vars_any_xpredT.
+        now eapply subject_closed, closedn_wf_term in Hs.
 
     * eapply wf_fixpoint_red1_type; eauto.
       eapply OnOne2_impl; tea; cbn; intuition auto.
       apply a2. apply a2.
     * eapply isTypeRel_isType. eapply All_nth_error in X0; eauto.
-    * apply conv_cumul, conv_sym. destruct disj as [<-|[[red Hred] eq]] => //.
+    * apply conv_cumul, PCUICEqualityLemmas.conv_sym. destruct disj as [<-|[[red Hred] eq]] => //.
       reflexivity. eapply PCUICCumulativity.red_conv.
       apply red1_red, red.
 
@@ -2931,7 +2926,7 @@ Proof.
       eapply OnOne2_impl; tea; cbn; intuition auto.
       apply a2. apply a2.
     * eapply isTypeRel_isType. eapply All_nth_error in X0; eauto.
-    * apply conv_cumul, conv_sym. destruct disj as [<-|[_ eq]].
+    * apply conv_cumul, PCUICEqualityLemmas.conv_sym. destruct disj as [<-|[_ eq]].
       reflexivity. noconf eq. rewrite H4; reflexivity.
 
   - (* CoFix congruence: type reduction *)
@@ -2991,15 +2986,13 @@ Proof.
         eapply (weakening_red1 _ []); auto.
         2:eapply red.
         pose proof (Hs := HT.2.π2.1.1).
-        eapply subject_closed in Hs.
-        eapply (closedn_on_free_vars (P:=xpredT)) in Hs.
-        now eapply on_free_vars_any_xpredT.
+        now eapply subject_closed, closedn_wf_term in Hs.
 
     * eapply (wf_cofixpoint_red1_type _ Γ); eauto.
       eapply OnOne2_impl; tea; cbn; intuition auto;
       now eapply closed_red1_red.
     * eapply isTypeRel_isType. eapply All_nth_error in X0; eauto.
-    * apply conv_cumul, conv_sym. destruct disj as [<-|[[red Hred] eq]] => //.
+    * apply conv_cumul, PCUICEqualityLemmas.conv_sym. destruct disj as [<-|[[red Hred] eq]] => //.
       reflexivity. eapply PCUICCumulativity.red_conv.
       apply red1_red, red.
 
@@ -3041,7 +3034,7 @@ Proof.
       eapply OnOne2_impl; tea; cbn; intuition auto.
       apply a2. apply a2.
     * eapply isTypeRel_isType. eapply All_nth_error in X0; eauto.
-    * apply conv_cumul, conv_sym. destruct disj as [<-|[_ eq]].
+    * apply conv_cumul, PCUICEqualityLemmas.conv_sym. destruct disj as [<-|[_ eq]].
       reflexivity. noconf eq. rewrite H4; reflexivity.
 
   - eapply OnOne2_prod_inv in X2 as [X2 _].
@@ -3171,7 +3164,7 @@ Section SRContext.
       constructor. cbn; eauto using red1_red.
     - constructor; try reflexivity.
       destruct p as [-> [[? []]|[? []]]]; constructor; cbn; eauto using red1_red.
-    - constructor; auto. reflexivity.
+    - constructor. constructor; auto.
   Qed.
 
   Definition closed_red1_ctx Σ :=
@@ -3265,42 +3258,11 @@ Section SRContext.
       all: eapply subject_reduction_ctx; tea.
   Qed.
 
-  Lemma red_ctx_clos_rt_red1_ctx Σ : Relation_Properties.inclusion (red_ctx Σ)
-      (clos_refl_trans (red1_ctx Σ)).
-  Proof using cf.
-    intros x y H.
-    induction H; try firstorder.
-    destruct p.
-    - transitivity (Γ ,, vass na t').
-      eapply clos_rt_OnOne2_local_env_incl. constructor.
-      cbn. split; auto.
-      clear r H.
-      induction IHAll2_fold; try solve[repeat constructor; auto].
-      etransitivity; eauto.
-    - transitivity (Γ ,, vdef na b t').
-      * eapply clos_rt_OnOne2_local_env_incl. constructor 2.
-        cbn. split; auto.
-      * transitivity (Γ ,, vdef na b' t').
-        + eapply clos_rt_OnOne2_local_env_incl.
-          constructor 2. cbn. split; auto.
-        + clear -IHAll2_fold.
-          induction IHAll2_fold; try solve[repeat constructor; auto].
-          etransitivity; eauto.
-  Qed.
-
   Lemma wf_local_red {Σ} {wfΣ : wf Σ} {Γ Γ'} :
     red_ctx Σ Γ Γ' -> wf_local Σ Γ -> wf_local Σ Γ'.
   Proof using Type.
-    intros h. red in h. apply red_ctx_clos_rt_red1_ctx in h.
+    intros h. red in h.
     induction h; eauto using wf_local_red1.
-  Qed.
-
-  Lemma eq_context_upto_names_upto_names Γ Δ :
-    eq_context_upto_names Γ Δ -> Γ ≡Γ Δ.
-  Proof using Type.
-    induction 1; cbnr; try constructor; eauto.
-    depelim r; constructor; subst; auto.
-    all:cbnr; eauto.
   Qed.
 
   Lemma wf_local_subst1 {Σ} {wfΣ : wf Σ} Γ na b t Γ' :
@@ -3337,8 +3299,8 @@ Section SRContext.
   Lemma red_ctx_app_context_l {Σ Γ Γ' Δ}
     : red_ctx Σ Γ Γ' -> red_ctx Σ (Γ ,,, Δ) (Γ' ,,, Δ).
   Proof using Type.
-    induction Δ as [|[na [bd|] ty] Δ]; [trivial| |];
-      intro H; simpl; constructor; cbn; try constructor; eauto; now apply IHΔ.
+    induction 1; try now econstructor; tea.
+    constructor. now apply OnOne2_local_env_app.
   Qed.
 
   Lemma isType_red1 {Σ : global_env_ext} {wfΣ : wf Σ} {Γ A B} :
@@ -3428,8 +3390,8 @@ Proof.
     * etransitivity.
       + exact (@red_rel_all _ (Γ ,, vdef na t A) 0 t A' eq_refl).
       + eapply (weakening_red_0 (Γ' := [_]) (N := tSort _)); tea; [reflexivity|..].
-        erewrite -> on_free_vars_ctx_on_ctx_free_vars. apply H.
-        apply H. apply H.
+        1-2: eauto with fvs.
+        apply H.
   - destruct HH as (HtA & HB).
     apply lift_sorting_f_it_impl with HB => // Hs.
     eapply type_reduction; tas.

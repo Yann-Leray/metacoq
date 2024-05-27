@@ -156,6 +156,21 @@ Section OnOne_local_2.
       OnOne2_local_env (Γ ,, d) (Γ' ,, d).
 End OnOne_local_2.
 
+Lemma OnOne2_local_env_lapp P Γ Δ Δ' :
+  OnOne2_local_env (fun Δ => (P (Γ ,,, Δ))) Δ Δ' ->
+  OnOne2_local_env P (Γ ,,, Δ) (Γ ,,, Δ').
+Proof.
+  induction 1; constructor; eauto.
+Qed.
+
+Lemma OnOne2_local_env_app P Γ Γ' Δ :
+  OnOne2_local_env P Γ Γ' ->
+  OnOne2_local_env P (Γ ,,, Δ) (Γ' ,,, Δ).
+Proof.
+  intros H.
+  induction Δ as [|[na [b|] t]] => //=; try solve [econstructor; eauto].
+Qed.
+
 #[global]
 Instance OnOne2_local_env_length {P ctx ctx'} :
   HasLen (OnOne2_local_env P ctx ctx') #|ctx| #|ctx'|.

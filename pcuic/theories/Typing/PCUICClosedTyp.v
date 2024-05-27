@@ -503,6 +503,86 @@ Qed.
   | [ H : _ ;;; Γ |- _ : _ |- _ ] => exact (typing_closed_context H)
   end : fvs.
 
+Lemma subject_wf_term {cf:checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ.1} {Γ t T} :
+  Σ ;;; Γ |- t : T ->
+  wf_term t.
+Proof.
+  now move/subject_closed/closedn_wf_term.
+Qed.
+
+Lemma type_wf_term {cf:checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ.1} {Γ t T} :
+  Σ ;;; Γ |- t : T ->
+  wf_term T.
+Proof.
+  now move/type_closed/closedn_wf_term.
+Qed.
+
+Lemma lift_typing_wf_term {cf:checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ.1} {Γ j} :
+  lift_typing typing Σ Γ j ->
+  lift_wf_term wf_term j.
+Proof.
+  move/lift_typing_closed => Hj.
+  apply lift_wf_term_impl with (1 := Hj) => t.
+  apply closedn_wf_term.
+Qed.
+
+Lemma isTypeRel_wf_term {cf:checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ.1} {Γ T r} :
+  isTypeRel Σ Γ T r ->
+  wf_term T.
+Proof.
+  now move/isType_closed/closedn_wf_term.
+Qed.
+
+Lemma isType_wf_term {cf:checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ.1} {Γ T} :
+  isType Σ Γ T ->
+  wf_term T.
+Proof.
+  now move/isType_closed/closedn_wf_term.
+Qed.
+
+#[global] Hint Extern 4 (wf_term ?A = true) =>
+  match goal with
+  | [ H : _ ;;; _ |- A : _ |- _ ] => exact (subject_wf_term H)
+  end : fvs.
+
+#[global] Hint Extern 4 (wf_term ?A = true) =>
+  match goal with
+  | [ H : _ ;;; _ |- _ : A |- _ ] => exact (type_wf_term H)
+  end : fvs.
+
+#[global] Hint Extern 4 (wf_term ?A = true) =>
+  match goal with
+  | [ H : isType _ _ A |- _ ] => exact (isType_wf_term H)
+  end : fvs.
+
+#[global] Hint Extern 4 (wf_term ?A = true) =>
+  match goal with
+  | [ H : isTypeRel _ _ A _ |- _ ] => exact (isTypeRel_wf_term H)
+  end : fvs.
+
+Lemma wf_local_wf_term_ctx {cf : checker_flags} {Σ Γ} {wfΣ : wf Σ.1} : wf_local Σ Γ -> wf_term_ctx Γ.
+Proof.
+  now move/closed_wf_local/closedn_ctx_wf_term_ctx.
+Qed.
+
+Lemma typing_wf_term_ctx {cf} {Σ} {wfΣ : wf Σ.1} {Γ T U} :
+  Σ ;;; Γ |- T : U ->
+  wf_term_ctx Γ.
+Proof.
+  now move/typing_wf_local/wf_local_wf_term_ctx.
+Qed.
+
+#[global] Hint Extern 4 (wf_term_ctx ?Γ = true) =>
+  match goal with
+  | [ H : wf_local _ Γ |- _ ] => exact (wf_local_wf_term_ctx H)
+  end : fvs.
+
+#[global] Hint Extern 4 (wf_term_ctx ?Γ = true) =>
+  match goal with
+  | [ H : _ ;;; Γ |- _ : _ |- _ ] => exact (typing_wf_term_ctx H)
+  end : fvs.
+
+
 Lemma ctx_inst_closed {cf:checker_flags} (Σ : global_env_ext) Γ i Δ :
   wf Σ.1 -> ctx_inst (typing Σ) Γ i Δ -> All (closedn #|Γ|) i.
 Proof.
@@ -766,6 +846,7 @@ Proof.
     eapply on_free_vars_subst.
     * relativize (context_assumptions _).
       + unshelve eapply foron_free_vars_extended_subst. eauto.
+        inv_on_free_vars.
         eapply on_free_vars_ctx_inst_case_context; tea => //.
       + unfold inst_case_branch_context. now len.
     * rewrite extended_subst_length.
@@ -796,6 +877,7 @@ Proof.
     + now rewrite -(OnOne2_length X).
   - relativize #|pcontext p|; unfold inst_case_predicate_context.
     * erewrite on_ctx_free_vars_extend; rewrite // hctx.
+      inv_on_free_vars.
       erewrite on_free_vars_ctx_inst_case_context => //.
     * now len.
   - toAll.
@@ -805,6 +887,7 @@ Proof.
     eapply b1 => //.
     relativize #|bcontext x|; unfold inst_case_branch_context.
     * erewrite on_ctx_free_vars_extend; rewrite // hctx.
+      inv_on_free_vars.
       erewrite on_free_vars_ctx_inst_case_context => //. solve_all.
     * now len.
   - rewrite (on_ctx_free_vars_concat _ _ [_]) // /= hctx
@@ -845,6 +928,64 @@ Proof.
   induction 1; eauto using red1_on_free_vars.
 Qed.
 
+Lemma red1_ctx_on_free_vars {cf} Σ {wfΣ : wf Σ} P Γ Δ :
+  on_free_vars_ctx P Γ ->
+  red1_ctx Σ Γ Δ ->
+  on_free_vars_ctx P Δ.
+Proof using Type.
+  intros onp.
+  induction 1 in onp |- *.
+  - depelim p. subst.
+    move: onp; rewrite !on_free_vars_ctx_snoc => /andP[] onΓ /=; rewrite /on_free_vars_decl /test_decl /=.
+    rewrite onΓ => ont /=.
+    intros; eapply red1_on_free_vars; eauto with fvs.
+    now rewrite on_free_vars_ctx_on_ctx_free_vars.
+  - depelim p. subst.
+    move: onp; rewrite !on_free_vars_ctx_snoc => /andP[] onΓ /=; rewrite /on_free_vars_decl /test_decl /=.
+    rewrite onΓ => /andP[] onb ont /=.
+    apply/andP.
+    destruct s as [[red <-]|[red <-]]; split => //.
+    all:eapply red1_on_free_vars; tea.
+    all:rewrite on_free_vars_ctx_on_ctx_free_vars //.
+  - move: onp; rewrite !on_free_vars_ctx_snoc => /andP[] onΓ ond.
+    apply/andP; split; auto.
+    now rewrite -(PCUICOnOne.OnOne2_local_env_length X).
+Qed.
+
+Lemma red1_wf_term {cf} {Σ Γ u v} :
+  wf Σ ->
+  red1 Σ Γ u v ->
+  wf_term_ctx Γ ->
+  wf_term u ->
+  wf_term v.
+Proof.
+  intros wfΣ Hr onΓ onu.
+  rewrite !wf_term_on_free_vars wf_term_ctx_on_ctx_free_vars in onu, onΓ |- *.
+  now eapply red1_on_free_vars.
+Qed.
+
+Lemma red_wf_term {cf} {Σ Γ u v} :
+  wf Σ ->
+  red Σ Γ u v ->
+  wf_term_ctx Γ ->
+  wf_term u ->
+  wf_term v.
+Proof.
+  intros wfΣ Hr onΓ onu.
+  rewrite !wf_term_on_free_vars wf_term_ctx_on_ctx_free_vars in onu, onΓ |- *.
+  now eapply red_on_free_vars; tea.
+Qed.
+
+Lemma red1_ctx_wf_term {cf} Σ Γ Δ :
+  wf Σ ->
+  wf_term_ctx Γ ->
+  red1_ctx Σ Γ Δ ->
+  wf_term_ctx Δ.
+Proof.
+  intros wfΣ onΓ Hr.
+  rewrite !wf_term_ctx_on_free_vars_ctx in onΓ |- *.
+  now eapply red1_ctx_on_free_vars; tea.
+Qed.
 
 Lemma term_closedn_list_ind :
   forall (P : nat -> term -> Type),

@@ -208,7 +208,7 @@ Proof using Type.
     eapply ws_cumul_pb_Sort_r_inv in le as (ss & red & le) => //.
     repeat (eexists; tea). cbn.
     econstructor; eauto with pcuic. 1: constructor; eauto with pcuic.
-    eapply cumul_Trans. 4: apply cumul_Sort, le. 1,2: fvs.
+    eapply cumul_Trans. 4: apply cumul_Sort, le. 1,2: rewrite ?PCUICOnFreeVars.closedn_ctx_on_free_vars; now fvs.
     apply cumulAlgo_cumulSpec.
     apply invert_red_letin in red as [(? & ? & ? & []) | ?]; try discriminate.
     unshelve epose proof (PCUICSpine.all_rels_subst_lift (Γ := Γ) (Δ := [vdef na b b_ty]) (t := s') (Δ' := []) _ _ _) => //=.

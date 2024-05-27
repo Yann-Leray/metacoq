@@ -413,14 +413,6 @@ Local Ltac equspec equ pb h :=
     destruct (h x y); tas ; nodec ; subst
   end.
 
-Local Ltac ih :=
-  repeat lazymatch goal with
-  | ih : forall pb napp hle hspb hglpb t' ht ht', reflectT (eq_term_upto_univ_napp _ _ _ pb napp ?t _) _
-    |- context [ eqb_term_upto_univ_napp _ _ _ ?pb ?napp ?t ?t' ] =>
-    destruct (ih pb napp ltac:(assumption) ltac:(assumption) ltac:(assumption) t'); eauto;
-      nodec ; subst
-  end.
-
 Arguments eqb : simpl never.
 
 Lemma reflectT_change_left2 P1 P2 R p1 p2 :
@@ -451,7 +443,7 @@ Transparent eqb_prim_val eqb_prim_model.
 
 Lemma reflect_eq_term_upto_univ Σ (p : Universe.t -> bool) (q : nat -> term -> bool) cmpu cmps cmp_universe cmp_sort
   (gen_compare_global_instance : conv_pb -> global_reference -> nat -> list Level.t -> list Level.t -> bool)
-  pb napp :
+  Γ pb napp :
   (forall u u', p u -> p u' -> reflect (cmp_universe Conv u u') (cmpu Conv u u')) ->
   (forall u u', p u -> p u' -> reflect (cmp_universe pb u u') (cmpu pb u u')) ->
   (forall s s', Sort.on_sort p true s -> Sort.on_sort p true s' -> reflect (cmp_sort Conv s s') (cmps Conv s s')) ->
@@ -461,23 +453,29 @@ Lemma reflect_eq_term_upto_univ Σ (p : Universe.t -> bool) (q : nat -> term -> 
   forall t t',
     on_universes p q t ->
     on_universes p q t' ->
-    reflectT (eq_term_upto_univ_napp Σ cmp_universe cmp_sort pb napp t t')
+    reflectT (eq_term_upto_univ_napp Σ cmp_universe cmp_sort Γ pb napp t t')
              (eqb_term_upto_univ_napp cmpu cmps gen_compare_global_instance pb napp t t').
 Proof.
   intros he hle hs hspb hgl hglpb t t' ht ht'.
-  induction t in t', pb, napp, hle, hspb, hglpb, ht, ht' |- * using term_forall_list_ind.
+  induction t in t', Γ, pb, napp, hle, hspb, hglpb, ht, ht' |- * using term_forall_list_ind.
   all: destruct t' ; nodec.
   all: move: ht => /= ; (repeat move => /andP [?]) ; move => ht.
   all: move: ht' => /= ; (repeat move => /andP [?]) ; move => ht'.
-  all: cbn - [eqb]; eqspecs; try solve [ ih => //; constructor; constructor; assumption ].
-  all: try solve [ match goal with |- context [eqb_binder_annot ?na ?na'] =>
-        destruct (eqb_annot_reflect na na'); ih => //=; constructor; constructor; assumption end ].
+  all: cbn - [eqb]; eqspecs; try solve [ constructor; constructor; eassumption ].
 
   - eapply reflectT_change_left. { split; intros XE. 1: constructor; now apply XE. now depelim XE. }
     eapply All_reflect_reflect_All2. 2: now apply forallb_All.
     solve_all.
   - equspec cmps pb hspb.
     constructor. constructor. assumption.
+  - eapply reflectT_change_left3. { split; intros XE. 1: destruct XE as [XE1 XE2 XE3]; constructor; [apply XE1|apply XE2|apply XE3]. now depelim XE. }
+    all: eauto using reflect_reflectT, eqb_annot_reflect.
+  - eapply reflectT_change_left3. { split; intros XE. 1: destruct XE as [XE1 XE2 XE3]; constructor; [apply XE1|apply XE2|apply XE3]. now depelim XE. }
+    all: eauto using reflect_reflectT, eqb_annot_reflect.
+  - eapply reflectT_change_left4. { split; intros XE. 1: destruct XE as [XE1 XE2 XE3 XE4]; constructor; [apply XE1|apply XE2|apply XE3|apply XE4]. now depelim XE. }
+    all: eauto using reflect_reflectT, eqb_annot_reflect.
+  - eapply reflectT_change_left2. { split; intros XE. 1: destruct XE as [XE1 XE2]; constructor; [apply XE1|apply XE2]. now depelim XE. }
+    all: eauto.
   - eapply reflectT_change_left. { split; intros XE. 1: constructor; now apply XE. now depelim XE. }
     apply reflect_reflectT. eapply reflect_cmp_universe_instance; eauto.
   - eapply reflectT_change_left. { split; intros XE. 1: constructor; now apply XE. now depelim XE. }
@@ -492,19 +490,20 @@ Proof.
       * apply reflect_reflectT. eapply reflect_cmp_universe_instance; eauto.
       * apply reflect_eq_context_upto_names.
       * solve_all.
-    + ih => //=; constructor; assumption.
+    + eauto.
     + eapply All_reflect_reflect_All2. 2: now apply forallb_All.
       solve_all.
       eapply reflectT_change_left2. { split; intros XE. 1: destruct XE as [XE1 XE2]; constructor; [apply XE1|apply XE2]. now depelim XE. }
       1: apply reflect_eq_context_upto_names.
       unfold test_branch in *. rtoProp.
-      ih => //=. constructor; assumption.
-
+      eauto.
+  - eapply reflectT_change_left. { split; intros XE. 1: constructor; now apply XE. now depelim XE. }
+    eauto.
   - eapply reflectT_change_left. { split; intros XE. 1: constructor; now apply XE. now depelim XE. }
     eapply All_reflect_reflect_All2. 2: now apply forallb_All.
     solve_all.
     eapply reflectT_change_left4. { split; intros XE. 1: destruct XE as [XE1 XE2 XE3 XE4]; repeat split; [apply XE1|apply XE2|apply XE3|apply XE4]. now depelim XE. }
-    1,2: ih => //; constructor; assumption.
+    1,2: now eauto.
     + apply reflect_reflectT, eqb_specT.
     + apply reflect_reflectT, eqb_annot_reflect.
 
@@ -512,7 +511,7 @@ Proof.
     eapply All_reflect_reflect_All2. 2: now apply forallb_All.
     solve_all.
     eapply reflectT_change_left4. { split; intros XE. 1: destruct XE as [XE1 XE2 XE3 XE4]; repeat split; [apply XE1|apply XE2|apply XE3|apply XE4]. now depelim XE. }
-    1,2: ih => //; constructor; assumption.
+    1,2: now eauto.
     + apply reflect_reflectT, eqb_specT.
     + apply reflect_reflectT, eqb_annot_reflect.
 
@@ -524,7 +523,7 @@ Proof.
     rtoProp. destruct X as (hty & hdef & harr).
     eapply reflectT_change_left. { split; intros XE. 1: constructor; now apply XE. now depelim XE. }
     eapply reflectT_change_left4. { split; intros XE. 1: destruct XE as [XE1 XE2 XE3 XE4]; constructor; [apply XE1|apply XE3|apply XE4|apply XE2]. now depelim XE. }
-    3,4:  ih => //; constructor; assumption.
+    3,4: now eauto.
     + rewrite andb_true_r. eapply reflect_reflectT. eauto.
     + eapply All_reflect_reflect_All2. 2: now apply forallb_All.
       solve_all.
@@ -532,7 +531,7 @@ Qed.
 
 Lemma eqb_term_upto_univ_impl Σ (p : Universe.t -> bool) (q : nat -> term -> bool) cmpu cmps cmp_universe cmp_sort
   (gen_compare_global_instance : conv_pb -> global_reference -> nat -> list Level.t -> list Level.t -> bool)
-  pb napp :
+  Γ pb napp :
   (forall u u', p u -> p u' -> reflect (cmp_universe Conv u u') (cmpu Conv u u')) ->
   (forall u u', p u -> p u' -> reflect (cmp_universe pb u u') (cmpu pb u u')) ->
   (forall s s', Sort.on_sort p true s -> Sort.on_sort p true s' -> reflect (cmp_sort Conv s s') (cmps Conv s s')) ->
@@ -541,7 +540,7 @@ Lemma eqb_term_upto_univ_impl Σ (p : Universe.t -> bool) (q : nat -> term -> bo
   (forall gr napp ui ui', forallb p (map Universe.make' ui) -> forallb p (map Universe.make' ui') -> reflect (cmp_global_instance Σ cmp_universe pb gr napp ui ui') (gen_compare_global_instance pb gr napp ui ui')) ->
   forall t t', on_universes p q t -> on_universes p q t' ->
     eqb_term_upto_univ_napp cmpu cmps gen_compare_global_instance pb napp t t' ->
-    eq_term_upto_univ_napp Σ cmp_universe cmp_sort pb napp t t'.
+    eq_term_upto_univ_napp Σ cmp_universe cmp_sort Γ pb napp t t'.
 Proof.
   intros he hle hs hspb hgl hglpb t t' ht ht'.
   eapply elimT, reflect_eq_term_upto_univ.
@@ -582,7 +581,7 @@ Proof.
   eassert _ as X.
   2: split; [apply introT|apply elimT]; apply X.
   eapply reflectT_change_left.
-  2: eapply reflect_eq_term_upto_univ with (cmp_universe := cmpu) (cmp_sort := cmps).
+  2: eapply reflect_eq_term_upto_univ with (cmp_universe := cmpu) (cmp_sort := cmps) (Γ := []).
   1: eassert _ as X; [eapply reflect_eq_term_upto_univ with (cmp_universe := cmpu) (cmp_sort := cmps) | split; [apply introT|apply elimT]; eapply X].
   all: intros; eauto.
   1-4: apply idP.
@@ -643,14 +642,14 @@ Proof.
   destruct global_variance_gen as [| |v] => //=. 2: left. all: now eapply cmp_universe_instance_refl_wf.
 Qed.
 
-Definition eq_term_upto_univ_refl_wf Σ (cmp_universe : forall _ _ _, Prop) (cmp_sort : forall _ _ _, Prop) pb napp :
+Definition eq_term_upto_univ_refl_wf Σ (cmp_universe : forall _ _ _, Prop) (cmp_sort : forall _ _ _, Prop) Γ pb napp :
   (forall u, wf_universe Σ u -> cmp_universe Conv u u) ->
   (forall s, wf_sort Σ s -> cmp_sort Conv s s) ->
   (forall s, wf_sort Σ s -> cmp_sort pb s s) ->
-  forall t, wf_universes Σ t -> eq_term_upto_univ_napp Σ cmp_universe cmp_sort pb napp t t.
+  forall t, wf_universes Σ t -> eq_term_upto_univ_napp Σ cmp_universe cmp_sort Γ pb napp t t.
 Proof.
   intros hU hS hS' t wt.
-  induction t in pb, napp, hS', wt |- * using term_forall_list_ind.
+  induction t in Γ, pb, napp, hS', wt |- * using term_forall_list_ind.
   all: repeat (cbn in wt; apply andb_and in wt as [? wt]).
   all: try constructor. all: eauto.
   - apply forallb_All in wt; eapply All_mix in wt; try exact X; eapply All_All2 ; try exact wt;
@@ -692,7 +691,7 @@ Proof.
   intros eqb_refl leqb_refl eqRe Hglobal Hglobal' Ht.
   eapply introT.
   2: eapply eq_term_upto_univ_refl_wf; eauto.
-  1: eapply reflect_eq_term_upto_univ with (p := wf_universeb Σ) (cmp_universe := cmpu) (cmp_sort := cmps); eauto.
+  1: eapply reflect_eq_term_upto_univ with (p := wf_universeb Σ) (cmp_universe := cmpu) (cmp_sort := cmps) (Γ := []); eauto.
   1-4: intros; apply idP.
   all: cbn; tas.
 Qed.
@@ -730,14 +729,14 @@ Section reflectContext.
   (hglobal' : forall gr napp ui ui', forallb p (map Universe.make' ui) -> forallb p (map Universe.make' ui') -> reflect (cmp_global_instance Σ cmp_universe pb gr napp ui ui') (gen_compare_global_instance pb gr napp ui ui')).
 
   Lemma reflect_eqb_decl_gen :
-    forall d d',
+    forall Γ d d',
       on_decl_universes p q d ->
       on_decl_universes p q d' ->
-      reflectT (compare_decls (fun pb => eq_term_upto_univ Σ cmp_universe cmp_sort pb) pb d d')
+      reflectT (compare_decls (fun pb => eq_term_upto_univ Σ cmp_universe cmp_sort Γ pb) pb d d')
         (eqb_decl_gen (fun pb => eqb_term_upto_univ cmpu cmps gen_compare_global_instance pb) pb d d').
   Proof.
     unfold on_decl_universes, compare_decls.
-    move => [na [b|] A] [na' [b'|] A'] /= ond ond'.
+    move => Γ [na [b|] A] [na' [b'|] A'] /= ond ond'.
     2,3: constructor; intro X; depelim X.
     all: rtoProp.
     - eapply reflectT_change_left3. 1: { split; intros XE. 1: destruct XE as [XE1 XE2 XE3]; constructor; [apply XE1|apply XE2|apply XE3]. now depelim XE. }
@@ -756,11 +755,11 @@ Section reflectContext.
       reflectT (eq_context_upto Σ cmp_universe cmp_sort pb Γ Δ)
         (eqb_ctx_upto cmpu cmps gen_compare_global_instance pb Γ Δ).
   Proof.
-    intros.
-    eapply reflectT_change_left. 1: { split; apply All2_fold_All2. }
-    eapply All_reflect_reflect_All2. 2: apply forallb_All in H0; apply H0.
-    apply forallb_All in H. solve_all.
-    now apply reflect_eqb_decl_gen.
+    induction Γ; destruct Δ; cbn; try now repeat constructor.
+    move => /andP[] wfa wfΓ /andP[] wfc wfΔ.
+    eapply reflectT_change_left2. 1: { split; intros XE. 1: destruct XE as [XE1 XE2]; constructor; [apply XE2|apply XE1]. now depelim XE. }
+    - now apply reflect_eqb_decl_gen.
+    - now apply IHΓ.
   Qed.
 End reflectContext.
 
@@ -996,10 +995,10 @@ Section EqualityDecGen.
     (compare_global_instance (lookup_env Σ) (check_cmpb_universe_gen leqb_level_n_gen)).
 
   Lemma reflect_eqb_termp_napp pb leqb_level_n_gen
-    (leqb_correct : leqb_level_n_spec_gen uctx' leqb_level_n_gen) napp t u :
+    (leqb_correct : leqb_level_n_spec_gen uctx' leqb_level_n_gen) Γ napp t u :
     wf_universes Σ t ->
     wf_universes Σ u ->
-    reflectT (eq_termp_napp Σ pb napp t u) (eqb_termp_napp leqb_level_n_gen pb napp t u).
+    reflectT (eq_termp_napp Σ Γ pb napp t u) (eqb_termp_napp leqb_level_n_gen pb napp t u).
   Proof using hΣ.
     apply reflect_eq_term_upto_univ.
     - move => ? ? /wf_universe_reflect ? - /wf_universe_reflect ?.
@@ -1025,11 +1024,11 @@ Section EqualityDecGen.
   Qed.
 
   Lemma eqb_termp_napp_spec pb leqb_level_n_gen
-  (leqb_correct : leqb_level_n_spec_gen uctx' leqb_level_n_gen) napp t u :
+  (leqb_correct : leqb_level_n_spec_gen uctx' leqb_level_n_gen) Γ napp t u :
     wf_universes Σ t ->
     wf_universes Σ u ->
     eqb_termp_napp leqb_level_n_gen pb napp t u ->
-    eq_termp_napp Σ pb napp t u.
+    eq_termp_napp Σ Γ pb napp t u.
   Proof using hΣ.
     intros.
     eapply elimT. 1: apply reflect_eqb_termp_napp.
@@ -1041,10 +1040,10 @@ Section EqualityDecGen.
   Definition leqb_term := (eqb_termp Cumul).
 
   Lemma eqb_term_spec leqb_level_n_gen
-    (leqb_correct : leqb_level_n_spec_gen uctx' leqb_level_n_gen) t u :
+    (leqb_correct : leqb_level_n_spec_gen uctx' leqb_level_n_gen) Γ t u :
     wf_universes Σ t -> wf_universes Σ u ->
     eqb_term leqb_level_n_gen t u ->
-    eq_term Σ Σ t u.
+    eq_term Σ Σ Γ t u.
   Proof using hΣ.
     intros.
     eapply (eqb_termp_napp_spec Conv) ; tea.
@@ -1052,20 +1051,20 @@ Section EqualityDecGen.
 
   Lemma leqb_term_spec leqb_level_n_gen
     (leqb_correct : leqb_level_n_spec_gen uctx' leqb_level_n_gen)
-    t u :
+    Γ t u :
     wf_universes Σ t -> wf_universes Σ u ->
     leqb_term leqb_level_n_gen t u ->
-    leq_term Σ Σ t u.
+    leq_term Σ Σ Γ t u.
   Proof using hΣ.
     intros.
     eapply (eqb_termp_napp_spec Cumul) ; tea.
   Qed.
 
   Lemma reflect_leq_term leqb_level_n_gen
-    (leqb_correct : leqb_level_n_spec_gen uctx' leqb_level_n_gen) t u :
+    (leqb_correct : leqb_level_n_spec_gen uctx' leqb_level_n_gen) Γ t u :
     wf_universes Σ t ->
     wf_universes Σ u ->
-    reflectT (leq_term Σ Σ t u) (leqb_term leqb_level_n_gen t u).
+    reflectT (leq_term Σ Σ Γ t u) (leqb_term leqb_level_n_gen t u).
   Proof using hΣ.
     intros.
     now eapply (reflect_eqb_termp_napp Cumul).
@@ -1074,10 +1073,10 @@ Section EqualityDecGen.
   Notation eq_term Σ t u := (eq_term Σ Σ t u).
 
   Lemma reflect_eq_term leqb_level_n_gen
-  (leqb_correct : leqb_level_n_spec_gen uctx' leqb_level_n_gen) t u :
+  (leqb_correct : leqb_level_n_spec_gen uctx' leqb_level_n_gen) Γ t u :
     wf_universes Σ t ->
     wf_universes Σ u ->
-    reflectT (eq_term Σ t u) (eqb_term leqb_level_n_gen t u).
+    reflectT (eq_term Σ Γ t u) (eqb_term leqb_level_n_gen t u).
   Proof using hΣ.
     intros.
     now eapply (reflect_eqb_termp_napp Conv).

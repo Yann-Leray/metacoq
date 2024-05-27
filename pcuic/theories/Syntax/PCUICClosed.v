@@ -851,3 +851,228 @@ Proof.
   rewrite PCUICClosed.test_context_k_app=> /andP [//].
 Qed.
 
+Fixpoint wf_term (t : term) : bool :=
+  match t with
+  | tEvar ev args => List.forallb wf_term args
+  | tLambda _ T M | tProd _ T M => wf_term T && wf_term M
+  | tApp u v => wf_term u && wf_term v
+  | tLetIn na b t b' => wf_term b && wf_term t && wf_term b'
+  | tCase ind p c brs =>
+    let np := #|p.(pparams)| in
+    let p' :=
+      forallb wf_term p.(pparams) &&
+      closedn_ctx np p.(pcontext) &&
+      wf_term p.(preturn)
+    in
+    let brs' := forallb (fun br => closedn_ctx np br.(bcontext) && wf_term br.(bbody)) brs in
+    p' && wf_term c && brs'
+  | tProj p c => wf_term c
+  | tFix mfix idx =>
+    forallb (test_def wf_term wf_term) mfix
+  | tCoFix mfix idx =>
+    forallb (test_def wf_term wf_term) mfix
+  | tPrim p => test_prim wf_term p
+  | _ => true
+  end.
+
+Notation wf_term_mfix := (forallb (test_def wf_term wf_term)).
+Notation wf_term_decl decl := (test_decl wf_term decl).
+Definition wf_term_ctx (Γ : context) := test_context wf_term Γ.
+
+Lemma closedn_wf_term n t : closedn n t -> wf_term t.
+Proof.
+  revert t n.
+  apply: term_forall_list_ind; simpl => //; intros.
+  all: try (rtoProp; now rewrite ?H ?H0 ?H1 ?andb_assoc).
+  - solve_all.
+  - destruct X as (Xp & Xc & Xr). rewrite /test_predicate_k /= in H0.
+    rtoProp; repeat split; eauto.
+    + solve_all.
+    + rewrite /test_branch_k in H1.
+      solve_all.
+  - unfold test_def in *. solve_all.
+  - unfold test_def in *. solve_all.
+  - solve_all.
+Qed.
+
+Lemma closed_decl_wf_term_decl n decl : closed_decl n decl -> wf_term_decl decl.
+Proof.
+  rewrite /test_decl.
+  intros; rtoProp; split.
+  1: destruct decl_body => //=.
+  all: now eapply closedn_wf_term.
+Qed.
+
+Lemma closedn_ctx_wf_term_ctx n Γ : closedn_ctx n Γ -> wf_term_ctx Γ.
+Proof.
+  induction Γ => //=.
+  rewrite /=. intro; rtoProp; split; auto.
+  now eapply closed_decl_wf_term_decl.
+Qed.
+
+Lemma inv_wf_term_decl {d} :
+  wf_term_decl d ->
+  match d with
+  | {| decl_body := None; decl_type := t |} => wf_term t
+  | {| decl_body := Some b; decl_type := t |} => wf_term b /\ wf_term t
+  end.
+Proof.
+  unfold wf_term_decl, test_decl; destruct d; cbn => //.
+  move/andP => [] //. destruct decl_body; cbn => //.
+Qed.
+
+Lemma wf_term_mkApps f args : wf_term (mkApps f args) = wf_term f && forallb wf_term args.
+Proof.
+  induction args in f |- *; cbnr.
+  - rewrite andb_true_r //.
+  - rewrite IHargs /= andb_assoc //.
+Qed.
+
+Ltac inv_wf_term :=
+  repeat match goal with
+  | [ H : is_true (wf_term_decl (vass _ _))   |- _ ] => apply inv_wf_term_decl in H; cbn in H
+  | [ H : is_true (wf_term_decl (vdef _ _ _)) |- _ ] => apply inv_wf_term_decl in H as []
+  | [ H : is_true (_ && _) |- _ ] =>
+    move/andP: H => []; intros
+  | [ H : is_true (wf_term ?t) |- _ ] =>
+    progress (cbn in H || rewrite wf_term_mkApps /= in H);
+    (move/and5P: H => [] || move/and4P: H => [] || move/and3P: H => [] || move/andP: H => [] || idtac); intros
+  | [ H : is_true (test_def wf_term _ ?x) |- _ ] =>
+    move/andP: H => []; intros
+  end.
+
+Lemma wf_term_subst_instance t u :
+  wf_term (subst_instance u t) = wf_term t.
+Proof.
+  induction t in |- * using term_forall_list_ind; intros;
+    simpl in *; rewrite -> ?andb_and in *;
+    autorewrite with map; len;
+    unfold test_predicate_k, test_branch_k in *; solve_all.
+
+  - unfold test_predicate_k, map_predicate; simpl.
+    f_equal. f_equal. f_equal. f_equal.
+    all: len; solve_all.
+  - unfold test_def, map_def. simpl.
+    do 3 (f_equal; intuition eauto).
+  - unfold test_def, map_def. simpl.
+    do 3 (f_equal; intuition eauto).
+Qed.
+
+Lemma wf_term_ctx_subst_instance {Γ u} :
+  wf_term_ctx Γ@[u] = wf_term_ctx Γ.
+Proof.
+  rewrite /subst_instance /subst_instance_context /wf_term_ctx test_context_map.
+  apply test_context_ext.
+  intro. apply wf_term_subst_instance.
+Qed.
+
+Lemma wf_term_ctx_app {Γ Δ} :
+  wf_term_ctx (Γ ,,, Δ) = wf_term_ctx Γ && wf_term_ctx Δ.
+Proof.
+  rewrite /wf_term_ctx. apply test_context_app.
+Qed.
+
+
+Lemma wf_term_ind (P : term -> Type) :
+  (forall (i : nat), P (tRel i)) ->
+  (forall (i : ident), P (tVar i)) ->
+  (forall (evk : nat) (inst : list term),
+    forallb wf_term inst ->
+    All P inst ->
+    P (tEvar evk inst)) ->
+  (forall s, P (tSort s)) ->
+  (forall (na : aname) (t : term) dom codom,
+    wf_term dom ->
+    P dom ->
+    wf_term codom ->
+    P codom ->
+    P (tProd na dom codom)) ->
+  (forall (na : aname) (ty : term) (body : term),
+    wf_term ty -> P ty ->
+    wf_term body -> P body ->
+    P (tLambda na ty body)) ->
+  (forall (na : aname) (def : term) (ty : term) body,
+    wf_term def -> P def ->
+    wf_term ty -> P ty ->
+    wf_term body -> P body ->
+    P (tLetIn na def ty body)) ->
+  (forall (t u : term),
+    wf_term t -> P t ->
+    wf_term u -> P u -> P (tApp t u)) ->
+  (forall (cst : kername) (u : Instance.t), P (tConst cst u)) ->
+  (forall (i : inductive) (u : Instance.t), P (tInd i u)) ->
+  (forall (i : inductive) (c : nat) (u : Instance.t), P (tConstruct i c u)) ->
+  (forall (ci : case_info) (pred : predicate term) discr brs,
+    forallb wf_term pred.(pparams) ->
+    All P pred.(pparams) ->
+    closedn_ctx #|pred.(pparams)| pred.(pcontext) ->
+    wf_term pred.(preturn) ->
+    P pred.(preturn) ->
+    wf_term discr ->
+    P discr ->
+    All (fun br =>
+      [× closedn_ctx #|pred.(pparams)| br.(bcontext),
+        wf_term br.(bbody) &
+        P br.(bbody)]) brs ->
+    P (tCase ci pred discr brs)) ->
+  (forall (p : projection) (t : term),
+    wf_term t -> P t -> P (tProj p t)) ->
+  (forall (mfix : mfixpoint term) (idx : nat),
+    wf_term_mfix mfix ->
+    tFixProp P P mfix -> P (tFix mfix idx)) ->
+  (forall (mfix : mfixpoint term) (idx : nat),
+    wf_term_mfix mfix ->
+    tFixProp P P mfix -> P (tCoFix mfix idx)) ->
+  (forall p, tPrimProp wf_term p -> tPrimProp P p -> P (tPrim p)) ->
+  forall (t : term), wf_term t -> P t.
+Proof.
+  intros until t. revert t.
+  fix auxt 1.
+  move auxt at top.
+  intros t.
+  destruct t; intros wft;
+    match goal with
+    | H : _ |- _ => apply H
+    end; auto; simpl in wft; inv_wf_term; eauto.
+
+  - induction l in wft |- *.
+    1: constructor.
+    move/andP: wft => [wfa wfl].
+    constructor; auto.
+
+  - induction (pparams p) in a |- *.
+    1: constructor.
+    move/andP: a => [wfa wfl].
+    constructor; auto.
+
+  - induction brs in b |- *; cbn in b.
+    1: constructor.
+    move/andP: b => /= [] /andP[] clbctx wfbod wfl.
+    constructor; auto.
+
+  - induction mfix in wft |- *; rewrite /test_def /= in wft.
+    1: constructor.
+    move/andP: wft => /= [] /andP[] wfty wfbod wfmfix.
+    constructor; auto.
+    now apply IHmfix.
+
+  - induction mfix in wft |- *; rewrite /test_def /= in wft.
+    1: constructor.
+    move/andP: wft => /= [] /andP[] wfty wfbod wfmfix.
+    constructor; auto.
+    now apply IHmfix.
+
+  - destruct prim as [? []]; cbn => //. cbn in wft.
+    rtoProp. split => //. split => //.
+    revert H. generalize (array_value a).
+    fix auxm 1; destruct l; constructor.
+    * now move/andP: H.
+    * apply auxm. now move/andP: H.
+
+  - destruct prim as [? []]; cbn => //. cbn in wft.
+    rtoProp. split => //; eauto. split; eauto.
+    move: (array_value a) H.
+    fix auxm 1; destruct array_value; constructor; eauto.
+    * eapply auxt. now move/andP: H.
+    * eapply auxm; now move/andP: H.
+Defined.

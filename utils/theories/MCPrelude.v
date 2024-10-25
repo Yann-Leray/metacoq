@@ -28,10 +28,7 @@ Notation "'∑' x .. y , p" := (sigT (fun x => .. (sigT (fun y => p%type)) ..))
   : type_scope.
 
 Notation "( x ; y )" := (@existT _ _ x y).
-Notation "( x ; y ; z )" := (x ; ( y ; z)).
-Notation "( x ; y ; z ; t )" := (x ; ( y ; (z ; t))).
-Notation "( x ; y ; z ; t ; u )" := (x ; ( y ; (z ; (t ; u)))).
-Notation "( x ; y ; z ; t ; u ; v )" := (x ; ( y ; (z ; (t ; (u ; v))))).
+Notation "( x ; .. ; y ; z )" := (x ; .. (y ; z) ..).
 Notation "x .π1" := (@projT1 _ _ x) (at level 3, format "x '.π1'").
 Notation "x .π2" := (@projT2 _ _ x) (at level 3, format "x '.π2'").
 

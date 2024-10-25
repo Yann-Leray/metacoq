@@ -2428,11 +2428,11 @@ Section no_prop_leq_type.
     now rewrite val_succ.
   Qed.
 
-  Lemma leq_sort_super s s' :
-    leq_sort ϕ s s' ->
-    leq_sort ϕ (Sort.super s) (Sort.super s').
+  Lemma compare_sort_super pb s s' :
+    compare_sort ϕ pb s s' ->
+    compare_sort ϕ pb (Sort.super s) (Sort.super s').
   Proof using Type.
-    destruct s as [| | u1], s' as [| | u1']; cbnr; try absurd;
+    destruct pb, s as [| | u1], s' as [| | u1']; cbnr; try absurd;
     intros H; unfold_univ_rel;
     rewrite !val_map_succ; lia.
   Qed.

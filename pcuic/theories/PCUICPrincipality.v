@@ -477,7 +477,7 @@ Proof.
   - eapply inversion_Sort in X0 as [wf [wfs cum]]; auto.
     eapply type_Cumul' with (tSort (Sort.super s)).
     constructor; auto. eapply PCUICArities.isType_Sort; pcuic.
-    apply cumul_Sort. now apply leq_sort_super.
+    apply cumul_Sort. now apply compare_sort_super.
 
   - eapply inversion_Prod in X4 as [s1' [s2' [Ha [Hb Hs]]]]; auto.
     apply eq_term_empty_leq_term in X5_1 as X5_1'.

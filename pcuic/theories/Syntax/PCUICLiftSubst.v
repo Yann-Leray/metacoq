@@ -162,10 +162,10 @@ Proof.
 Qed.
 
 Lemma permute_lift0 :
-  forall M k, lift0 1 (lift 1 k M) = lift 1 (S k) (lift0 1 M).
+  forall M n k, lift0 1 (lift n k M) = lift n (S k) (lift0 1 M).
 Proof.
   intros.
-  change (lift 1 0 (lift 1 k M) = lift 1 (1 + k) (lift 1 0 M)).
+  change (lift 1 0 (lift n k M) = lift n (1 + k) (lift 1 0 M)).
   now rewrite permute_lift.
 Qed.
 

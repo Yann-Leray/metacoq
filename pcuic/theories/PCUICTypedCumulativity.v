@@ -38,23 +38,27 @@ Create HintDb fmap.
 (* Reserved Notations *)
   Reserved Notation "Σ  ;;; Γ ⊢ T ≤T T'" (at level 50, Γ, T, T' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ T ≤T T' 'with' TC" (at level 50, Γ, T, T', TC at next level).
+  Reserved Notation "Γ ⊢ T ≤O T'" (at level 50, T, T' at next level).
+  Reserved Notation "Γ ⊢ T ≤O T' 'with' R" (at level 50, T, T', R at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t : T 'wellsubst'" (at level 50, Γ, t, T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t : T 'wellsubst' 'with' R" (at level 50, Γ, t, T, R at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t = t' : T 'wellsubst'" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t = t' : T 'wellsubst' 'with' R" (at level 50, Γ, t, t', T, R at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t : T" (at level 50, Γ, t, T at next level).
-  Reserved Notation "Σ  ;;; Γ ⊢ t : T 'with' TC" (at level 50, Γ, t, T at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t : T 'with' R" (at level 50, Γ, t, T, R at next level).
   Reserved Notation "'wf_local' Σ Γ" (at level 9, Σ, Γ at next level).
-  Reserved Notation "'wf_local' Σ Γ 'with' TC" (at level 9, Σ, Γ, TC at next level).
+  Reserved Notation "'wf_local' Σ Γ 'with' R" (at level 9, Σ, Γ, R at next level).
   Reserved Notation "'wf_local_rel' Σ Γ Δ" (at level 9, Σ, Γ, Δ at next level).
-  Reserved Notation "'wf_local_rel' Σ Γ Δ 'with' TC" (at level 9, Σ, Γ, Δ, TC at next level).
+  Reserved Notation "'wf_local_rel' Σ Γ Δ 'with' R" (at level 9, Σ, Γ, Δ, R at next level).
   Reserved Notation "Σ ;;; Γ ⊢ t ≤[ pb ] t' : T" (at level 50, Γ, pb, t, t', T at next level, format "Σ  ;;;  Γ  ⊢  t  ≤[ pb ]  t'  :  T").
   Reserved Notation "Σ  ;;; Γ ⊢ t = t' : T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ≤ t' : T" (at level 50, Γ, t, t', T at next level).
-  Reserved Notation "Σ ;;; Γ ⊢ t ≤[ pb ] t' : T 'with' TC" (at level 50, Γ, t, pb, t', T at next level, format "Σ  ;;;  Γ  ⊢  t  ≤[ pb ]  t'  :  T  'with'  TC").
+  Reserved Notation "Σ ;;; Γ ⊢ t ≤[ pb ] t' : T 'with' R" (at level 50, Γ, t, pb, t', T, R at next level, format "Σ  ;;;  Γ  ⊢  t  ≤[ pb ]  t'  :  T  'with'  R").
   Reserved Notation "Σ  ;;; Γ ⊢ t ▹ T" (at level 50, Γ, t, T at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ▹ T 'on' H 'with' P" (at level 50, Γ, t, T, H, P at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ▹" (at level 50, Γ, t at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ▹↘ T" (at level 50, Γ, t, T at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ▹↘ T 'on' H 'with' P" (at level 50, Γ, t, T, H, P at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ▹↘" (at level 50, Γ, t at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ▹□ u" (at level 50, Γ, t, u at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ▹□" (at level 50, Γ, t at next level).
@@ -63,11 +67,19 @@ Create HintDb fmap.
   Reserved Notation "Σ  ;;; Γ ⊢ t ▹Ind ( ind , u ) args" (at level 50, Γ, t, ind, u, args at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ▹Ind" (at level 50, Γ, t at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ◃ T" (at level 50, Γ, t, T at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ◃ T 'on' H 'with' P" (at level 50, Γ, t, T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ◃? T" (at level 50, Γ, t, T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ◃↘? T" (at level 50, Γ, t, T at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ▹| T" (at level 50, Γ, t, T at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ▹| T 'with' R" (at level 50, Γ, t, T, R at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ▹|↘ T" (at level 50, Γ, t, T at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ▹|↘ T 'with' R" (at level 50, Γ, t, T at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ~▹| T" (at level 50, Γ, t, T at next level).
   Reserved Notation "'wf_local_bd' Σ Γ" (at level 9, Σ, Γ at next level).
+  Reserved Notation "'wf_local_bd' Σ Γ 'on' H 'with' P" (at level 9, Σ, Γ, H, P at next level).
   Reserved Notation "'wf_local_bd_rel' Σ Γ Γ'" (at level 9, Σ, Γ, Γ' at next level).
-  Reserved Notation "'wf_judgment_bd' Σ Γ" (at level 9, Σ, Γ at next level).
+  Reserved Notation "'wf_judgment_bd' Σ Γ j" (at level 9, Σ, Γ, j at next level).
+  Reserved Notation "'wf_judgment_bd' Σ Γ j 'on' H 'with' P" (at level 9, Σ, Γ, j, H, P at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ▷ T" (at level 50, Γ, t, T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ▷↘ T" (at level 50, Γ, t, T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ▷□ u" (at level 50, Γ, t, u at next level).
@@ -78,119 +90,209 @@ Create HintDb fmap.
   Reserved Notation "Σ  ;;; Γ ⊢ t ~>0 t' : T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~>0 t' ▷ T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~>0 t' ▹ T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~>0 t' ▹ T | T'" (at level 50, Γ, Γ', t, t', T, T' at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ~>η0 t'" (at level 50, Γ, t, t' at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ~>η0 t' ▹ T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~>η0 t' ▹ T | T'" (at level 50, Γ, Γ', t, t', T, T' at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ≡>η0 t' ▹ T | T'" (at level 50, Γ, Γ', t, t', T, T' at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ≡>η0 t' ▹ T | T' 'with' R" (at level 50, Γ, Γ', t, t', T, T', R at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ≡>η0 t' ▹ T | T' 'on' H 'with' R" (at level 50, Γ, Γ', t, t', T, T', H, R at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ≡>η t' ▹ T | T'" (at level 50, Γ, Γ', t, t', T, T' at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ≡>η t' ▹ T | T' 'with' R" (at level 50, Γ, Γ', t, t', T, T', R at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ≡>η t' ▹ T | T' 'on' H 'with' R" (at level 50, Γ, Γ', t, t', T, T', H, R at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ≡>0 t' : T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ≡>0 t' ▷ T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ≡>0 t' ▹ T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ≡>0 t' ▹| T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T'" (at level 50, Γ, Γ', t, t', T, T' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ≡>0 t' : T 'on' p 'with' R'" (at level 50, Γ, t, t', T, p, R' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ≡>0 t' ▷ T 'on' p 'with' R'" (at level 50, Γ, t, t', T, p, R' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ≡>0 t' ▹ T 'on' p 'with' R'" (at level 50, Γ, t, t', T, p, R' at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T' 'on' p 'with' R'" (at level 50, Γ, Γ', t, t', T, T', p, R' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ≡>0 t' : T 'with' R" (at level 50, Γ, t, t', T, R at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ≡>0 t' ▷ T 'with' R" (at level 50, Γ, t, t', T, R at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ≡>0 t' ▹ T 'with' R" (at level 50, Γ, t, t', T, R at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T' 'with' R" (at level 50, Γ, Γ', t, t', T, T', R at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~ext t' : T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~ext t' ▷ T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~ext t' ▹ T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~ext t' ▹ T | T'" (at level 50, Γ, Γ', t, t', T, T' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~ext t' : T 'on' p 'with' R'" (at level 50, Γ, t, t', T, p, R' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~ext t' ▷ T 'on' p 'with' R'" (at level 50, Γ, t, t', T, p, R' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~ext t' ▹ T 'on' p 'with' R'" (at level 50, Γ, t, t', T, p, R' at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~ext t' ▹ T | T' 'on' p 'with' R'" (at level 50, Γ, Γ', t, t', T, T', p, R' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~ext t' : T 'with' R" (at level 50, Γ, t, t', T, R at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~ext t' ▷ T 'with' R" (at level 50, Γ, t, t', T, R at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~ext t' ▹ T 'with' R" (at level 50, Γ, t, t', T, R at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~ext t' ▹ T | T' 'with' R" (at level 50, Γ, Γ', t, t', T, T', R at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t =ext t' : T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t =ext t' ▷ T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t =ext t' ▹ T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t =ext t' ▹ T | T'" (at level 50, Γ, Γ', t, t', T, T' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t =ext t' : T 'on' p 'with' R'" (at level 50, Γ, t, t', T, p, R' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t =ext t' ▷ T 'on' p 'with' R'" (at level 50, Γ, t, t', T, p, R' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t =ext t' ▹ T 'on' p 'with' R'" (at level 50, Γ, t, t', T, p, R' at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t =ext t' ▹ T | T' 'on' p 'with' R'" (at level 50, Γ, Γ', t, t', T, T', p, R' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t =ext t' : T 'with' R" (at level 50, Γ, t, t', T, R at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t =ext t' ▷ T 'with' R" (at level 50, Γ, t, t', T, R at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t =ext t' ▹ T 'with' R" (at level 50, Γ, t, t', T, R at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t =ext t' ▹ T | T' 'with' R" (at level 50, Γ, Γ', t, t', T, T', R at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~R t' : T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~R t' ▷ T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~R t' ▹ T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~R t' ▹ T | T'" (at level 50, Γ, Γ', t, t', T, T' at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~R t' ▹ T | T' 'with' R" (at level 50, Γ, Γ', t, t', T, T', R at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ '_' ~R '_' ▹ T | T' 'with0' R" (at level 50, Γ, Γ', T, T', R at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~R t' ▹↘ T | T' 'with' R" (at level 50, Γ, Γ', t, t', T, T', R at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ '_' ~R '_' ▹↘ T | T' 'with0' R" (at level 50, Γ, Γ', T, T', R at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~R t' ◃ T | T' 'with' R" (at level 50, Γ, Γ', t, t', T, T', R at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ '_' ~R '_' ◃ T | T' 'with0' R" (at level 50, Γ, Γ', T, T', R at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~R' t' : T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~R' t' ▷ T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~R' t' ▹ T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~R' t' ▹ T | T'" (at level 50, Γ, Γ', t, t', T, T' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~R' t' : T 'on' H" (at level 50, Γ, t, t', T, H at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~R' t' ▷ T 'on' H" (at level 50, Γ, t, t', T, H at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~R' t' ▹ T 'on' H" (at level 50, Γ, t, t', T, H at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~R' t' ▹ T | T' 'on' H" (at level 50, Γ, Γ', t, t', T, T', H at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~R' t' ▹ T | T' 'on' H 'with' R" (at level 50, Γ, Γ', t, t', T, T', H, R at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ '_' ~R' '_' ▹ T | T' 'on' H 'with0' R" (at level 50, Γ, Γ', T, T', H, R at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~R' t' ▹↘ T | T' 'on' H 'with' R" (at level 50, Γ, Γ', t, t', T, T', H, R at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ '_' ~R' '_' ▹↘ T | T' 'on' H 'with0' R" (at level 50, Γ, Γ', T, T', H, R at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~R' t' ◃ T | T' 'on' H 'with' R" (at level 50, Γ, Γ', t, t', T, T', H, R at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ '_' ~R' '_' ◃ T | T' 'on' H 'with0' R" (at level 50, Γ, Γ', T, T', H, R at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~R t'" (at level 50, Γ, t, t' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~R' t'" (at level 50, Γ, t, t' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~R' t' 'on' H" (at level 50, Γ, t, t', H at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t =R t' : T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t =R t' ▹ T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t =R t' ▹ T | T'" (at level 50, Γ, Γ', t, t', T, T' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t =R' t' : T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t =R' t' ▹ T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t =R' t' ▹ T | T' 'on' H 'with' P" (at level 50, Γ, Γ', t, t', T, T', H, P at next level).
   Reserved Notation "Σ ;;; Γ ⊢ t ≤R[ pb ] t' : T" (at level 50, Γ, t, pb, t', T at next level, format "Σ  ;;;  Γ  ⊢  t  ≤R[ pb ]  t'  :  T").
   Reserved Notation "Σ ;;; Γ ⊢ t ≤R[ pb ] t' ▷ T" (at level 50, Γ, t, pb, t', T at next level, format "Σ  ;;;  Γ  ⊢  t  ≤R[ pb ]  t'  ▷  T").
   Reserved Notation "Σ ;;; Γ ⊢ t ≤R[ pb ] t' ▹ T" (at level 50, Γ, t, pb, t', T at next level, format "Σ  ;;;  Γ  ⊢  t  ≤R[ pb ]  t'  ▹  T").
+  Reserved Notation "Σ ;;; Γ | Γ' ⊢ t ≤R[ pb ] t' ▹ T | T'" (at level 50, Γ, Γ', t, pb, t', T, T' at next level, format "Σ  ;;;  Γ  |  Γ'  ⊢  t  ≤R[ pb ]  t'  ▹  T  |  T'").
   Reserved Notation "Σ ;;; Γ ⊢ t ≤R'[ pb ] t' : T" (at level 50, Γ, t, pb, t', T at next level, format "Σ  ;;;  Γ  ⊢  t  ≤R'[ pb ]  t'  :  T").
   Reserved Notation "Σ ;;; Γ ⊢ t ≤R'[ pb ] t' ▷ T" (at level 50, Γ, t, pb, t', T at next level, format "Σ  ;;;  Γ  ⊢  t  ≤R'[ pb ]  t'  ▷  T").
   Reserved Notation "Σ ;;; Γ ⊢ t ≤R'[ pb ] t' ▹ T" (at level 50, Γ, t, pb, t', T at next level, format "Σ  ;;;  Γ  ⊢  t  ≤R'[ pb ]  t'  ▹  T").
+  Reserved Notation "Σ ;;; Γ | Γ' ⊢ t ≤R'[ pb ] t' ▹ T | T' 'on' H 'with' P" (at level 50, Γ, Γ', t, pb, t', T, T', H, P at next level, format "Σ  ;;;  Γ  |  Γ'  ⊢  t  ≤R'[ pb ]  t'  ▹  T  |  T'  'on'  H  'with'  P").
   Reserved Notation "Σ  ;;; Γ ⊢ t ~ t' : T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~ t' ▷ T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~ t' ▹ T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ~ t' ▹| T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T'" (at level 50, Γ, Γ', t, t', T, T' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~ t' : T 'on' p 'with' R'" (at level 50, Γ, t, t', T, p, R' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~ t' ▷ T 'on' p 'with' R'" (at level 50, Γ, t, t', T, p, R' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~ t' ▹ T 'on' p 'with' R'" (at level 50, Γ, t, t', T, p, R' at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' 'on' p 'with' R'" (at level 50, Γ, Γ', t, t', T, T', p, R' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~ t' : T 'with' R , R' , R''" (at level 50, Γ, t, t', T, R, R', R'' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~ t' ▷ T 'with' R , R' , R''" (at level 50, Γ, t, t', T, R, R', R'' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~ t' ▹ T 'with' R , R' , R''" (at level 50, Γ, t, t', T, R, R', R'' at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ~ t' ▹| T 'with' R , R' , R''" (at level 50, Γ, t, t', T, R, R', R'' at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' 'with' R , R' , R''" (at level 50, Γ, Γ', t, t', T, T', R, R', R'' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~1 t' : T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~1 t' ▷ T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~1 t' ▹ T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~1 t' ▹ T | T'" (at level 50, Γ, Γ', t, t', T, T' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~1 t' : T 'on' p 'with' R'" (at level 50, Γ, t, t', T, p, R' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~1 t' ▷ T 'on' p 'with' R'" (at level 50, Γ, t, t', T, p, R' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~1 t' ▹ T 'on' p 'with' R'" (at level 50, Γ, t, t', T, p, R' at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~1 t' ▹ T | T' 'on' p 'with' R'" (at level 50, Γ, Γ', t, t', T, T', p, R' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~1 t' : T 'with' R" (at level 50, Γ, t, t', T, R at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~1 t' ▷ T 'with' R" (at level 50, Γ, t, t', T, R at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~1 t' ▹ T 'with' R" (at level 50, Γ, t, t', T, R at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~1 t' ▹ T | T' 'with' R" (at level 50, Γ, Γ', t, t', T, T', R at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~h1 t' : T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~h1 t' ▷ T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~h1 t' ▹ T" (at level 50, Γ, t, t', T at next level).
-  Reserved Notation "Σ  ;;; Γ ⊢ t ~h1 t' : T 'on' p 'with' R'" (at level 50, Γ, t, t', T, p, R' at next level).
-  Reserved Notation "Σ  ;;; Γ ⊢ t ~h1 t' ▷ T 'on' p 'with' R'" (at level 50, Γ, t, t', T, p, R' at next level).
-  Reserved Notation "Σ  ;;; Γ ⊢ t ~h1 t' ▹ T 'on' p 'with' R'" (at level 50, Γ, t, t', T, p, R' at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~h1 t' ▹ T | T'" (at level 50, Γ, Γ', t, t', T, T' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~h1 t' : T 'with' R " (at level 50, Γ, t, t', T, R at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~h1 t' ▷ T 'with' R " (at level 50, Γ, t, t', T, R at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~h1 t' ▹ T 'with' R " (at level 50, Γ, t, t', T, R at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~h1 t' ▹ T | T' 'with' R " (at level 50, Γ, Γ', t, t', T, T', R at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ~h1 t' : T 'on' p 'with' R'" (at level 50, Γ, t, t', T, p, R' at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ~h1 t' ▷ T 'on' p 'with' R'" (at level 50, Γ, t, t', T, p, R' at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ~h1 t' ▹ T 'on' p 'with' R'" (at level 50, Γ, t, t', T, p, R' at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~h1 t' ▹ T | T' 'on' p 'with' R'" (at level 50, Γ, Γ', t, t', T, T', p, R' at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ~e t' : T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ~e t' ▷ T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ~e t' ▹ T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~e t' ▹ T | T'" (at level 50, Γ, Γ', t, t', T, T' at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ~e t' : T 'with' R , R' , R''" (at level 50, Γ, t, t', T, R, R', R'' at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ~e t' ▷ T 'with' R , R' , R''" (at level 50, Γ, t, t', T, R, R', R'' at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ~e t' ▹ T 'with' R , R' , R''" (at level 50, Γ, t, t', T, R, R', R'' at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~e t' ▹ T | T' 'with' R , R' , R''" (at level 50, Γ, Γ', t, t', T, T', R, R', R'' at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ~e t' : T 'on' p 'with' R'" (at level 50, Γ, t, t', T, p, R' at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ~e t' ▷ T 'on' p 'with' R'" (at level 50, Γ, t, t', T, p, R' at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ~e t' ▹ T 'on' p 'with' R'" (at level 50, Γ, t, t', T, p, R' at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~e t' ▹ T | T' 'on' p 'with' R'" (at level 50, Γ, Γ', t, t', T, T', p, R' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~>1 t' : T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~>1 t' ▷ T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~>1 t' ▹ T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~>1 t' ▹ T | T'" (at level 50, Γ, Γ', t, t', T, T' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ≡>1 t' : T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ≡>1 t' ▷ T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ≡>1 t' ▹ T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ≡>1 t' ▹ T 'on' H 'with' P" (at level 50, Γ, t, t', T, H, P at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ≡>1 t' ▹| T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ≡>1 t' ▹ T | T'" (at level 50, Γ, Γ', t, t', T, T' at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ≡>1 t' ▹ T | T' 'on' H 'with' P" (at level 50, Γ, Γ', t, t', T, T', H, P at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~> t' : T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~> t' ▷ T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~> t' ▹ T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~> t' ▹ T | T'" (at level 50, Γ, Γ', t, t', T, T' at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ~>η t'" (at level 50, Γ, t, t' at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~>η t' ▹ T | T'" (at level 50, Γ, Γ', t, t', T, T' at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~>η t' ▹ T | T' 'on' H 'with' P" (at level 50, Γ, Γ', t, t', T, T', H, P at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ≡> t' : T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ≡> t' ▷ T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ≡> t' ▹ T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T'" (at level 50, Γ, Γ', t, t', T, T' at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T' 'on' H 'with' P" (at level 50, Γ, Γ', t, t', T, T', H, P at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t =>s t' : T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t =>s t' : T 'on' H 'with' R" (at level 50, Γ, t, t', T, H, R at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t =>s t' ▷ T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t =>s t' ▷ T 'on' H 'with' R" (at level 50, Γ, t, t', T, H, R at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t =>s t' ▹ T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t =>s t' ▹| T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t =>sη t' ▹ T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t =>s t' ▹ T | T'" (at level 50, Γ, Γ', t, t', T, T' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t =>s t' ▹ T 'on' H 'with' R" (at level 50, Γ, t, t', T, H, R at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t =>s t' ▹ T | T' 'on' H 'with' R" (at level 50, Γ, Γ', t, t', T, T', H, R at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t =>sη t' ▹ T 'on' H 'with' R" (at level 50, Γ, t, t', T, H, R at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~>h t' : T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~>h t' ▷ T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~>h t' ▹ T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ ⊢ t ~>h t' ▹ T 'on' H 'with' P" (at level 50, Γ, t, t', T, H, P at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~>h t' ▹ T | T'" (at level 50, Γ, Γ', t, t', T, T' at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~>h t' ▹ T | T' 'on' H 'with' P" (at level 50, Γ, Γ', t, t', T, T', H, P at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~>h* t' : T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~>h* t' ▷ T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~>h* t' ▹ T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ~>h* t' ▹ T | T'" (at level 50, Γ, Γ', t, t', T, T' at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t h~> t' : T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t h~> t' ▷ T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t h~> t' ▹ T" (at level 50, Γ, t, t', T at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t h~> t' ▹ T | T'" (at level 50, Γ, Γ', t, t', T, T' at next level).
   Reserved Notation "Σ ;;; Γ ⊢ t ≤c[ pb ] t' : T" (at level 50, Γ, t, pb, t', T at next level, format "Σ  ;;;  Γ  ⊢  t  ≤c[ pb ]  t'  :  T").
   Reserved Notation "Σ ;;; Γ ⊢ t ≤c[ pb ] t' ▷ T" (at level 50, Γ, t, pb, t', T at next level, format "Σ  ;;;  Γ  ⊢  t  ≤c[ pb ]  t'  ▷  T").
   Reserved Notation "Σ ;;; Γ ⊢ t ≤c[ pb ] t' ▹ T" (at level 50, Γ, t, pb, t', T at next level, format "Σ  ;;;  Γ  ⊢  t  ≤c[ pb ]  t'  ▹  T").
+  Reserved Notation "Σ ;;; Γ | Γ' ⊢ t ≤c[ pb ] t' ▹ T | T'" (at level 50, Γ, Γ', t, pb, t', T, T' at next level, format "Σ  ;;;  Γ  |  Γ'  ⊢  t  ≤c[ pb ]  t'  ▹  T  |  T'").
   Reserved Notation "Σ ;;; Γ ⊢ t ≤c[ pb ] t' : T 'on' p 'with' R'" (at level 50, Γ, t, pb, t', T, p, R' at next level, format "Σ  ;;;  Γ  ⊢  t  ≤c[ pb ]  t'  :  T  'on'  p  'with'  R'").
   Reserved Notation "Σ ;;; Γ ⊢ t ≤c[ pb ] t' ▷ T 'on' p 'with' R'" (at level 50, Γ, t, pb, t', T, p, R' at next level, format "Σ  ;;;  Γ  ⊢  t  ≤c[ pb ]  t'  ▷  T  'on'  p  'with'  R'").
   Reserved Notation "Σ ;;; Γ ⊢ t ≤c[ pb ] t' ▹ T 'on' p 'with' R'" (at level 50, Γ, t, pb, t', T, p, R' at next level, format "Σ  ;;;  Γ  ⊢  t  ≤c[ pb ]  t'  ▹  T  'on'  p  'with'  R'").
   Reserved Notation "Σ ;;; Γ ⊢ t ≤c[ pb ] t' : T 'with' R " (at level 50, Γ, t, pb, t', T, R at next level, format "Σ  ;;;  Γ  ⊢  t  ≤c[ pb ]  t'  :  T  'with'  R").
   Reserved Notation "Σ ;;; Γ ⊢ t ≤c[ pb ] t' ▷ T 'with' R " (at level 50, Γ, t, pb, t', T, R at next level, format "Σ  ;;;  Γ  ⊢  t  ≤c[ pb ]  t'  ▷  T  'with'  R").
   Reserved Notation "Σ ;;; Γ ⊢ t ≤c[ pb ] t' ▹ T 'with' R " (at level 50, Γ, t, pb, t', T, R at next level, format "Σ  ;;;  Γ  ⊢  t  ≤c[ pb ]  t'  ▹  T  'with'  R").
+  Reserved Notation "Σ ;;; Γ ⊢ t ≤c[ pb ] t' ▹ T 'on' H 'with' R" (at level 50, Γ, t, pb, t', T, H, R at next level, format "Σ  ;;;  Γ  ⊢  t  ≤c[ pb ]  t'  ▹  T  'on'  H  'with'  R").
+  Reserved Notation "Σ ;;; Γ | Γ' ⊢ t ≤c[ pb ] t' ▹ T | T' 'on' H 'with' R" (at level 50, Γ, Γ', t, pb, t', T, T', H, R at next level, format "Σ  ;;;  Γ  |  Γ'  ⊢  t  ≤c[ pb ]  t'  ▹  T  |  T'  'on'  H  'with'  R").
+  Reserved Notation "Σ ;;; Γ | Γ' ⊢ t ≤c[ pb ] t' ▹ T | T' 'with' R" (at level 50, Γ, Γ', t, pb, t', T, T', R at next level, format "Σ  ;;;  Γ  |  Γ'  ⊢  t  ≤c[ pb ]  t'  ▹  T  |  T'  'with'  R").
   Reserved Notation "Σ  ;;; Γ ⊢ t == t' : T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t <= t' : T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ ;;; Γ ⊢ t <=[ pb ] t' : T" (at level 50, Γ, t, pb, t', T at next level, format "Σ  ;;;  Γ  ⊢  t  <=[ pb ]  t'  :  T").
+  Reserved Notation "Σ ;;; Γ | Γ' ⊢ t <=[ pb ] t' ▹ T | T'" (at level 50, Γ, Γ', t, pb, t', T, T' at next level, format "Σ  ;;;  Γ  |  Γ'  ⊢  t  <=[ pb ]  t'  ▹  T  |  T'").
   Reserved Notation "Σ  ;;; Γ ⊢ t === t' : T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t <== t' : T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ ;;; Γ ⊢ t <==[ pb ] t' : T" (at level 50, Γ, t, pb, t', T at next level, format "Σ  ;;;  Γ  ⊢  t  <==[ pb ]  t'  :  T").
@@ -200,6 +302,43 @@ Create HintDb fmap.
   Reserved Notation "Σ ;;; Γ ⊢ t ≦[ pb ] t' : T" (at level 50, Γ, t, pb, t', T at next level, format "Σ  ;;;  Γ  ⊢  t  ≦[ pb ]  t'  :  T").
 (* End Reserved Notations *)
 
+Module Export discriminators.
+
+  Definition red0_discr t :=
+    match t with
+    | tApp (tLambda na A t) u => true
+    | _ => false
+    end.
+
+  Fixpoint hred1_discr t :=
+    match t with
+    | tApp (tLambda na A t) u => true
+    | tApp t u => hred1_discr t
+    | _ => false
+    end.
+
+  Definition head_context1_discr t :=
+    match t with
+    | tApp t u => hred1_discr t
+    | _ => false
+    end.
+
+  Lemma head_red0_discr t :
+    head_context1_discr t ->
+    red0_discr t ->
+    False.
+  Proof.
+    destruct t => //=. destruct t1 => //.
+  Defined.
+
+  Definition cumul_addon_discr t :=
+    match t with
+    | tProd _ _ _
+    | tSort _ => true
+    | _ => false
+    end.
+
+End discriminators.
 
 Module Export typing_utils.
   Lemma subst_idsn_lift n t :
@@ -238,17 +377,63 @@ Module Export typing_utils.
     apply subst_idsn_lift with (n := 1).
   Qed.
 
-  Definition lift_sortingε {Pc Ps Qc Qs j} :
-    lift_sorting Pc Ps j ->
-    (forall t T, Pc t T -> Qc t T) ->
-    (forall T s, Ps T s -> Qs T s) ->
-    lift_sorting Qc Qs j.
+  Definition on_option_default {A P} (P' : forall (a : A), P a -> Type) x T : option_default P x T -> Type :=
+    match x return option_default _ x _ -> Type with Some x => fun H => P' x H | None => fun _ => T end.
+
+  Definition lift_sortingε Pc Ps (Pc' : forall t T, Pc t T -> Type) (Ps' : forall t s, Ps t s -> Type) j (H : lift_sorting Pc Ps j) :=
+    on_option_default (fun tm H => Pc' tm (j_typ j) H) (j_term j) unit H.1 ×
+    Ps' _ _ H.2.π2.1.
+
+  Lemma lift_sorting_toε Pc Ps Pc' Ps' j :
+    [(H : lift_sorting Pc Ps j)] ->
+    [(Xc t T : [(H : Pc t T)] -> Pc' t T H)] ->
+    [(Xs t s : [(H : Ps t s)] -> Ps' t s H)] ->
+    lift_sortingε _ _ Pc' Ps' j H.
   Proof.
-    intros H X X'.
-    destruct H as (Ht & s & HT & Hs).
-    split; eauto.
-    destruct j_term; cbn in * => //. auto.
+    intros H Xc Xs.
+    destruct j, H as (? & ? & ? & ? & ?); cbn in *.
+    repeat eexists; cbn; auto.
+    destruct j_term => //=.
   Defined.
+
+  Lemma lift_sorting_ofε Pc Ps Pc' Ps' j :
+    [(H : lift_sorting Pc Ps j)] ->
+    [(X : lift_sortingε Pc Ps (fun t T _ => Pc' t T) (fun t s _ => Ps' t s) j H)] ->
+    lift_sorting Pc' Ps' j.
+  Proof.
+    intros.
+    destruct j, H as (? & ? & ? & ? & ?), X; cbn in *.
+    repeat eexists; cbn; tea.
+    destruct j_term => //.
+  Defined.
+
+  Lemma lift_sorting_fmap Pc Ps Pc' Ps' j :
+    [(H : lift_sorting Pc Ps j)] ->
+    [(Xc t T : Pc t T -> Pc' t T)] ->
+    [(Xs t s : Ps t s -> Ps' t s)] ->
+    lift_sorting Pc' Ps' j.
+  Proof.
+    intros H Xc Xs.
+    destruct j, H as (? & ? & ? & ? & ?); cbn in *.
+    repeat eexists; cbn; eauto.
+    destruct j_term => //=; eauto.
+  Defined.
+
+  Lemma lift_sortingε_fmap Pc Ps Pc' Ps' Pc'' Ps'' j :
+    [(p : lift_sorting Pc Ps j)] ->
+    [(H : lift_sortingε _ _ Pc' Ps' j p)] ->
+    [(Xc t T H : Pc' t T H -> Pc'' t T H)] ->
+    [(Xs t s H : Ps' t s H -> Ps'' t s H)] ->
+    lift_sortingε _ _ Pc'' Ps'' j p.
+  Proof.
+    intros p H Xc Xs.
+    induction H.
+    econstructor; eauto.
+    move: (j_term j) p.1 a => [] ? ? //=.
+    eauto.
+  Defined.
+
+  Hint Resolve lift_sorting_toε lift_sorting_ofε lift_sorting_fmap lift_sortingε_fmap : fmap.
 
   Definition lift_sortingε_map {Pc Ps Qc Qs f j} :
     lift_sorting Pc Ps j ->
@@ -273,7 +458,7 @@ Module Export typing_utils.
     destruct j_term; cbn in * => //. auto.
   Defined.
 
-  Hint Resolve lift_sortingε lift_typingε : fmap.
+  Hint Resolve lift_typingε : fmap.
 
   Hint Extern 1 => match goal with
     | H : lift_typing1 _ _ _ |- _  => cbn beta in H
@@ -290,32 +475,76 @@ Module Export typing_utils.
 
   Hint Resolve All_foldε : fmap.
 
-  Definition All_local_envε {P Q Γ} :
-    All_local_env P Γ ->
-    (forall Γ decl, All_local_env P Γ -> All_local_env Q Γ -> P Γ decl -> Q Γ decl) ->
-    All_local_env Q Γ.
+  Local Set Elimination Schemes.
+  Inductive All_local_envε P (P' : forall Γ j, P Γ j -> Type) | : forall Γ, All_local_env P Γ -> Type :=
+  | localenv_nilε :
+      All_local_envε [] ⌈@localenv_nil⌋
+
+  | localenv_cons_absε Γ na t :
+      [(wfΓ : All_local_env P Γ)] ->
+      [(IwfΓ : All_local_envε Γ wfΓ)] ->
+      [(Xj : P Γ (j_vass na t))] ->
+      [(IXj : P' Γ (j_decl (vass na t)) Xj)] ->
+      All_local_envε (Γ ,, vass na t) ⌈@localenv_cons_abs⌋
+
+  | localenv_cons_defε Γ na b t :
+      [(wfΓ : All_local_env P Γ)] ->
+      [(IwfΓ : All_local_envε Γ wfΓ)] ->
+      [(Xj : P Γ (j_vdef na b t))] ->
+      [(IXj : P' Γ (j_decl (vdef na b t)) Xj)] ->
+      All_local_envε (Γ ,, vdef na b t) ⌈@localenv_cons_def⌋.
+  Unset Elimination Schemes.
+  Derive Signature NoConfusion for All_local_envε.
+
+
+  Lemma All_local_env_toε R R' Γ :
+    [(H : All_local_env R Γ)] ->
+    [(X Γ decl : [(H : R Γ (j_decl decl))] -> R' Γ (j_decl decl) H)] ->
+    All_local_envε _ R' Γ H.
   Proof.
     intros H X.
-    induction H; constructor; eauto.
+    induction H.
+    all: now econstructor.
   Defined.
 
-  Definition All_local_envε' {P Q Γ} :
-    All_local_env P Γ ->
-    (forall Γ decl, All_local_env P Γ -> All_local_env Q Γ -> P Γ (j_decl decl) -> Q Γ (j_decl decl)) ->
-    All_local_env Q Γ.
+  Lemma All_local_env_ofε R R' Γ :
+    [(H : All_local_env R Γ)] ->
+    [(X : All_local_envε R (fun Γ j _ => R' Γ j) Γ H)] ->
+    All_local_env R' Γ.
+  Proof.
+    intros.
+    induction X.
+    all: now econstructor.
+  Defined.
+
+  Lemma All_local_env_fmap R R' Γ :
+    [(H : All_local_env R Γ)] ->
+    [(X Γ decl : All_local_env R Γ -> All_local_env R' Γ -> R Γ (j_decl decl) -> R' Γ (j_decl decl))] ->
+    All_local_env R' Γ.
   Proof.
     intros H X.
-    induction H; constructor; eauto.
-    - apply X with (decl := vass _ _); eauto.
-    - apply X with (decl := vdef _ _ _); eauto.
+    have {}X Γ := X Γ (mkdecl _ _ _); cbn in X.
+    induction H; now constructor.
   Defined.
 
-  Hint Resolve All_local_envε : fmap. Hint Unfold All_local_rel : fmap.
+  Lemma All_local_envε_fmap R R' R'' Γ :
+    [(p : All_local_env R Γ)] ->
+    [(H : All_local_envε _ R' Γ p)] ->
+    [(X Γ decl wfΓ H : All_local_envε _ R' Γ wfΓ -> All_local_envε _ R'' Γ wfΓ -> R' Γ (j_decl decl) H -> R'' Γ (j_decl decl) H)] ->
+    All_local_envε _ R'' Γ p.
+  Proof.
+    intros p H X.
+    induction H.
+    all: now econstructor.
+  Defined.
 
-  Lemma wf_local_snoc_vass_s P Γ na t s :
-    lift_typing1 P Γ (j_vass_s na t s) ->
-    All_local_env (lift_typing1 P) Γ ->
-    All_local_env (lift_typing1 P) (Γ ,, vass na t).
+  Hint Resolve All_local_env_toε All_local_env_fmap All_local_envε_fmap : fmap.
+  Hint Unfold All_local_rel : fmap.
+
+  Lemma wf_local_snoc_vass_s {Pc Ps} Γ na t s :
+    lift_sorting1 Pc Ps Γ (j_vass_s na t s) ->
+    All_local_env (lift_sorting1 Pc Ps) Γ ->
+    All_local_env (lift_sorting1 Pc Ps) (Γ ,, vass na t).
   Proof.
     intros.
     constructor; tas.
@@ -323,18 +552,18 @@ Module Export typing_utils.
   Qed.
 
   Lemma wf_local_snoc_vass P Γ na t :
-    lift_typing1 P Γ (j_vass na t) ->
-    All_local_env (lift_typing1 P) Γ ->
-    All_local_env (lift_typing1 P) (Γ ,, vass na t).
+    P Γ (j_vass na t) ->
+    All_local_env P Γ ->
+    All_local_env P (Γ ,, vass na t).
   Proof.
     intros.
     constructor; tas.
   Qed.
 
   Lemma wf_local_snoc_vdef P Γ na b t :
-    lift_typing1 P Γ (j_vdef na b t) ->
-    All_local_env (lift_typing1 P) Γ ->
-    All_local_env (lift_typing1 P) (Γ ,, vdef na b t).
+    P Γ (j_vdef na b t) ->
+    All_local_env P Γ ->
+    All_local_env P (Γ ,, vdef na b t).
   Proof.
     intros.
     constructor; tas.
@@ -987,10 +1216,13 @@ Class RedtoWhnf := { RedWit : forall (Σ : global_env_ext) (Γ : context) (T T' 
 Coercion TCit : TypeComparator >-> Funclass.
 Coercion RedWit : RedtoWhnf >-> Funclass.
 
-Implicit Types (TC : TypeComparator) (RedW : RedtoWhnf).
+Class TypeOtherRelation := { TORit : forall (Γ : context) (T T' : term), Type }.
+Coercion TORit : TypeOtherRelation >-> Funclass.
 
-Notation "Σ  ;;; Γ ⊢ T ≤T T'" := (@TCit _ Σ Γ T T') (at level 50, Γ, T, T' at next level).
-Notation "Σ  ;;; Γ ⊢ T ≤T T' 'with' TC" := (@TCit TC Σ Γ T T') (at level 50, Γ, T, T', TC at next level, only parsing).
+Implicit Types (TC : TypeComparator) (RedW : RedtoWhnf) (TOR : TypeOtherRelation).
+
+Notation "Σ  ;;; Γ ⊢ T ≤T T'" := (@TCit _ Σ Γ T T').
+Notation "Σ  ;;; Γ ⊢ T ≤T T' 'with' TC" := (@TCit TC Σ Γ T T') (only parsing).
 Notation "Σ  ;;; Γ ⊢ T ↘ T'" := (RedWit Σ Γ T T') (at level 50, Γ, T, T' at next level).
 Notation "Σ  ;;; Γ ⊢ T ↘ T' 'with' RedW" := (@RedWit RedW Σ Γ T T') (at level 50, Γ, T, T', RedW at next level, only parsing).
 Notation "Σ  ;;; Γ ⊢ T ~>Π ( na : A ) , B" := (Σ ;;; Γ ⊢ T ↘ tProd na A B) (at level 50, Γ, T, na, A, B at next level).
@@ -998,7 +1230,13 @@ Notation "Σ  ;;; Γ ⊢ T ~>Π ( na : A ) , B 'with' RedW" := (Σ ;;; Γ ⊢ T 
 Notation "Σ  ;;; Γ ⊢ T ~>□ s" := (Σ ;;; Γ ⊢ T ↘ tSort s) (at level 50, Γ, T, s at next level).
 Notation "Σ  ;;; Γ ⊢ T ~>□ s 'with' RedW" := (Σ ;;; Γ ⊢ T ↘ tSort s with RedW) (at level 50, Γ, T, s, RedW at next level, only parsing).
 
+Notation "Γ ⊢ T ≤O T'" := (TORit Γ T T').
+Notation "Γ ⊢ T ≤O T' 'with' R" := (@TORit R Γ T T') (only parsing).
+
 Class RevImpliesTC {TC} Σ P := { rto_tc Γ T T' s : P Γ T T' (tSort s) -> Σ ;;; Γ ⊢ T' ≤T T }.
+Class ImpliesTOR {RedW TOR} Σ P := { to_tor Γ T T' S s : P Γ T T' S -> Σ ;;; Γ ⊢ S ~>□ s -> Γ ⊢ T ≤O T' }.
+Class RevImpliesTOR {RedW TOR} Σ P := { rto_tor Γ T T' S s : P Γ T T' S -> Σ ;;; Γ ⊢ S ~>□ s -> Γ ⊢ T' ≤O T }.
+Class TCImpliesTOR {TC TOR} Σ := { tc_to_tor Γ T T' : Σ ;;; Γ ⊢ T ≤T T' -> Γ ⊢ T ≤O T' }.
 
 Class TC_compat TC Σ Γ R := cumul : forall T U, Σ ;;; Γ ⊢ T ≤T U -> R T -> R U.
 
@@ -1011,6 +1249,9 @@ Local Set Elimination Schemes.
     | TCOpt_one T' : [(X : Σ ;;; Γ ⊢ T ≤T T')] -> Σ ;;; Γ ⊢ T ≤T? T'
   where "Σ  ;;; Γ ⊢ A ≤T? T" := (TCOpt _ Σ Γ A T).
   Derive Signature NoConfusion for TCOpt.
+
+  Definition TCOpt_TOR {TC} Σ : TypeOtherRelation := {| TORit := TCOpt TC Σ |}.
+
   Lemma TCOpt_trans TC Σ Γ T U V : Transitive (TC Σ Γ) -> Σ ;;; Γ ⊢ T ≤T? U -> Σ ;;; Γ ⊢ U ≤T? V -> Σ ;;; Γ ⊢ T ≤T? V.
   Proof.
     intros H XTU XUV.
@@ -1189,7 +1430,7 @@ Proof.
   have {} Xj Γ j : lift_typing typing Σ Γ j -> Pj Γ j.
   { eauto 7 with fmap. }
   have {} XΓ Γ : wf_local Σ Γ -> PΓ Γ.
-  { eauto with fmap. }
+  { eauto using All_local_env_fmap. }
   intros Γ t T X. destruct X.
   all: try solve [ match goal with h : _ |- _ => eapply h; eauto end ].
 Defined.
@@ -1319,270 +1560,6 @@ Class ToWFLocal2Pb {TC} Σ P (pb : conv_pb) := {
 }.
 
 Instance typing_wf_local' TC Σ : ToWFLocal Σ (typing Σ) := {| to_wf_local := typing_wf_local Σ |}.
-
-
-Module Export ContextConversion.
-
-  Inductive rel_option {A B} (R : A -> B -> Type) : option A -> option B -> Type :=
-  | rel_some a b : R a b -> rel_option R (Some a) (Some b)
-  | rel_none : rel_option R None None.
-
-  Derive Signature NoConfusion for rel_option.
-
-  Definition convertible_decls R R' (decl decl' : context_decl) :=
-    eq_binder_annot decl.(decl_name) decl'.(decl_name) ×
-    rel_option (fun t u => R t u decl.(decl_type)) decl.(decl_body) decl'.(decl_body) ×
-    R' decl.(decl_type) decl'.(decl_type).
-
-  Definition convertible_contexts R R' : crelation context := All2_fold (fun Γ _ => convertible_decls (R Γ) (R' Γ)).
-  Definition convertible_contexts_rel R R' Γ : crelation context := All2_fold (fun Δ _ => convertible_decls (R (Γ ,,, Δ)) (R' (Γ ,,, Δ))).
-
-  Class ContextComparator := {
-    cmp_term Σ Γ (t t' T : term) : Type;
-    cmp_type Σ Γ (T T' : term) : Type;
-  }.
-  Implicit Types (CC : ContextComparator).
-
-  Notation "Σ  ;;; Γ ⊢ Δ ≤Γ Δ'" := (convertible_contexts_rel (@cmp_term _ Σ) (@cmp_type _ Σ) Γ Δ Δ') (at level 50, Γ, Δ, Δ' at next level).
-  Notation "Σ  ;;; Γ ⊢ Δ ≤Γ Δ' 'with' CC" := (convertible_contexts_rel (@cmp_term CC Σ) (@cmp_type CC Σ) Γ Δ Δ') (at level 50, Γ, Δ, Δ', CC at next level, only parsing).
-  Notation "Σ  ;;; Γ ⊢ d ≤d d'" := (convertible_decls (cmp_term Σ Γ) (cmp_type Σ Γ) d d') (at level 50, Γ, d, d' at next level).
-  Notation "Σ  ;;; Γ ⊢ d ≤d d' 'with' CC" := (convertible_decls (@cmp_term CC Σ Γ) (@cmp_type CC Σ Γ) d d') (at level 50, Γ, d, d', CC at next level, only parsing).
-  Notation "Σ ⊢ Δ ≤Γ Δ'" := (convertible_contexts (cmp_term Σ) (cmp_type Σ) Δ Δ') (at level 50, Δ, Δ' at next level).
-  Notation "Σ ⊢ Δ ≤Γ Δ' 'with' CC" := (convertible_contexts (@cmp_term CC Σ) (@cmp_type CC Σ) Δ Δ') (at level 50, Δ, Δ', CC at next level, only parsing).
-
-  Lemma nth_error_convertible_context0 {CC} Σ Γ Δ n decl :
-    Σ ⊢ Γ ≤Γ Δ ->
-    nth_error Δ n = Some decl ->
-    ∑ decl', nth_error Γ n = Some decl' ×
-    Σ ;;; skipn (S n) Γ ⊢ decl' ≤d decl.
-  Proof.
-    intros.
-    induction X in n, H.
-    - rewrite nth_error_nil // in H.
-    - destruct n; cbn in *.
-      + eexists; split; trea.
-        injection H as [= <-].
-        assumption.
-      + by apply IHX.
-  Qed.
-
-  Class CmpContextLiftable {TC CC} Σ := {
-    cmp_ctx_lift Γ Δ decl decl' : wf_local Σ (Γ ,,, Δ) ->
-      Σ ;;; Γ ⊢ decl ≤d decl' ->
-      Σ ;;; Γ ,,, Δ ⊢ map_decl (lift0 #|Δ|) decl ≤d map_decl (lift0 #|Δ|) decl'
-  }.
-
-  Lemma nth_error_convertible_context {TC CC} Σ (Pre : CmpContextLiftable Σ) Γ Δ n decl :
-    Σ ⊢ Γ ≤Γ Δ ->
-    wf_local Σ Γ ->
-    nth_error Δ n = Some decl ->
-    ∑ decl', nth_error Γ n = Some decl' ×
-    Σ ;;; Γ ⊢ map_decl (lift0 (S n)) decl' ≤d map_decl (lift0 (S n)) decl.
-  Proof.
-    intros XΓ wfΓ hnth.
-    eapply nth_error_convertible_context0 in hnth as (decl' & hnth & X); tea.
-    exists decl'; split; tas.
-    rewrite -(firstn_skipn (S n) Γ) in wfΓ |- *.
-    eapply cmp_ctx_lift with (Δ := firstn (S n) Γ) in X.
-    2: apply wfΓ.
-    rewrite firstn_length_le // in X.
-    apply nth_error_Some_length in hnth. lia.
-  Qed.
-
-
-  Class TCIsCmpType {TC CC} Σ := {
-    to_cmp_type Γ T T' : Σ ;;; Γ ⊢ T ≤T T' -> cmp_type Σ Γ T T';
-    rto_tci Γ T T' : cmp_type Σ Γ T T' -> Σ ;;; Γ ⊢ T ≤* T';
-  }.
-
-  Lemma nth_error_convertible_context_TC {TC CC} Σ (Pre : CmpContextLiftable Σ) (Pre' : TCIsCmpType Σ) Γ Δ n decl :
-    Σ ⊢ Γ ≤Γ Δ ->
-    wf_local Σ Γ ->
-    nth_error Δ n = Some decl ->
-    ∑ decl', nth_error Γ n = Some decl' ×
-    Σ ;;; Γ ⊢ lift0 (S n) decl'.(decl_type) ≤* lift0 (S n) decl.(decl_type).
-  Proof.
-    intros XΓ wfΓ hnth.
-    eapply nth_error_convertible_context in hnth as (decl' & hnth & X); tea.
-    exists decl'; split; tas.
-    apply rto_tci. apply X.
-  Qed.
-
-
-  Class CmpWFLocal {TC CC} Σ := {
-    cmp_wf_local Γ Δ : Σ ⊢ Γ ≤Γ Δ -> wf_local Σ Δ -> wf_local Σ Γ
-  }.
-
-  Class ContextChangeable {CC} P Σ := {
-    change_context : forall Γ Δ (t T : term),
-      P Δ t T ->
-      Σ ⊢ Γ ≤Γ Δ ->
-      P Γ t T
-  }.
-
-  Class ContextChangeable2 {CC} P Σ := {
-    change_context2 : forall Γ Δ (t u T : term),
-      P Δ t u T ->
-      Σ ⊢ Γ ≤Γ Δ ->
-      P Γ t u T
-  }.
-
-  Class ContextChangeable2Pb {CC} P Σ (pb : conv_pb) := {
-    change_context2pb : forall Γ Δ (t u T : term),
-      P Δ pb t u T ->
-      Σ ⊢ Γ ≤Γ Δ ->
-      P Γ pb t u T
-  }.
-
-  Lemma convertible_contexts_snoc {CC} Σ Γ Δ d d' :
-    Σ ⊢ Γ ≤Γ Δ ->
-    Σ ;;; Γ ⊢ d ≤d d' ->
-    Σ ⊢ Γ ,, d ≤Γ Δ ,, d'.
-  Proof.
-    intros.
-    constructor; tas.
-  Qed.
-
-  Lemma convertible_contexts_rel_snoc {CC} Σ Γ Δ Δ' d d' :
-    Σ ;;; Γ ⊢ Δ ≤Γ Δ' ->
-    Σ ;;; Γ ,,, Δ ⊢ d ≤d d' ->
-    Σ ;;; Γ ⊢ Δ ,, d ≤Γ Δ' ,, d'.
-  Proof.
-    intros.
-    constructor; tas.
-  Qed.
-
-  Lemma convertible_contexts_app {CC} Σ Γ Γ' Δ Δ' :
-    Σ ⊢ Γ ≤Γ Γ' ->
-    Σ ;;; Γ ⊢ Δ ≤Γ Δ' ->
-    Σ ⊢ Γ ,,, Δ ≤Γ Γ' ,,, Δ'.
-  Proof.
-    induction 2; tas.
-    constructor; auto.
-  Qed.
-
-  Lemma convertible_contexts_rel_app {CC} Σ Ξ Γ Γ' Δ Δ' :
-    Σ ;;; Ξ ⊢ Γ ≤Γ Γ' ->
-    Σ ;;; Ξ ,,, Γ ⊢ Δ ≤Γ Δ' ->
-    Σ ;;; Ξ ⊢ Γ ,,, Δ ≤Γ Γ' ,,, Δ'.
-  Proof.
-    induction 2; tas.
-    cbn; constructor; cbn; auto.
-    rewrite app_context_assoc //.
-  Qed.
-
-
-  Class CCTypedRefl CC TC Σ := {
-    cmp_term_refl Γ t T : Σ ;;; Γ ⊢ t : T -> cmp_term Σ Γ t t T;
-    cmp_type_refl Γ T s : Σ ;;; Γ ⊢ T : tSort s -> cmp_type Σ Γ T T;
-  }.
-
-
-  Lemma convertible_contexts_refl {CC TC} Σ Γ :
-    CCTypedRefl CC TC Σ ->
-    wf_local Σ Γ -> Σ ⊢ Γ ≤Γ Γ.
-  Proof.
-    intro.
-    induction 1; try apply convertible_contexts_snoc; auto.
-    1: constructor.
-    all: destruct t0 as (Hb & s & HT & Hs).
-    all: repeat split; cbn; eauto.
-    all: try constructor.
-    1,3: eapply cmp_type_refl; tea.
-    eapply cmp_term_refl; tea.
-  Qed.
-
-  Lemma convertible_contexts_rel_refl {CC TC} Σ Γ Δ :
-    CCTypedRefl CC TC Σ ->
-    wf_local_rel Σ Γ Δ -> Σ ;;; Γ ⊢ Δ ≤Γ Δ.
-  Proof.
-    intro.
-    induction 1; try apply convertible_contexts_rel_snoc; auto.
-    1: constructor.
-    all: destruct t0 as (Hb & s & HT & Hs).
-    all: repeat split; cbn; eauto.
-    all: try constructor.
-    1,3: eapply cmp_type_refl; tea.
-    eapply cmp_term_refl; tea.
-  Qed.
-
-  Lemma convertible_contexts_snoc_refl {CC TC} Σ Γ Γ' d :
-    CCTypedRefl CC TC Σ ->
-    Σ ⊢ Γ ≤Γ Γ' ->
-    lift_typing typing Σ Γ (j_decl d) ->
-    Σ ⊢ Γ ,, d ≤Γ Γ' ,, d.
-  Proof.
-    intros ?Pre H X.
-    apply convertible_contexts_snoc; tas.
-    destruct X as (Xb & s & Xt & Xs); cbn in *.
-    repeat split; cbn; eauto.
-    - destruct decl_body; constructor.
-      apply cmp_term_refl, Xb.
-    - eapply cmp_type_refl, Xt.
-  Qed.
-
-  Lemma convertible_contexts_app_refl {CC TC} Σ Γ Γ' Δ :
-    CCTypedRefl CC TC Σ ->
-    Σ ⊢ Γ ≤Γ Γ' ->
-    wf_local_rel Σ Γ Δ ->
-    Σ ⊢ Γ ,,, Δ ≤Γ Γ' ,,, Δ.
-  Proof.
-    intros.
-    apply convertible_contexts_app; tas.
-    by apply convertible_contexts_rel_refl.
-  Qed.
-
-
-  Lemma convertible_contexts_of_rel {CC TC} Σ Γ Δ Δ' :
-    CCTypedRefl CC TC Σ ->
-    wf_local Σ Γ -> Σ ;;; Γ ⊢ Δ ≤Γ Δ' ->
-    Σ ⊢ Γ ,,, Δ ≤Γ Γ ,,, Δ'.
-  Proof.
-    intros.
-    apply convertible_contexts_app; tas.
-    by apply convertible_contexts_refl.
-  Qed.
-
-End ContextConversion.
-Implicit Types (CC : ContextComparator).
-
-Instance typing_CC {TC CC} Σ : CCTypedRefl CC TC Σ -> CmpWFLocal Σ -> CmpContextLiftable Σ -> TCIsCmpType Σ -> ContextChangeable (TC Σ) Σ -> ContextChangeable (typing Σ) Σ.
-Proof.
-  intros ?Pre?Pre?Pre?Pre?Pre.
-  constructor.
-  intros Δ Γ ?? X XΓ.
-  induction X using typing_rect with (PΓ := fun Γ => forall Δ, Σ ⊢ Δ ≤Γ Γ -> True) (Pj := fun Γ j => forall Δ, Σ ⊢ Δ ≤Γ Γ -> lift_typing typing Σ Δ j) in Δ, XΓ.
-  all: try auto.
-  - eapply lift_typingε; tea.
-    cbn; eauto.
-  - eapply cmp_wf_local in X; tea.
-    eapply nth_error_convertible_context_TC in H as (decl' & hnth & XT); tea.
-    eapply TCI_elim; tc; tea.
-    constructor; tea.
-  - eapply cmp_wf_local in X; tea.
-    by econstructor.
-  - specialize (IHX _ XΓ).
-    econstructor; eauto.
-    eapply IHX0; tea.
-    eapply convertible_contexts_snoc_refl; tas. cbn.
-    now eapply lift_sorting_forget_univ.
-  - specialize (IHX _ XΓ).
-    econstructor; eauto.
-    eapply IHX0; tea.
-    eapply convertible_contexts_snoc_refl; tas.
-  - econstructor; eauto.
-  - econstructor; eauto.
-    eapply change_context; tea.
-Qed.
-
-Lemma lift_typing_CC {TC CC} Σ P : ContextChangeable P Σ ->
-  forall Γ Δ j, Σ ⊢ Δ ≤Γ Γ -> lift_typing1 P Γ j -> lift_typing1 P Δ j.
-Proof.
-  intros ?Pre ??? XΓ X.
-  eapply lift_typingε. 1: apply X.
-  intros; now eapply change_context.
-Qed.
-
 
 
 Inductive typed_conversion_spec {cf : checker_flags} {TC} (Σ : global_env_ext) (Γ : context) pb : forall (t t' T : term), Type :=
@@ -1793,15 +1770,28 @@ Section BD.
 Context {TC} {RedW} Σ.
 
 Section Inner.
-Context (infering : context -> term -> term -> Type) Γ.
+Context (infering : context -> term -> term -> Type).
 Notation "Σ ;;; Γ ⊢ t ▹ T" := (infering Γ t T) (only parsing).
+Context (inferingε : forall Γ t T, Σ ;;; Γ ⊢ t ▹ T -> Type).
+Notation "Σ ;;; Γ ⊢ t ▹ T 'on' H 'with' P" := (inferingε Γ t T H) (only parsing).
+Context Γ.
 
+Local Set Elimination Schemes.
 Inductive infer_red t T :=
   | infer_red_Red T₀ :
     [(X : Σ ;;; Γ ⊢ t ▹ T₀)] ->
     [(XR : Σ ;;; Γ ⊢ T₀ ↘ T)] ->
     Σ ;;; Γ ⊢ t ▹↘ T
 where "Σ ;;; Γ ⊢ t ▹↘ T" := (infer_red t T) (only parsing).
+
+Inductive infer_redε t T : Σ ;;; Γ ⊢ t ▹↘ T -> Type :=
+  | infer_red_Redε T₀ :
+    [(X : Σ ;;; Γ ⊢ t ▹ T₀)] ->
+    [(IX : Σ ;;; Γ ⊢ t ▹ T₀ on X with inferingε)] ->
+    [(XR : Σ ;;; Γ ⊢ T₀ ↘ T)] ->
+    Σ ;;; Γ ⊢ t ▹↘ T on ⌈infer_red_Red⌋ with inferingε
+where "Σ ;;; Γ ⊢ t ▹↘ T 'on' H 'with' P" := (infer_redε t T H) (only parsing).
+
 
 Inductive checking t T :=
   | check_Cumul T₀ :
@@ -1810,32 +1800,41 @@ Inductive checking t T :=
     Σ ;;; Γ ⊢ t ◃ T
 where "Σ ;;; Γ ⊢ t ◃ T" := (checking t T) (only parsing).
 
+Inductive checkingε t T : Σ ;;; Γ ⊢ t ◃ T -> Type :=
+  | check_Cumulε T₀ :
+    [(X : Σ ;;; Γ ⊢ t ▹ T₀)] ->
+    [(IX : Σ ;;; Γ ⊢ t ▹ T₀ on X with inferingε)] ->
+    [(XR : Σ ;;; Γ ⊢ T₀ ≤T T)] ->
+    Σ ;;; Γ ⊢ t ◃ T on ⌈check_Cumul⌋ with inferingε
+where "Σ ;;; Γ ⊢ t ◃ T 'on' H 'with' P" := (checkingε t T H) (only parsing).
+Unset Elimination Schemes.
+
 End Inner.
 
 Inductive infering Γ : term -> term -> Type :=
   | infer_Rel n decl :
-    wf_local_bd Σ Γ ->
-    nth_error Γ n = Some decl ->
+    [(wfΓ : wf_local_bd Σ Γ)] ->
+    [(hnth : nth_error Γ n = Some decl)] ->
     Σ ;;; Γ ⊢ tRel n ▹ lift0 (S n) (decl_type decl)
 
   | infer_Sort s :
-    wf_local_bd Σ Γ ->
-    wf_sort Σ s ->
+    [(wfΓ : wf_local_bd Σ Γ)] ->
+    [(wfs : wf_sort Σ s)] ->
     Σ ;;; Γ ⊢ tSort s ▹ tSort (Sort.super s)
 
   | infer_Prod na A B s1 s2 :
-    wf_judgment_bd infering Γ (j_vass_s na A s1) ->
-    Σ ;;; Γ ,, vass na A ⊢ B ▹□ s2 ->
+    [(Xj : wf_judgment_bd infering Γ (j_vass_s na A s1))] ->
+    [(XB : Σ ;;; Γ ,, vass na A ⊢ B ▹□ s2)] ->
     Σ ;;; Γ ⊢ tProd na A B ▹ tSort (Sort.sort_of_product s1 s2)
 
   | infer_Lambda na A t B :
-    wf_judgment_bd infering Γ (j_vass na A) ->
-    Σ ;;; Γ ,, vass na A ⊢ t ▹ B ->
+    [(Xj : wf_judgment_bd infering Γ (j_vass na A))] ->
+    [(Xt : Σ ;;; Γ ,, vass na A ⊢ t ▹ B)] ->
     Σ ;;; Γ ⊢ tLambda na A t ▹ tProd na A B
 
   | infer_App t na A B u :
-    Σ ;;; Γ ⊢ t ▹Π (na : A), B ->
-    Σ ;;; Γ ⊢ u ◃ A ->
+    [(Xt : Σ ;;; Γ ⊢ t ▹Π (na : A), B)] ->
+    [(Xu : Σ ;;; Γ ⊢ u ◃ A)] ->
     Σ ;;; Γ ⊢ tApp t u ▹ B {0 := u}
 
 where "Σ ;;; Γ ⊢ t ▹ T" := (infering Γ t T) (only parsing)
@@ -1843,22 +1842,82 @@ and "Σ ;;; Γ ⊢ t ▹↘ T" := (infer_red infering Γ t T) (only parsing)
 and "Σ ;;; Γ ⊢ t ▹□ u" := (Σ ;;; Γ ⊢ t ▹↘ tSort u) (only parsing)
 and "Σ ;;; Γ ⊢ t ▹Π ( na : A ) , B" := (Σ ;;; Γ ⊢ t ▹↘ tProd na A B) (only parsing)
 and "Σ ;;; Γ ⊢ t ◃ T" := (@checking infering Γ t T) (only parsing)
-and "'wf_judgment_bd' Σ Γ" := (lift_sorting (checking infering Γ) (fun t s => Σ ;;; Γ ⊢ t ▹□ s)) (only parsing)
-and "'wf_local_bd' Σ Γ" := (All_local_env (fun Γ₀ => wf_judgment_bd infering Γ₀) Γ) (only parsing).
-(* and "'wf_local_bd_rel' Σ Γ Γ'" := (All_local_rel (fun Γ => wf_judgment_bd infering Γ) Γ Γ'). *)
+and "'wf_judgment_bd' Σ Γ j" := (lift_sorting (checking infering Γ) (fun t s => Σ ;;; Γ ⊢ t ▹□ s) j) (only parsing)
+and "'wf_local_bd' Σ Γ" := (All_local_env (fun Γ₀ j => wf_judgment_bd Σ Γ₀ j) Γ) (only parsing).
+(* and "'wf_local_bd_rel' Σ Γ Γ'" := (All_local_rel (fun Γ j => wf_judgment_bd Σ Γ j) Γ Γ'). *)
 
+Inductive inferingε P Γ : forall t T, Σ ;;; Γ ⊢ t ▹ T -> Type :=
+  | inferε_Rel n decl :
+    [(wfΓ : wf_local_bd Σ Γ)] ->
+    [(IwfΓ : wf_local_bd Σ Γ on wfΓ with P)] ->
+    [(hnth : nth_error Γ n = Some decl)] ->
+    Σ ;;; Γ ⊢ tRel n ▹ lift0 (S n) (decl_type decl) on ⌈infer_Rel⌋ with P
+
+  | inferε_Sort s :
+    [(wfΓ : wf_local_bd Σ Γ)] ->
+    [(IwfΓ : wf_local_bd Σ Γ on wfΓ with P)] ->
+    [(wfs : wf_sort Σ s)] ->
+    Σ ;;; Γ ⊢ tSort s ▹ tSort (Sort.super s) on ⌈infer_Sort⌋ with P
+
+  | inferε_Prod na A B s1 s2 :
+    [(Xj : wf_judgment_bd infering Γ (j_vass_s na A s1))] ->
+    [(IXj : wf_judgment_bd infering Γ (j_vass_s na A s1) on Xj with fun Γ t T H => P Γ t T H × Σ ;;; Γ ⊢ t ▹ T on H with P)] ->
+    [(XB : Σ ;;; Γ ,, vass na A ⊢ B ▹□ s2)] ->
+    [(IXB : Σ ;;; Γ ,, vass na A ⊢ B ▹↘ tSort s2 on XB with fun Γ t T H => P Γ t T H × Σ ;;; Γ ⊢ t ▹ T on H with P)] ->
+    Σ ;;; Γ ⊢ tProd na A B ▹ tSort (Sort.sort_of_product s1 s2) on ⌈infer_Prod⌋ with P
+
+  | inferε_Lambda na A t B :
+    [(Xj : wf_judgment_bd infering Γ (j_vass na A))] ->
+    [(IXj : wf_judgment_bd infering Γ (j_vass na A) on Xj with fun Γ t T H => P Γ t T H × Σ ;;; Γ ⊢ t ▹ T on H with P)] ->
+    [(Ht : Σ ;;; Γ ,, vass na A ⊢ t ▹ B)] ->
+    [(Xt : P (Γ ,, vass na A) t B Ht)] ->
+    [(IXt : Σ ;;; Γ ,, vass na A ⊢ t ▹ B on Ht with P)] ->
+    Σ ;;; Γ ⊢ tLambda na A t ▹ tProd na A B on ⌈infer_Lambda⌋ with P
+
+  | inferε_App t na A B u :
+    [(Xt : Σ ;;; Γ ⊢ t ▹Π (na : A), B)] ->
+    [(IXt : Σ ;;; Γ ⊢ t ▹↘ tProd na A B on Xt with fun Γ t T H => P Γ t T H × Σ ;;; Γ ⊢ t ▹ T on H with P)] ->
+    [(Xu : Σ ;;; Γ ⊢ u ◃ A)] ->
+    [(IXu : Σ ;;; Γ ⊢ u ◃ A on Xu with fun Γ t T H => P Γ t T H × Σ ;;; Γ ⊢ t ▹ T on H with P)] ->
+    Σ ;;; Γ ⊢ tApp t u ▹ B {0 := u} on ⌈infer_App⌋ with P
+
+where "Σ ;;; Γ ⊢ t ▹ T 'on' H 'with' P" := (inferingε P Γ t T H) (only parsing)
+and "Σ ;;; Γ ⊢ t ▹↘ T 'on' H 'with' P" := (infer_redε infering P Γ t T H) (only parsing)
+and "Σ ;;; Γ ⊢ t ◃ T 'on' H 'with' P" := (checkingε infering P Γ t T H) (only parsing)
+and "'wf_judgment_bd' Σ Γ j 'on' H 'with' P" := (lift_sortingε _ _ (checkingε infering P Γ) (fun T s H => Σ ;;; Γ ⊢ T ▹↘ tSort s on H with P) j H) (only parsing)
+and "'wf_local_bd' Σ Γ 'on' H 'with' P" := (All_local_envε (fun Γ₀ j => wf_judgment_bd Σ Γ₀ j) (fun Γ₀ j H₀ => wf_judgment_bd Σ Γ₀ j on H₀ with P) Γ H) (only parsing).
+(* and "'wf_local_bd_rel' Σ Γ Γ'" := (All_local_rel (fun Γ => wf_judgment_bd infering Γ) Γ Γ'). *)
+Derive Signature for inferingε.
+
+Local Set Elimination Schemes.
 Inductive infering_ex Γ t :=
   | infer_ex T :
     [(X : Σ ;;; Γ ⊢ t ▹ T)] ->
     Σ ;;; Γ ⊢ t ▹
 where "Σ ;;; Γ ⊢ t ▹" := (infering_ex Γ t) (only parsing).
 
-Inductive checking_opt Γ t T :=
-  | check_opt T₀ :
-    [(X : Σ ;;; Γ ⊢ t ▹ T₀)] ->
-    [(XT : Σ ;;; Γ ⊢ T₀ ≤T? T)] ->
-    Σ ;;; Γ ⊢ t ◃? T
-where "Σ ;;; Γ ⊢ t ◃? T" := (checking_opt Γ t T) (only parsing).
+Inductive P_TOR {TOR} P Γ (T : term) :=
+  | p_tor T₀ :
+    [(X : P T₀)] ->
+    [(XT : Γ ⊢ T₀ ≤O T)] ->
+    P_TOR P Γ T.
+
+Inductive P_Red_TOR {TOR} P Γ (T : term) :=
+  | p_red_tor T₀ T₁ :
+    [(X : P T₀)] ->
+    [(XT : Γ ⊢ T₀ ≤O T₁)] ->
+    [(Xr : Σ ;;; Γ ⊢ T₁ ↘ T)] ->
+    P_Red_TOR P Γ T.
+
+Definition infer_TOR {TOR} Γ t T := P_TOR (infering Γ t) Γ T.
+Notation "Σ ;;; Γ ⊢ t ▹| T" := (infer_TOR Γ t T) (only parsing).
+Notation "Σ ;;; Γ ⊢ t ▹| T 'with' R" := (infer_TOR (TOR := R) Γ t T) (only parsing).
+Definition infer_red_TOR {TOR} Γ t T := P_Red_TOR (infering Γ t) Γ T.
+Notation "Σ ;;; Γ ⊢ t ▹|↘ T" := (infer_red_TOR Γ t T) (only parsing).
+Notation "Σ ;;; Γ ⊢ t ▹|↘ T 'with' R" := (infer_red_TOR (TOR := R) R Γ t T) (only parsing).
+
+Definition checking_opt := infer_TOR (TOR := TCOpt_TOR Σ).
+Notation "Σ ;;; Γ ⊢ t ◃? T" := (checking_opt Γ t T) (only parsing).
 
 Lemma check_to_opt Γ t T :
   Σ ;;; Γ ⊢ t ◃ T -> Σ ;;; Γ ⊢ t ◃? T.
@@ -1867,21 +1926,8 @@ Lemma infer_to_opt Γ t T :
   Σ ;;; Γ ⊢ t ▹ T -> Σ ;;; Γ ⊢ t ◃? T.
 Proof. intros X. econstructor; tea. by apply TCOpt_refl. Defined.
 
-Inductive checking_red_opt Γ t T :=
-  | infer_red_opt :
-    [(X : Σ ;;; Γ ⊢ t ▹↘ T)] ->
-    Σ ;;; Γ ⊢ t ◃↘? T
-  | check_red_opt :
-    [(X : Σ ;;; Γ ⊢ t ◃ T)] ->
-    Σ ;;; Γ ⊢ t ◃↘? T
-where "Σ ;;; Γ ⊢ t ◃↘? T" := (checking_red_opt Γ t T) (only parsing).
-
-Lemma check_to_red_opt Γ t T :
-  Σ ;;; Γ ⊢ t ◃ T -> Σ ;;; Γ ⊢ t ◃↘? T.
-Proof. intros X. by econstructor. Defined.
-Lemma infer_red_to_opt Γ t T :
-  Σ ;;; Γ ⊢ t ▹↘ T -> Σ ;;; Γ ⊢ t ◃↘? T.
-Proof. intros X. econstructor; tea. Defined.
+Definition checking_red_opt := infer_red_TOR (TOR := TCOpt_TOR Σ).
+Notation "Σ ;;; Γ ⊢ t ◃↘? T" := (checking_red_opt Γ t T) (only parsing).
 
 Inductive infering_prod_ex Γ t :=
   | infer_prod_ex na A B :
@@ -1935,21 +1981,31 @@ where "Σ ;;; Γ ⊢ t ▷ T" := (infering_nocheck Γ t T) (only parsing)
 and "Σ ;;; Γ ⊢ t ▷↘ T" := (infer_red infering_nocheck Γ t T) (only parsing)
 and "Σ ;;; Γ ⊢ t ▷□ u" := (Σ ;;; Γ ⊢ t ▷↘ tSort u) (only parsing)
 and "Σ ;;; Γ ⊢ t ▷Π ( na : A ) , B" := (Σ ;;; Γ ⊢ t ▷↘ tProd na A B) (only parsing).
+Unset Elimination Schemes.
 End BD.
 Derive Signature for infering.
 
 (* BD Renotations *)
   Disable Notation typing_sort (all).
   Notation "Σ ;;; Γ ⊢ t ▹ T" := (infering Σ Γ t T) : type_scope.
+  Notation "Σ ;;; Γ ⊢ t ▹ T 'on' H 'with' P" := (inferingε Σ P Γ t T H) : type_scope.
   Notation "Σ ;;; Γ ⊢ t ▹↘ T" := (infer_red Σ (infering Σ) Γ t T) : type_scope.
+  Notation "Σ ;;; Γ ⊢ t ▹↘ T 'on' H 'with' P" := (infer_redε Σ _ P Γ t T H) : type_scope.
   Notation "Σ ;;; Γ ⊢ t ▹□ u" := (Σ ;;; Γ ⊢ t ▹↘ tSort u) : type_scope.
   Notation "Σ ;;; Γ ⊢ t ▹Π ( na : A ) , B" := (Σ ;;; Γ ⊢ t ▹↘ tProd na A B) : type_scope.
   Notation "Σ ;;; Γ ⊢ t ◃ T" := (checking Σ (infering Σ) Γ t T) : type_scope.
-  Notation "'wf_judgment_bd' Σ Γ" := (lift_sorting (checking Σ (infering Σ) Γ) (fun t s => Σ ;;; Γ ⊢ t ▹□ s)).
-  Notation "'wf_local_bd' Σ Γ" := (All_local_env (fun Γ₀ => wf_judgment_bd Σ Γ₀) Γ).
-  Notation "'wf_local_bd_rel' Σ Γ Γ'" := (All_local_rel (fun Γ₀ => wf_judgment_bd Σ Γ₀) Γ Γ').
+  Notation "Σ ;;; Γ ⊢ t ◃ T 'on' H 'with' P" := (checkingε Σ _ P Γ t T H) : type_scope.
+  Notation "'wf_judgment_bd' Σ Γ j" := (lift_sorting (checking Σ (infering Σ) Γ) (fun t s => Σ ;;; Γ ⊢ t ▹□ s) j).
+  Notation "'wf_judgment_bd' Σ Γ j 'on' H 'with' P" := (lift_sortingε _ _ (checkingε Σ _ P Γ) (fun T s H₀ => Σ ;;; Γ ⊢ T ▹↘ tSort s on H₀ with P) j H).
+  Notation "'wf_local_bd' Σ Γ" := (All_local_env (fun Γ₀ j => wf_judgment_bd Σ Γ₀ j) Γ).
+  Notation "'wf_local_bd' Σ Γ 'on' H 'with' P" := (All_local_envε _ (fun Γ₀ j H₀ => wf_judgment_bd Σ Γ₀ j on H₀ with P) Γ H).
+  Notation "'wf_local_bd_rel' Σ Γ Γ'" := (All_local_rel (fun Γ₀ j => wf_judgment_bd Σ Γ₀ j) Γ Γ').
   Notation "Σ ;;; Γ ⊢ t ◃? T" := (checking_opt Σ Γ t T) : type_scope.
   Notation "Σ ;;; Γ ⊢ t ◃↘? T" := (checking_red_opt Σ Γ t T) : type_scope.
+  Notation "Σ ;;; Γ ⊢ t ▹| T" := (infer_TOR Σ Γ t T) : type_scope.
+  Notation "Σ ;;; Γ ⊢ t ▹| T 'with' R" := (infer_TOR Σ (TOR := R) Γ t T) (only parsing) : type_scope.
+  Notation "Σ ;;; Γ ⊢ t ▹|↘ T" := (infer_red_TOR Σ Γ t T) : type_scope.
+  Notation "Σ ;;; Γ ⊢ t ▹|↘ T 'with' R" := (infer_red_TOR Σ (TOR := R) Γ t T) (only parsing) : type_scope.
   Notation "Σ ;;; Γ ⊢ t ▹" := (infering_ex Σ Γ t) : type_scope.
   Notation "Σ ;;; Γ ⊢ t ▹□" := (infering_prod_ex Σ Γ t) : type_scope.
   Notation "Σ ;;; Γ ⊢ t ▹Π" := (infering_prod_ex Σ Γ t) : type_scope.
@@ -1958,6 +2014,119 @@ Derive Signature for infering.
   Notation "Σ ;;; Γ ⊢ t ▷□ u" := (Σ ;;; Γ ⊢ t ▷↘ tSort u) : type_scope.
   Notation "Σ ;;; Γ ⊢ t ▷Π ( na : A ) , B" := (Σ ;;; Γ ⊢ t ▷↘ tProd na A B) : type_scope.
 (* End BD Renotations *)
+
+Class TypedTypeReflexivity {TC RedW} P Σ := { ttrefl Γ t T : Σ ;;; Γ ⊢ t ▹ T -> P T T }.
+Class SortedTypeReflexivity {TC RedW} P Σ := { strefl Γ T s : Σ ;;; Γ ⊢ T ▹□ s -> P T T }.
+
+Lemma infer_to_TOR {TC RedW TOR} Σ {Pre : forall Γ, TypedTypeReflexivity (TOR Γ) Σ} Γ t T :
+  Σ ;;; Γ ⊢ t ▹ T -> Σ ;;; Γ ⊢ t ▹| T.
+Proof. intros X. econstructor; tea. now eapply ttrefl. Defined.
+
+Lemma infer_red_to_TOR {TC RedW TOR} Σ {Pre : forall Γ, TypedTypeReflexivity (TOR Γ) Σ} Γ t T :
+  Σ ;;; Γ ⊢ t ▹↘ T -> Σ ;;; Γ ⊢ t ▹|↘ T.
+Proof. intros []. econstructor; tea. now eapply ttrefl. Defined.
+
+Section Σ. Context {TC RedW} Σ.
+
+Lemma infer_red_toε R R' Γ t T :
+  [(H : infer_red Σ R Γ t T)] ->
+  [(X Γ t T : [(H : R Γ t T)] -> R' Γ t T H)] ->
+  Σ ;;; Γ ⊢ t ▹↘ T on H with R'.
+Proof.
+  intros H X.
+  destruct H.
+  all: now econstructor.
+Defined.
+
+Lemma infer_red_ofε R R' Γ t T :
+  [(H : infer_red Σ R Γ t T)] ->
+  [(X : Σ ;;; Γ ⊢ t ▹↘ T on H with fun Γ t T _ => R' Γ t T)] ->
+  infer_red Σ R' Γ t T.
+Proof.
+  intros H X.
+  destruct X.
+  all: now econstructor.
+Defined.
+
+Lemma infer_red_fmap R R' Γ t T :
+  [(H : infer_red Σ R Γ t T)] ->
+  [(X Γ t T : R Γ t T -> R' Γ t T)] ->
+  infer_red Σ R' Γ t T.
+Proof.
+  intros H X.
+  destruct H.
+  all: now econstructor.
+Defined.
+
+Lemma infer_redε_fmap R R' R'' Γ t T :
+  [(p : infer_red Σ R Γ t T)] ->
+  [(H : Σ ;;; Γ ⊢ t ▹↘ T on p with R')] ->
+  [(X Γ t T H : R' Γ t T H -> R'' Γ t T H)] ->
+  Σ ;;; Γ ⊢ t ▹↘ T on p with R''.
+Proof.
+  intros p H X.
+  induction H.
+  econstructor; eauto.
+Defined.
+
+
+Lemma check_toε R R' Γ t T :
+  [(H : checking Σ R Γ t T)] ->
+  [(X Γ t T : [(H : R Γ t T)] -> R' Γ t T H)] ->
+  Σ ;;; Γ ⊢ t ◃ T on H with R'.
+Proof.
+  intros H X.
+  destruct H.
+  all: now econstructor.
+Defined.
+
+Lemma check_ofε R R' Γ t T :
+  [(H : checking Σ R Γ t T)] ->
+  [(X : Σ ;;; Γ ⊢ t ◃ T on H with fun Γ t T _ => R' Γ t T)] ->
+  checking Σ R' Γ t T.
+Proof.
+  intros H X.
+  destruct X.
+  all: now econstructor.
+Defined.
+
+Lemma check_fmap R R' Γ t T :
+  [(H : checking Σ R Γ t T)] ->
+  [(X Γ t T : R Γ t T -> R' Γ t T)] ->
+  checking Σ R' Γ t T.
+Proof.
+  intros H X.
+  destruct H.
+  all: now econstructor.
+Defined.
+
+Lemma checkε_fmap R R' R'' Γ t T :
+  [(p : checking Σ R Γ t T)] ->
+  [(H : Σ ;;; Γ ⊢ t ◃ T on p with R')] ->
+  [(X Γ t T H : R' Γ t T H -> R'' Γ t T H)] ->
+  Σ ;;; Γ ⊢ t ◃ T on p with R''.
+Proof.
+  intros p H X.
+  induction H.
+  econstructor; eauto.
+Defined.
+End Σ.
+
+Hint Resolve infer_red_toε infer_red_fmap infer_redε_fmap check_toε check_fmap checkε_fmap : fmap.
+
+
+Lemma infering_rect TC RedW Σ P :
+  [(X Γ t T : [(H : Σ ;;; Γ ⊢ t ▹ T)] -> Σ ;;; Γ ⊢ t ▹ T on H with P -> P Γ t T H)] ->
+  forall Γ t T, [(H : Σ ;;; Γ ⊢ t ▹ T)] -> P Γ t T H.
+Proof.
+  intros.
+  eapply X. revert Γ t T H.
+  fix Xrec 4.
+  intros Γ t T H; destruct H.
+  all: constructor; eauto 8 with fmap.
+Qed.
+Definition infering_ind := infering_rect.
+
 
 Class BidirTypingElimType := {
   Pinfer : forall (Γ : context) (t T : term), Type;
@@ -2075,6 +2244,12 @@ Proof.
   apply (BDXinfer _ _ (global_infer_to_wf_local_bd _)).
 Defined.
 
+Lemma infer_TOR_wf_local_bd {TC RedW TOR} Σ Γ t T : Σ ;;; Γ ⊢ t ▹| T -> wf_local_bd Σ Γ.
+Proof.
+  intros [].
+  now eapply infering_wf_local_bd.
+Defined.
+
 Lemma infer_red_wf_local_bd {TC RedW} Σ Γ t T : Σ ;;; Γ ⊢ t ▹↘ T -> wf_local_bd Σ Γ.
 Proof.
   apply (BDXinfer_red _ _ (global_infer_to_wf_local_bd _)).
@@ -2095,8 +2270,16 @@ Class LeftInfer {TC RedW} R Σ := {
   infer_left Γ (t u : term) T : R Γ t u T -> Σ ;;; Γ ⊢ t ▹ T;
 }.
 
-Class RightInferOpt {TC RedW} R Σ := {
-  infer_opt_right Γ (t u : term) T : R Γ t u T -> Σ ;;; Γ ⊢ u ◃? T;
+Class RightInferTOR {TC RedW TOR} R Σ := {
+  infer_opt_right Γ (t u : term) T : R Γ t u T -> Σ ;;; Γ ⊢ u ▹| T;
+}.
+
+Class LeftInfer2 {TC RedW} R Σ := {
+  infer_left2 Γ Γ' (t u T T' : term) : R Γ Γ' t u T T' -> Σ ;;; Γ ⊢ t ▹ T;
+}.
+
+Class RightInfer2 {TC RedW} R Σ := {
+  infer_right2 Γ Γ' (t u T T' : term) : R Γ Γ' t u T T' -> Σ ;;; Γ' ⊢ u ▹ T';
 }.
 
 Class BidirToTypingPrecondition {TC RedW} Σ := {
@@ -2163,7 +2346,7 @@ Proof.
   - apply All_local_env_app_inv in X as [X X'], X0 as [_ X0].
     eapply All_local_env_app in X; tea.
     apply All_local_env_app; tas.
-    apply All_local_env_fold, All_local_envε with (1 := X0); tea; cbn.
+    apply All_local_env_fold, All_local_env_fmap with (1 := X0); tea; cbn.
     clear -X.
     intros ?? X' X'' Xj.
     rewrite Nat.add_0_r.
@@ -2185,7 +2368,7 @@ Proof.
     specialize (X2 (_ ,, _) eq_refl).
     rewrite lift_context_snoc Nat.add_0_r in X2.
     forward X2.
-    { cbn. constructor; tas. cbn. by apply lift_sorting_forget_univ in X0. }
+    { cbn. eapply wf_local_snoc_vass_s; tea. }
     constructor; auto.
   - specialize (X0 _ eq_refl ltac:(tas)).
     specialize (X2 (_ ,, _) eq_refl).
@@ -2227,180 +2410,227 @@ Proof.
   now eapply checking_wf_local_bd.
 Qed.
 
-Definition infer_subst_ElimType {TC RedW} Σ Γ Δ s := {|
-  Pinfer ΓΔ t T := forall Γ', ΓΔ = Γ ,,, Δ ,,, Γ' -> Σ ;;; Γ ,,, subst_context s 0 Γ' ⊢ subst s #|Γ'| t ◃? subst s #|Γ'| T;
-  Pinfer_red ΓΔ t T := forall Γ', ΓΔ = Γ ,,, Δ ,,, Γ' -> Σ ;;; Γ ,,, subst_context s 0 Γ' ⊢ subst s #|Γ'| t ◃↘? subst s #|Γ'| T;
-  Pcheck ΓΔ t T := forall Γ', ΓΔ = Γ ,,, Δ ,,, Γ' -> Σ ;;; Γ ,,, subst_context s 0 Γ' ⊢ subst s #|Γ'| t ◃ subst s #|Γ'| T;
-  Pj ΓΔ j := forall Γ', ΓΔ = Γ ,,, Δ ,,, Γ' -> lift_sorting1 (fun Γ t T => Σ ;;; Γ ⊢ t ◃ T) (fun Γ T s => Σ ;;; Γ ⊢ T ◃↘? tSort s) (Γ ,,, subst_context s 0 Γ') (judgment_map (subst s #|Γ'|) j);
-  PΓ ΓΔ := forall Γ', ΓΔ = Γ ,,, Δ ,,, Γ' -> wf_local_bd Σ (Γ ,,, subst_context s 0 Γ');
-|}.
-
-
-Class TCSubst TC RedW Σ := {
-  TC_subst Γ s Δ Γ' A B :
-    Σ ;;; Γ ,,, Δ ,,, Γ' ⊢ A ≤T B ->
-    wf_local_bd_rel Σ Γ (subst_context s 0 Γ') ->
-    welltyped_subst (fun t T => Σ ;;; Γ ⊢ t ◃ T) s Δ ->
-    Σ ;;; Γ ,,, subst_context s 0 Γ' ⊢ subst s #|Γ'| A ≤T subst s #|Γ'| B
+Class TORLift TC RedW TOR Σ := {
+  TOR_lift Γ Δ Γ' A B :
+    Γ ,,, Γ' ⊢ A ≤O B ->
+    wf_local_bd Σ (Γ ,,, Δ ,,, lift_context #|Δ| 0 Γ') ->
+    Γ ,,, Δ ,,, lift_context #|Δ| 0 Γ' ⊢ lift #|Δ| #|Γ'| A ≤O lift #|Δ| #|Γ'| B
 }.
 
-Class RedWSubst TC RedW Σ := {
-  RedW_subst Γ s Δ Γ' A B :
-    Σ ;;; Γ ,,, Δ ,,, Γ' ⊢ A ↘ B ->
-    wf_local_bd_rel Σ Γ (subst_context s 0 Γ') ->
-    welltyped_subst (fun t T => Σ ;;; Γ ⊢ t ◃ T) s Δ ->
-    Σ ;;; Γ ,,, subst_context s 0 Γ' ⊢ subst s #|Γ'| A ↘ subst s #|Γ'| B
-}.
+Theorem infer_TOR_lift {TC RedW TOR} Σ (Pre : TCLift TC RedW Σ) (Pre' : RedWLift TC RedW Σ) (Pre'' : TORLift TC RedW TOR Σ) :
+  forall Γ Δ Γ' t T,
+  wf_local_bd_rel Σ Γ Δ ->
+  Σ ;;; Γ ,,, Γ' ⊢ t ▹| T -> Σ ;;; Γ ,,, Δ ,,, lift_context #|Δ| 0 Γ' ⊢ lift #|Δ| #|Γ'| t ▹| lift #|Δ| #|Γ'| T.
+Proof.
+  intros Γ Δ Γ' t T wfΔ Ht.
+  eapply (BDXΓ _ _ (global_infer_lift _ _ _ _ _)) in wfΔ; trea.
+  2: now destruct Ht; eapply infering_wf_local_bd.
+  destruct Ht; econstructor.
+  1: eapply (BDXinfer _ _ (global_infer_lift _ _ _ _ _)); trea.
+  now eapply TOR_lift.
+Qed.
 
 Class RedWIdem RedW Σ := {
   RedW_idem Γ T T₀ T₀' : Σ ;;; Γ ⊢ T ↘ T₀ -> Σ ;;; Γ ⊢ T₀ ↘ T₀' -> T₀ = T₀';
   }.
 
-Class BidirCongrPrecondition {TC RedW} Σ := {
-    TC_trans Γ T T' T'' : Σ ;;; Γ ⊢ T ≤T T' -> Σ ;;; Γ ⊢ T' ≤T T'' -> Σ ;;; Γ ⊢ T ≤T T'';
-    TC_sort_of_product Γ Γ' s1 s2 s1' s2' : Σ ;;; Γ ⊢ tSort s1 ≤T? tSort s1' -> Σ ;;; Γ' ⊢ tSort s2 ≤T? tSort s2' -> Σ ;;; Γ ⊢ tSort (Sort.sort_of_product s1 s2) ≤T? tSort (Sort.sort_of_product s1' s2');
-    TC_sort_relevance Γ s s' : Σ ;;; Γ ⊢ tSort s ≤T? tSort s' -> relevance_of_sort s = relevance_of_sort s';
-    TC_prod_construct Γ na A B B' : wf_judgment_bd Σ Γ (j_vass na A) -> Σ ;;; Γ ,, vass na A ⊢ B ≤T B' -> Σ ;;; Γ ⊢ tProd na A B ≤T tProd na A B';
-    CongrTCSubst :: TCSubst TC RedW Σ;
-    TC_RedW_add_right Γ T T' T'' : Σ ;;; Γ ⊢ T ≤T T' -> Σ ;;; Γ ⊢ T' ↘ T'' -> Σ ;;; Γ ⊢ T ≤T T'';
-    TC_prod_invert Γ T na' A' B' : Σ ;;; Γ ⊢ T ≤T tProd na' A' B' -> ∑ na A B, Σ ;;; Γ ⊢ T ~>Π (na : A), B × Σ ;;; Γ ⊢ A' ≤T A × Σ ;;; Γ ,, vass na A ⊢ B ≤T B';
-    TC_sort_invert Γ T s' : Σ ;;; Γ ⊢ T ≤T tSort s' -> ∑ s, Σ ;;; Γ ⊢ T ~>□ s × Σ ;;; Γ ⊢ tSort s ≤T tSort s'
+Class BidirCongrPrecondition {TC RedW} {TOR} Σ := {
+    TOR_trans Γ T T' T'' : Γ ⊢ T ≤O T' -> Γ ⊢ T' ≤O T'' -> Γ ⊢ T ≤O T'';
+    TOR_sort_of_product Γ Γ' s1 s2 s1' s2' : Γ ⊢ tSort s1 ≤O tSort s1' -> Γ' ⊢ tSort s2 ≤O tSort s2' -> Γ ⊢ tSort (Sort.sort_of_product s1 s2) ≤O tSort (Sort.sort_of_product s1' s2');
+    TOR_sort_relevance Γ s s' : Γ ⊢ tSort s ≤O tSort s' -> relevance_of_sort s = relevance_of_sort s';
+    TOR_prod_construct_codom Γ na A B B' : wf_judgment_bd Σ Γ (j_vass na A) -> Γ ⊢ tProd na A B ≤O tProd na A B';
+    TOR_subst10 Γ na A u T T' : Γ ,, vass na A ⊢ T ≤O T' -> Σ ;;; Γ ⊢ u ◃ A -> Γ ⊢ T {0 := u} ≤O T' {0 := u};
+    TOR_prod_invert Γ T T' na' A' B' : Γ ⊢ T ≤O T' -> Σ ;;; Γ ⊢ T' ↘ tProd na' A' B' -> ∑ na A B, Σ ;;; Γ ⊢ T ~>Π (na : A), B × Γ ⊢ A' ≤O A × Γ ,, vass na A ⊢ B ≤O B';
+    TOR_sort_invert Γ T T' s' : Γ ⊢ T ≤O T' -> Σ ;;; Γ ⊢ T' ↘ tSort s' -> ∑ s, Σ ;;; Γ ⊢ T ~>□ s × Γ ⊢ tSort s ≤O tSort s';
+    TC_TOR Γ T T' T'' : Σ ;;; Γ ⊢ T ≤T T' -> Γ ⊢ T' ≤O T'' -> Σ ;;; Γ ⊢ T ≤T T'';
+    TOR_TC Γ T T' T'' : Γ ⊢ T ≤O T' -> Σ ;;; Γ ⊢ T' ≤T T'' -> Σ ;;; Γ ⊢ T ≤T T'';
   }.
 Arguments BidirCongrPrecondition : clear implicits.
 
-Class TypingSubstPrecondition {TC RedW} Σ := {
-    BDSubstTCLift :: TCLift TC RedW Σ;
-    BDSubstRedWLift :: RedWLift TC RedW Σ;
-    BDSubstTCSubst :: TCSubst TC RedW Σ;
-    BDSubstRedWSubst :: RedWSubst TC RedW Σ;
-    BDSubst_BidirCongr :: BidirCongrPrecondition TC RedW Σ;
-  }.
-Arguments TypingSubstPrecondition : clear implicits.
+Set Elimination Schemes.
+Inductive infer_TOR_congr {TC RedW TOR} Σ Γ : term -> term -> Type :=
+  | infer_congr_Prod na A B s1 s2 :
+    [(XA : lift_sorting (fun t T => Σ ;;; Γ ⊢ t ◃ T) (fun T s => Σ ;;; Γ ⊢ T ▹|↘ tSort s) (j_vass_s na A s1))] ->
+    [(XB : Σ ;;; Γ ,, vass na A ⊢ B ▹|↘ tSort s2)] ->
+    Σ ;;; Γ ⊢ tProd na A B ~▹| tSort (Sort.sort_of_product s1 s2)
 
-Section infer_check_opt_congr.
-  Context {TC RedW} Σ.
+  | infer_congr_Lambda na A t B :
+    [(XA : lift_sorting (fun t T => Σ ;;; Γ ⊢ t ◃ T) (fun T s => Σ ;;; Γ ⊢ T ▹|↘ tSort s) (j_vass na A))] ->
+    [(Xt : Σ ;;; Γ ,, vass na A ⊢ t ▹| B)] ->
+    Σ ;;; Γ ⊢ tLambda na A t ~▹| tProd na A B
 
-  Disable Notation "Σ ;;; Γ ⊢ t ▹ T".
-  Set Elimination Schemes.
-  Inductive infer_check_opt_congr Γ : term -> term -> Type :=
-    | infer_congr_Prod na A B s1 s2 :
-      [(XA : lift_sorting (fun t T => Σ ;;; Γ ⊢ t ◃ T) (fun T s => Σ ;;; Γ ⊢ T ◃↘? tSort s) (j_vass_s na A s1))] ->
-      [(XB : Σ ;;; Γ ,, vass na A ⊢ B ◃↘? tSort s2)] ->
-      Σ ;;; Γ ⊢ tProd na A B ▹ tSort (Sort.sort_of_product s1 s2)
+  | infer_congr_App t na A B u :
+    [(Xt : Σ ;;; Γ ⊢ t ▹|↘ tProd na A B)] ->
+    [(Xu : Σ ;;; Γ ⊢ u ◃ A)] ->
+    Σ ;;; Γ ⊢ tApp t u ~▹| B {0 := u}
 
-    | infer_congr_Lambda na A t B :
-      [(XA : lift_sorting (fun t T => Σ ;;; Γ ⊢ t ◃ T) (fun T s => Σ ;;; Γ ⊢ T ◃↘? tSort s) (j_vass na A))] ->
-      [(Xt : Σ ;;; Γ ,, vass na A ⊢ t ◃? B)] ->
-      Σ ;;; Γ ⊢ tLambda na A t ▹ tProd na A B
+where "Σ ;;; Γ ⊢ t ~▹| T" := (infer_TOR_congr Σ Γ t T).
+Unset Elimination Schemes.
 
-    | infer_congr_App t na A B u :
-      [(Xt : Σ ;;; Γ ⊢ t ◃↘? tProd na A B)] ->
-      [(Xu : Σ ;;; Γ ⊢ u ◃ A)] ->
-      Σ ;;; Γ ⊢ tApp t u ▹ B {0 := u}
-
-  where "Σ ;;; Γ ⊢ t ▹ T" := (infer_check_opt_congr Γ t T) (only parsing).
-  Unset Elimination Schemes.
-End infer_check_opt_congr.
-
-
-Lemma check_opt_check_red_opt {TC RedW} Σ (Pre : BidirCongrPrecondition TC RedW Σ) Γ t T T' :
-  Σ ;;; Γ ⊢ t ◃? T ->
-  Σ ;;; Γ ⊢ T ↘ T' ->
-  Σ ;;; Γ ⊢ t ◃↘? T'.
+Lemma P_TOR_TOR {TC RedW TOR} Σ P (Pre : forall Γ, Transitive (TOR Γ)) Γ T T' :
+  P_TOR P Γ T ->
+  Γ ⊢ T ≤O T' ->
+  P_TOR P Γ T'.
 Proof.
   intros Xt XT'.
   destruct Xt.
-  depelim XT.
-  - constructor. now econstructor.
-  - constructor 2. econstructor; tea.
-    now eapply TC_RedW_add_right.
+  econstructor; tea.
+  etransitivity; eassumption.
 Qed.
 
-
-Lemma check_red_opt_sort {TC RedW} Σ (Pre : BidirCongrPrecondition TC RedW Σ) Γ T s :
-  Σ ;;; Γ ⊢ T ◃↘? tSort s ->
-  ∑ s₀, Σ ;;; Γ ⊢ T ▹□ s₀ × Σ ;;; Γ ⊢ tSort s₀ ≤T? tSort s.
+Lemma P_TOR_RedW {TC RedW TOR} Σ P Γ T T' :
+  P_TOR P Γ T ->
+  Σ ;;; Γ ⊢ T ↘ T' ->
+  P_Red_TOR Σ P Γ T'.
 Proof.
-  intros [|[S₀ X XT]].
-  - eexists. split. 1: eassumption. reflexivity.
-  - apply TC_sort_invert in XT as (s₀ & Xred & XT).
-    exists s₀; split.
-    2: by apply TCOpt_one.
-    econstructor; tea.
+  intros Xt XT'.
+  destruct Xt.
+  now econstructor.
 Qed.
 
-Lemma check_red_opt_prod {TC RedW} Σ (Pre : BidirCongrPrecondition TC RedW Σ) Γ T na A B :
-  Σ ;;; Γ ⊢ T ◃↘? tProd na A B ->
-  ∑ na₀ A₀ B₀, Σ ;;; Γ ⊢ T ▹Π (na₀ : A₀), B₀ × Σ ;;; Γ ⊢ A ≤T? A₀ × Σ ;;; Γ ,, vass na₀ A₀ ⊢ B₀ ≤T? B.
+Lemma infer_TOR_TOR {TC RedW TOR} Σ (Pre : BidirCongrPrecondition TC RedW TOR Σ) Γ t T T' :
+  Σ ;;; Γ ⊢ t ▹| T ->
+  Γ ⊢ T ≤O T' ->
+  Σ ;;; Γ ⊢ t ▹| T'.
 Proof.
-  intros [|[P₀ X XT]].
-  - eexists _, _, _. split. 1: eassumption. split; reflexivity.
-  - apply TC_prod_invert in XT as (na₀ & A₀ & B₀ & Xred & XTA & XTB).
-    exists na₀, A₀, B₀; split.
-    2: split; by apply TCOpt_one.
-    econstructor; tea.
+  eapply P_TOR_TOR; tas.
+  intros ???; apply TOR_trans.
+Qed.
+
+Lemma infer_TOR_RedW {TC RedW TOR} Σ (Pre : BidirCongrPrecondition TC RedW TOR Σ) Γ t T T' :
+  Σ ;;; Γ ⊢ t ▹| T ->
+  Σ ;;; Γ ⊢ T ↘ T' ->
+  Σ ;;; Γ ⊢ t ▹|↘ T'.
+Proof.
+  now eapply P_TOR_RedW.
+Qed.
+
+Lemma infer_TOR_TC {TC RedW TOR} Σ (Pre : BidirCongrPrecondition TC RedW TOR Σ) Γ t T T' :
+  Σ ;;; Γ ⊢ t ▹| T ->
+  Σ ;;; Γ ⊢ T ≤T T' ->
+  Σ ;;; Γ ⊢ t ◃ T'.
+Proof.
+  intros Xt XT'.
+  destruct Xt.
+  econstructor; tea.
+  now eapply TOR_TC.
+Qed.
+
+Lemma infer_TOR_sort_inv {TC RedW TOR} Σ (Pre : BidirCongrPrecondition TC RedW TOR Σ) Γ T s :
+  Σ ;;; Γ ⊢ T ▹|↘ tSort s ->
+  ∑ s₀, Σ ;;; Γ ⊢ T ▹□ s₀ × Γ ⊢ tSort s₀ ≤O tSort s.
+Proof.
+  intros [S₀ S₁ X XT].
+  eapply TOR_sort_invert in Xr as (s₀ & Xred & Xr); tea.
+  exists s₀; split; tas.
+  econstructor; tea.
+Qed.
+
+Lemma infer_TOR_prod_inv {TC RedW TOR} Σ (Pre : BidirCongrPrecondition TC RedW TOR Σ) Γ T na A B :
+  Σ ;;; Γ ⊢ T ▹|↘ tProd na A B ->
+  ∑ na₀ A₀ B₀, Σ ;;; Γ ⊢ T ▹Π (na₀ : A₀), B₀ × Γ ⊢ A ≤O A₀ × Γ ,, vass na₀ A₀ ⊢ B₀ ≤O B.
+Proof.
+  intros [P₀ P₁ X XT].
+  eapply TOR_prod_invert in Xr as (na₀ & A₀ & B₀ & Xred & Xr); tea.
+  exists na₀, A₀, B₀; split; tas.
+  econstructor; tea.
 Qed.
 
 
-Lemma infer_congr_to_opt {TC RedW} Σ (Pre : BidirCongrPrecondition TC RedW Σ) Γ t T :
-  infer_check_opt_congr Σ Γ t T ->
-  Σ ;;; Γ ⊢ t ◃? T.
+Lemma infer_congr_to_TOR {TC RedW TOR} Σ (Pre : BidirCongrPrecondition TC RedW TOR Σ) Γ t T :
+  infer_TOR_congr Σ Γ t T ->
+  Σ ;;; Γ ⊢ t ▹| T.
 Proof.
   destruct 1.
   - destruct XA as (_ & ? & XA & <- & Hrel); cbn in *.
-    apply check_red_opt_sort in XA as (s₁ & XT & Xs); tea.
-    apply check_red_opt_sort in XB as (s₂ & XT2 & Xs2); tea.
+    apply infer_TOR_sort_inv in XA as (s₁ & XT & Xs); tea.
+    apply infer_TOR_sort_inv in XB as (s₂ & XT2 & Xs2); tea.
     econstructor. 1: econstructor.
     + repeat (eexists; cbn; tea).
       rewrite -Hrel.
-      now eapply TC_sort_relevance.
+      now eapply TOR_sort_relevance.
     + eassumption.
-    + now eapply TC_sort_of_product.
+    + now eapply TOR_sort_of_product.
   - destruct XA as (_ & s & XA & _ & Hrel); cbn in *.
-    apply check_red_opt_sort in XA as (s₁ & XT & Xs); tea.
+    apply infer_TOR_sort_inv in XA as (s₁ & XT & Xs); tea.
     destruct Xt as [T₀ Xt XB].
     enough (wfj : wf_judgment_bd Σ Γ (j_vass na A)).
     1: econstructor. 1: econstructor; tas.
     + eassumption.
-    + depelim XB; trea. apply TCOpt_one.
-      eapply TC_prod_construct; tea.
+    + by eapply TOR_prod_construct_codom.
     + repeat (eexists; cbn; tea).
       rewrite -Hrel.
-      now eapply TC_sort_relevance.
-  - apply check_red_opt_prod in Xt as (na₀ & A₀ & B₀ & XRed & HTA & HTB); tas.
+      now eapply TOR_sort_relevance.
+  - apply infer_TOR_prod_inv in Xt as (na₀ & A₀ & B₀ & XRed & HTA & HTB); tas.
     have {HTA Xu} XA : Σ ;;; Γ ⊢ u ◃ A₀.
     2:econstructor. 2: econstructor; tea.
     + destruct Xu as [Aᵤ Xu XAᵤ].
       econstructor; tea.
-      depelim HTA; tas.
-      eapply TC_trans; tea.
-    + depelim HTB; trea. apply TCOpt_one.
-      cbn. eapply TC_subst with (Γ' := []) (Δ := [_]); tea; cbn.
-      1: constructor.
-      constructor. 1: constructor.
-      rewrite subst_empty. assumption.
+      eapply TC_TOR; tea.
+    + eapply TOR_subst10; tea.
 Qed.
 
-Lemma lift_infer_congr {TC RedW} Σ (Pre : BidirCongrPrecondition TC RedW Σ) Γ j :
+Lemma lift_infer_congr {TC RedW TOR} Σ (Pre : BidirCongrPrecondition TC RedW TOR Σ) Γ j :
   j_univ j = None ->
-  lift_sorting (fun t T => Σ ;;; Γ ⊢ t ◃ T) (fun T s => Σ ;;; Γ ⊢ T ◃↘? tSort s) j ->
+  lift_sorting (fun t T => Σ ;;; Γ ⊢ t ◃ T) (fun T s => Σ ;;; Γ ⊢ T ▹|↘ tSort s) j ->
   wf_judgment_bd Σ Γ j.
 Proof.
   intros e X.
   split. 1: apply X.
   destruct X as (_ & s' & X & _ & Hs').
-  apply check_red_opt_sort in X as (s₀ & XT & Xs); tea.
+  apply infer_TOR_sort_inv in X as (s₀ & XT & Xs); tea.
   exists s₀; repeat (eexists; tea).
   - rewrite e //.
-  - erewrite TC_sort_relevance; tea.
+  - erewrite TOR_sort_relevance; tea.
 Qed.
 
 
 
-Theorem infer_subst {TC} {RedW} Σ (Pre : TypingSubstPrecondition TC RedW Σ) :
+
+
+
+Definition infer_subst_ElimType {TC RedW TOR} Σ Γ Δ s := {|
+  Pinfer ΓΔ t T := forall Γ', ΓΔ = Γ ,,, Δ ,,, Γ' -> Σ ;;; Γ ,,, subst_context s 0 Γ' ⊢ subst s #|Γ'| t ▹| subst s #|Γ'| T;
+  Pinfer_red ΓΔ t T := forall Γ', ΓΔ = Γ ,,, Δ ,,, Γ' -> Σ ;;; Γ ,,, subst_context s 0 Γ' ⊢ subst s #|Γ'| t ▹|↘ subst s #|Γ'| T;
+  Pcheck ΓΔ t T := forall Γ', ΓΔ = Γ ,,, Δ ,,, Γ' -> Σ ;;; Γ ,,, subst_context s 0 Γ' ⊢ subst s #|Γ'| t ◃ subst s #|Γ'| T;
+  Pj ΓΔ j := forall Γ', ΓΔ = Γ ,,, Δ ,,, Γ' -> lift_sorting1 (fun Γ t T => Σ ;;; Γ ⊢ t ◃ T) (fun Γ T s => Σ ;;; Γ ⊢ T ▹|↘ tSort s) (Γ ,,, subst_context s 0 Γ') (judgment_map (subst s #|Γ'|) j);
+  PΓ ΓΔ := forall Γ', ΓΔ = Γ ,,, Δ ,,, Γ' -> wf_local_bd Σ (Γ ,,, subst_context s 0 Γ');
+|}.
+
+
+Class TCSubst TC RedW TOR Σ := {
+  TC_subst Γ s Δ Γ' A B :
+    Σ ;;; Γ ,,, Δ ,,, Γ' ⊢ A ≤T B ->
+    wf_local_bd_rel Σ Γ (subst_context s 0 Γ') ->
+    welltyped_subst (fun t T => Σ ;;; Γ ⊢ t ▹| T) s Δ ->
+    Σ ;;; Γ ,,, subst_context s 0 Γ' ⊢ subst s #|Γ'| A ≤T subst s #|Γ'| B
+}.
+
+Class RedWSubst TC RedW TOR Σ := {
+  RedW_subst Γ s Δ Γ' A B :
+    Σ ;;; Γ ,,, Δ ,,, Γ' ⊢ A ↘ B ->
+    wf_local_bd_rel Σ Γ (subst_context s 0 Γ') ->
+    welltyped_subst (fun t T => Σ ;;; Γ ⊢ t ▹| T) s Δ ->
+    Σ ;;; Γ ,,, subst_context s 0 Γ' ⊢ subst s #|Γ'| A ↘ subst s #|Γ'| B
+}.
+
+Class TypingSubstPrecondition {TC RedW TOR} Σ := {
+    BDSubstTCLift :: TCLift TC RedW Σ;
+    BDSubstRedWLift :: RedWLift TC RedW Σ;
+    BDSubstTORLift :: TORLift TC RedW TOR Σ;
+    BDSubstTCSubst :: TCSubst TC RedW TOR Σ;
+    BDSubstRedWSubst :: RedWSubst TC RedW TOR Σ;
+    TOR_Trefl Γ :: TypedTypeReflexivity (TOR Γ) Σ;
+    BDSubst_BidirCongr :: BidirCongrPrecondition TC RedW TOR Σ;
+  }.
+Arguments TypingSubstPrecondition : clear implicits.
+
+
+
+Theorem infer_subst {TC RedW TOR} Σ (Pre : TypingSubstPrecondition TC RedW TOR Σ) :
   forall Γ Δ s t T,
-  welltyped_subst (fun t T => Σ ;;; Γ ⊢ t ◃ T) s Δ ->
-  Σ ;;; Γ ,,, Δ ⊢ t ▹ T -> Σ ;;; Γ ⊢ subst s 0 t ◃? subst s 0 T.
+  welltyped_subst (fun t T => Σ ;;; Γ ⊢ t ▹| T) s Δ ->
+  Σ ;;; Γ ,,, Δ ⊢ t ▹ T -> Σ ;;; Γ ⊢ subst s 0 t ▹| subst s 0 T.
 Proof.
   intros Γ Δ s t T Hs Ht.
   revert t T Ht.
@@ -2429,14 +2659,13 @@ Proof.
     1: rewrite nth_error_app_ge // in H.
     2: rewrite nth_error_app_lt // in H.
     1: destruct (nth_error s) eqn:es.
-    + apply check_to_opt.
-      apply nth_error_Some_length in es as Hlen.
+    + apply nth_error_Some_length in es as Hlen.
       apply welltyped_subst_well_formed in Hs as hus.
       apply wellformed_subst_length in hus as hlen.
       rewrite nth_error_app_lt in H. 1: lia.
       eapply welltyped_subst_nth in Hs as (? & HH & Ht); tea.
       rewrite es in HH; injection HH as [= <-].
-      eapply check_lift with (Γ' := []) in Ht; tc; tea.
+      eapply infer_TOR_lift with (Γ' := []) in Ht; tc; tea.
       2: { apply All_local_env_app_inv in X0; trea. }
       cbn in Ht. len in Ht.
       rewrite -subst_skipn' //=. 1,2: lia.
@@ -2445,32 +2674,32 @@ Proof.
       apply wellformed_subst_length in hus as hlen.
       apply nth_error_None in es.
       rewrite nth_error_app_ge in H. 1:lia.
-      eapply infer_to_opt.
+      eapply infer_to_TOR; tc.
       relativize (subst _ _ _). 1: econstructor; eauto.
       * rewrite nth_error_app_ge. 1: len; lia.
         len. rewrite <-H. lia_f_equal.
       * replace (S n) with (#|s| + S (n - #|s|)) by lia.
         rewrite simpl_subst //. lia.
-    + eapply infer_to_opt.
+    + eapply infer_to_TOR; tc.
       relativize (subst _ _ _). 1: econstructor; eauto.
       * apply nth_error_Some_length in H as Hlen.
         rewrite nth_error_app_lt. 1: len; lia.
         rewrite nth_error_subst_context H //=.
       * cbn. rewrite commut_lift_subst_rec //=. 1: lia. lia_f_equal.
-  - eapply infer_to_opt. constructor; eauto.
-  - eapply infer_congr_to_opt; tc.
+  - eapply infer_to_TOR; tc. constructor; eauto.
+  - eapply infer_congr_to_TOR; tc.
     constructor; eauto.
     specialize (X2 (_ ,, _) eq_refl).
     rewrite subst_context_snoc0 // in X2.
-  - eapply infer_congr_to_opt; tc.
+  - eapply infer_congr_to_TOR; tc.
     constructor; eauto.
     specialize (X2 (_ ,, _) eq_refl).
     rewrite subst_context_snoc0 // in X2.
   - rewrite distr_subst /= -/(subst10 _ _).
-    eapply infer_congr_to_opt; tc.
+    eapply infer_congr_to_TOR; tc.
     econstructor; eauto.
   - specialize (X0 _ eq_refl).
-    eapply check_opt_check_red_opt; tc.
+    eapply infer_TOR_RedW; tc.
     + eapply X0.
     + eapply RedW_subst; tea.
       destruct X0 as [T₀₀ X0 XR].
@@ -2479,8 +2708,7 @@ Proof.
     eapply TC_subst in X1; tea.
     2: now eapply infering_wf_local_bd, All_local_env_app_inv in X0 as [].
     eexists; tea.
-    depelim XR; tas.
-    by eapply TC_trans; tea.
+    by eapply TOR_TC; tea.
 Qed.
 
 
@@ -2504,7 +2732,7 @@ Proof.
   intros Γ t T H.
   induction H using typing_rect with (Pj := lift_sorting1 (fun Γ t T => Σ ;;; Γ ⊢ t ◃ T) (fun Γ T s => Σ ;;; Γ ⊢ T ◃ tSort s)) (PΓ := fun Γ => wf_local_bd Σ Γ).
   all: eauto.
-  - eapply All_local_envε' with (1 := X0). clear Γ X X0.
+  - eapply All_local_env_fmap with (1 := X0). clear Γ X X0.
     intros.
     split; [apply X1|].
     destruct X1 as (_ & s & [T HT XT] & _ & Hs).
@@ -2578,13 +2806,13 @@ Proof.
   - depelim X0. congruence.
   - depelim X0. congruence.
   - depelim X2.
-    specialize (H _ i) as [= <-].
+    specialize (H _ XB) as [= <-].
     destruct X0 as (_ & ? & X0 & <- & _).
-    destruct l as (_ & ? & X0' & <- & _).
+    destruct Xj as (_ & ? & X0' & <- & _).
     specialize (X0 _ X0') as [= <-].
     reflexivity.
   - depelim X2. by specialize (H _ X2) as <-.
-  - depelim X1. by specialize (H _ i) as [= <- <- <-].
+  - depelim X1. by specialize (H _ Xt) as [= <- <- <-].
   - destruct X1.
     specialize (H _ X1) as <-.
     eapply RedW_inj; eassumption.
@@ -2642,6 +2870,4106 @@ Qed.
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+Module Export ContextConversion.
+
+  Inductive rel_option {A B} (R : A -> B -> Type) : option A -> option B -> Type :=
+  | rel_some a b : R a b -> rel_option R (Some a) (Some b)
+  | rel_none : rel_option R None None.
+
+  Derive Signature NoConfusion for rel_option.
+
+  Definition convertible_decls R R' (decl decl' : context_decl) :=
+    eq_binder_annot decl.(decl_name) decl'.(decl_name) ×
+    rel_option (fun t u => R t u decl.(decl_type)) decl.(decl_body) decl'.(decl_body) ×
+    R' decl.(decl_type) decl'.(decl_type).
+
+  Definition convertible_contexts R R' : crelation context := All2_fold (fun Γ _ => convertible_decls (R Γ) (R' Γ)).
+  Definition convertible_contexts_rel R R' Γ : crelation context := All2_fold (fun Δ _ => convertible_decls (R (Γ ,,, Δ)) (R' (Γ ,,, Δ))).
+
+  Class ContextComparator := {
+    cmp_term Σ Γ (t t' T : term) : Type;
+    cmp_type Σ Γ (T T' : term) : Type;
+  }.
+  Implicit Types (CC : ContextComparator).
+
+  Notation "Σ  ;;; Γ ⊢ Δ ≤Γ Δ'" := (convertible_contexts_rel (@cmp_term _ Σ) (@cmp_type _ Σ) Γ Δ Δ') (at level 50, Γ, Δ, Δ' at next level).
+  Notation "Σ  ;;; Γ ⊢ Δ ≤Γ Δ' 'with' CC" := (convertible_contexts_rel (@cmp_term CC Σ) (@cmp_type CC Σ) Γ Δ Δ') (at level 50, Γ, Δ, Δ', CC at next level, only parsing).
+  Notation "Σ  ;;; Γ ⊢ d ≤d d'" := (convertible_decls (cmp_term Σ Γ) (cmp_type Σ Γ) d d') (at level 50, Γ, d, d' at next level).
+  Notation "Σ  ;;; Γ ⊢ d ≤d d' 'with' CC" := (convertible_decls (@cmp_term CC Σ Γ) (@cmp_type CC Σ Γ) d d') (at level 50, Γ, d, d', CC at next level, only parsing).
+  Notation "Σ ⊢ Δ ≤Γ Δ'" := (convertible_contexts (cmp_term Σ) (cmp_type Σ) Δ Δ') (at level 50, Δ, Δ' at next level).
+  Notation "Σ ⊢ Δ ≤Γ Δ' 'with' CC" := (convertible_contexts (@cmp_term CC Σ) (@cmp_type CC Σ) Δ Δ') (at level 50, Δ, Δ', CC at next level, only parsing).
+
+  Lemma nth_error_convertible_context0 {CC} Σ Γ Δ n decl :
+    Σ ⊢ Γ ≤Γ Δ ->
+    nth_error Δ n = Some decl ->
+    ∑ decl', nth_error Γ n = Some decl' ×
+    Σ ;;; skipn (S n) Γ ⊢ decl' ≤d decl.
+  Proof.
+    intros.
+    induction X in n, H.
+    - rewrite nth_error_nil // in H.
+    - destruct n; cbn in *.
+      + eexists; split; trea.
+        injection H as [= <-].
+        assumption.
+      + by apply IHX.
+  Qed.
+
+  Class CmpContextLiftable {TC RedW CC} Σ := {
+    cmp_ctx_lift Γ Δ decl decl' : wf_local_bd Σ (Γ ,,, Δ) ->
+      Σ ;;; Γ ⊢ decl ≤d decl' ->
+      Σ ;;; Γ ,,, Δ ⊢ map_decl (lift0 #|Δ|) decl ≤d map_decl (lift0 #|Δ|) decl'
+  }.
+
+  Lemma nth_error_convertible_context {TC RedW CC} Σ (Pre : CmpContextLiftable Σ) Γ Δ n decl :
+    Σ ⊢ Γ ≤Γ Δ ->
+    wf_local_bd Σ Γ ->
+    nth_error Δ n = Some decl ->
+    ∑ decl', nth_error Γ n = Some decl' ×
+    Σ ;;; Γ ⊢ map_decl (lift0 (S n)) decl' ≤d map_decl (lift0 (S n)) decl.
+  Proof.
+    intros XΓ wfΓ hnth.
+    eapply nth_error_convertible_context0 in hnth as (decl' & hnth & X); tea.
+    exists decl'; split; tas.
+    rewrite -(firstn_skipn (S n) Γ) in wfΓ |- *.
+    eapply cmp_ctx_lift with (Δ := firstn (S n) Γ) in X.
+    2: apply wfΓ.
+    rewrite firstn_length_le // in X.
+    apply nth_error_Some_length in hnth. lia.
+  Qed.
+
+
+  Class TCIsCmpType {TC CC} Σ := {
+    to_cmp_type Γ T T' : Σ ;;; Γ ⊢ T ≤T T' -> cmp_type Σ Γ T T';
+    rto_tco Γ T T' : cmp_type Σ Γ T T' -> Σ ;;; Γ ⊢ T ≤T? T';
+  }.
+
+  Class TORIsCmpType {TOR CC} Σ := {
+    TOR_to_CMPTYPE Γ T T' : Γ ⊢ T ≤O T' -> cmp_type Σ Γ T T';
+    CMPTYPE_to_TOR Γ T T' : cmp_type Σ Γ T T' -> Γ ⊢ T ≤O T';
+  }.
+
+  Lemma nth_error_convertible_context_TC {TC RedW CC} Σ (Pre : CmpContextLiftable Σ) (Pre' : TCIsCmpType Σ) Γ Δ n decl :
+    Σ ⊢ Γ ≤Γ Δ ->
+    wf_local_bd Σ Γ ->
+    nth_error Δ n = Some decl ->
+    ∑ decl', nth_error Γ n = Some decl' ×
+    Σ ;;; Γ ⊢ lift0 (S n) decl'.(decl_type) ≤T? lift0 (S n) decl.(decl_type).
+  Proof.
+    intros XΓ wfΓ hnth.
+    eapply nth_error_convertible_context in hnth as (decl' & hnth & X); tea.
+    exists decl'; split; tas.
+    apply rto_tco. apply X.
+  Qed.
+
+  Lemma nth_error_convertible_context_TOR {TC RedW TOR CC} Σ (Pre : CmpContextLiftable Σ) (Pre' : TORIsCmpType Σ) Γ Δ n decl :
+    Σ ⊢ Γ ≤Γ Δ ->
+    wf_local_bd Σ Γ ->
+    nth_error Δ n = Some decl ->
+    ∑ decl', nth_error Γ n = Some decl' ×
+    Γ ⊢ lift0 (S n) decl'.(decl_type) ≤O lift0 (S n) decl.(decl_type).
+  Proof.
+    intros XΓ wfΓ hnth.
+    eapply nth_error_convertible_context in hnth as (decl' & hnth & X); tea.
+    exists decl'; split; tas.
+    apply CMPTYPE_to_TOR. apply X.
+  Qed.
+
+  Class CmpWFLocal {TC RedW CC} Σ := {
+    cmp_wf_local Γ Δ : Σ ⊢ Γ ≤Γ Δ -> wf_local_bd Σ Δ -> wf_local_bd Σ Γ
+  }.
+
+  Class ContextChangeable {CC} P Σ := {
+    change_context : forall Γ Δ (t T : term),
+      P Δ t T ->
+      Σ ⊢ Γ ≤Γ Δ ->
+      P Γ t T
+  }.
+
+  Class ContextChangeable2 {CC} P Σ := {
+    change_context2 : forall Γ Δ (t u T : term),
+      P Δ t u T ->
+      Σ ⊢ Γ ≤Γ Δ ->
+      P Γ t u T
+  }.
+
+  Class ContextChangeable2Pb {CC} P Σ (pb : conv_pb) := {
+    change_context2pb : forall Γ Δ (t u T : term),
+      P Δ pb t u T ->
+      Σ ⊢ Γ ≤Γ Δ ->
+      P Γ pb t u T
+  }.
+
+  Lemma convertible_contexts_snoc {CC} Σ Γ Δ d d' :
+    Σ ⊢ Γ ≤Γ Δ ->
+    Σ ;;; Γ ⊢ d ≤d d' ->
+    Σ ⊢ Γ ,, d ≤Γ Δ ,, d'.
+  Proof.
+    intros.
+    constructor; tas.
+  Qed.
+
+  Lemma convertible_contexts_rel_snoc {CC} Σ Γ Δ Δ' d d' :
+    Σ ;;; Γ ⊢ Δ ≤Γ Δ' ->
+    Σ ;;; Γ ,,, Δ ⊢ d ≤d d' ->
+    Σ ;;; Γ ⊢ Δ ,, d ≤Γ Δ' ,, d'.
+  Proof.
+    intros.
+    constructor; tas.
+  Qed.
+
+  Lemma convertible_contexts_app {CC} Σ Γ Γ' Δ Δ' :
+    Σ ⊢ Γ ≤Γ Γ' ->
+    Σ ;;; Γ ⊢ Δ ≤Γ Δ' ->
+    Σ ⊢ Γ ,,, Δ ≤Γ Γ' ,,, Δ'.
+  Proof.
+    induction 2; tas.
+    constructor; auto.
+  Qed.
+
+  Lemma convertible_contexts_rel_app {CC} Σ Ξ Γ Γ' Δ Δ' :
+    Σ ;;; Ξ ⊢ Γ ≤Γ Γ' ->
+    Σ ;;; Ξ ,,, Γ ⊢ Δ ≤Γ Δ' ->
+    Σ ;;; Ξ ⊢ Γ ,,, Δ ≤Γ Γ' ,,, Δ'.
+  Proof.
+    induction 2; tas.
+    cbn; constructor; cbn; auto.
+    rewrite app_context_assoc //.
+  Qed.
+
+
+  Class CCTypedRefl {CC TC RedW} Σ := {
+    cmp_term_refl Γ t T : Σ ;;; Γ ⊢ t ◃ T -> cmp_term Σ Γ t t T;
+    cmp_type_refl Γ T s : Σ ;;; Γ ⊢ T ▹□ s -> cmp_type Σ Γ T T;
+  }.
+
+
+  Lemma convertible_contexts_refl {CC RedW TC} Σ Γ :
+    CCTypedRefl Σ ->
+    wf_local_bd Σ Γ -> Σ ⊢ Γ ≤Γ Γ.
+  Proof.
+    intro.
+    induction 1; try apply convertible_contexts_snoc; auto.
+    1: constructor.
+    all: destruct t0 as (Hb & s & HT & Hs).
+    all: repeat split; cbn; eauto.
+    all: try constructor.
+    1,3: eapply cmp_type_refl; tea.
+    eapply cmp_term_refl; tea.
+  Qed.
+
+  Lemma convertible_contexts_rel_refl {CC RedW TC} Σ Γ Δ :
+    CCTypedRefl Σ ->
+    wf_local_bd_rel Σ Γ Δ -> Σ ;;; Γ ⊢ Δ ≤Γ Δ.
+  Proof.
+    intro.
+    induction 1; try apply convertible_contexts_rel_snoc; auto.
+    1: constructor.
+    all: destruct t0 as (Hb & s & HT & Hs).
+    all: repeat split; cbn; eauto.
+    all: try constructor.
+    1,3: eapply cmp_type_refl; tea.
+    eapply cmp_term_refl; tea.
+  Qed.
+
+  Lemma convertible_contexts_snoc_refl {CC RedW TC} Σ Γ Γ' d :
+    CCTypedRefl Σ ->
+    Σ ⊢ Γ ≤Γ Γ' ->
+    wf_judgment_bd Σ Γ (j_decl d) ->
+    Σ ⊢ Γ ,, d ≤Γ Γ' ,, d.
+  Proof.
+    intros ?Pre H X.
+    apply convertible_contexts_snoc; tas.
+    destruct X as (Xb & s & Xt & Xs); cbn in *.
+    repeat split; cbn; eauto.
+    - destruct decl_body; constructor.
+      apply cmp_term_refl, Xb.
+    - eapply cmp_type_refl, Xt.
+  Qed.
+
+  Lemma convertible_contexts_app_refl {CC RedW TC} Σ Γ Γ' Δ :
+    CCTypedRefl Σ ->
+    Σ ⊢ Γ ≤Γ Γ' ->
+    wf_local_bd_rel Σ Γ Δ ->
+    Σ ⊢ Γ ,,, Δ ≤Γ Γ' ,,, Δ.
+  Proof.
+    intros.
+    apply convertible_contexts_app; tas.
+    by apply convertible_contexts_rel_refl.
+  Qed.
+
+
+  Lemma convertible_contexts_of_rel {CC RedW TC} Σ Γ Δ Δ' :
+    CCTypedRefl Σ ->
+    wf_local_bd Σ Γ -> Σ ;;; Γ ⊢ Δ ≤Γ Δ' ->
+    Σ ⊢ Γ ,,, Δ ≤Γ Γ ,,, Δ'.
+  Proof.
+    intros.
+    apply convertible_contexts_app; tas.
+    by apply convertible_contexts_refl.
+  Qed.
+
+End ContextConversion.
+Implicit Types (CC : ContextComparator).
+
+Class InferCCPrecondition {TC RedW TOR} Σ := {
+    InferCC :: ContextComparator;
+    InferCCRefl :: CCTypedRefl Σ;
+    InferCCLift :: CmpContextLiftable Σ;
+    InferCCIsTC :: TORIsCmpType Σ;
+    InferCCOnTC :: ContextChangeable (TC Σ) Σ;
+    InferCCOnTOR :: ContextChangeable TOR Σ;
+    InferCCTORTRefl Γ :: TypedTypeReflexivity (TOR Γ) Σ;
+    InferCCOnRedW :: ContextChangeable (RedW Σ) Σ;
+    InferCongr :: BidirCongrPrecondition TC RedW TOR Σ;
+    InferCCWfLocal :: CmpWFLocal Σ;
+  }.
+Arguments TypingSubstPrecondition : clear implicits.
+
+Definition infer_CC_ElimType {TC RedW TOR CC} Σ := {|
+  Pinfer Γ t T := forall Δ, [(HΓ : Σ ⊢ Δ ≤Γ Γ)] -> [(wfΔ : wf_local_bd Σ Δ)] -> Σ ;;; Δ ⊢ t ▹| T;
+  Pinfer_red Γ t T := forall Δ, [(HΓ : Σ ⊢ Δ ≤Γ Γ)] -> [(wfΔ : wf_local_bd Σ Δ)] -> Σ ;;; Δ ⊢ t ▹|↘ T;
+  Pcheck Γ t T := forall Δ, [(HΓ : Σ ⊢ Δ ≤Γ Γ)] -> [(wfΔ : wf_local_bd Σ Δ)] -> Σ ;;; Δ ⊢ t ◃ T;
+  Pj Γ j := forall Δ, [(HΓ : Σ ⊢ Δ ≤Γ Γ)] -> [(wfΔ : wf_local_bd Σ Δ)] -> lift_sorting (fun t T => Σ ;;; Δ ⊢ t ◃ T) (fun T s => Σ ;;; Δ ⊢ T ▹|↘ tSort s) j;
+  PΓ Γ := forall Δ, [(HΓ : Σ ⊢ Δ ≤Γ Γ)] -> [(wfΔ : wf_local_bd Σ Δ)] -> wf_local_bd Σ Δ;
+|}.
+
+Theorem global_infering_CC {TC RedW TOR} Σ {Pre : InferCCPrecondition Σ} :
+  BidirTypingElimResult Σ (infer_CC_ElimType Σ).
+Proof.
+  apply bidir_ind.
+  all: rewrite /infer_CC_ElimType //=.
+  all: intros.
+  - split.
+    + apply fst in X, X0; cbn; destruct j_term => //; cbn in *. eauto.
+    + destruct X0 as (_ & u & XT & ? & Hu). cbn.
+      exists u; repeat split; auto.
+  - eapply nth_error_convertible_context_TOR in H as (decl' & hnth & XT); tea; tc.
+    econstructor; tea. constructor; tas.
+  - eapply infer_to_TOR; tc. constructor; eauto.
+  - eapply infer_congr_to_TOR; tc.
+    constructor; eauto.
+    enough (Xj : wf_judgment_bd Σ Δ (j_vass na A)).
+    1: eapply X2.
+    + apply convertible_contexts_snoc_refl; tas; tc.
+    + by constructor.
+    + apply lift_infer_congr; trea; tc.
+      eapply lift_sorting_forget_univ; eauto.
+  - eapply infer_congr_to_TOR; tc.
+    constructor; eauto.
+    enough (Xj : wf_judgment_bd Σ Δ (j_vass na A)).
+    1: eapply X2.
+    + apply convertible_contexts_snoc_refl; tas; tc.
+    + by constructor.
+    + apply lift_infer_congr; trea; tc.
+      eapply lift_sorting_forget_univ; eauto.
+  - eapply infer_congr_to_TOR; tc.
+    econstructor; eauto.
+  - eapply infer_TOR_RedW; tc.
+    + by eapply X0.
+    + eapply change_context; tea.
+  - specialize (X0 _ HΓ wfΔ) as [T₀₀ X0 XR].
+    eapply change_context in X1; tea.
+    eexists; tea.
+    by eapply TOR_TC; tea.
+Qed.
+
+Lemma infering_CC {TC RedW TOR} Σ {Pre : InferCCPrecondition Σ} Γ Δ t T :
+  Σ ⊢ Δ ≤Γ Γ ->
+  Σ ;;; Γ ⊢ t ▹ T ->
+  Σ ;;; Δ ⊢ t ▹| T.
+Proof.
+  intros HΓ X.
+  apply (BDXinfer _ _ (global_infering_CC _)) in X as X'.
+  eapply X'; tas.
+  eapply cmp_wf_local; tea.
+  by apply infering_wf_local_bd in X.
+Qed.
+
+Instance TCOpt_CC {TC CC} Σ {Pre : ContextChangeable (TC Σ) Σ} : ContextChangeable (TCOpt TC Σ) Σ.
+Proof.
+  constructor.
+  intros ?? T T' X HΓ.
+  destruct X.
+  - constructor.
+  - apply TCOpt_one.
+    eapply change_context; tea; tc.
+Qed.
+
+Instance infer_TOR_CC {TC RedW TOR} Σ {Pre : InferCCPrecondition Σ} : ContextChangeable (infer_TOR Σ) Σ.
+Proof.
+  constructor.
+  intros ???? X HΓ.
+  destruct X.
+  eapply infering_CC in X; tea.
+  eapply infer_TOR_TOR; tea; tc.
+  eapply change_context; tea; tc.
+Qed.
+
+Instance infer_red_TOR_CC {TC RedW TOR} Σ {Pre : InferCCPrecondition Σ} : ContextChangeable (infer_red_TOR Σ) Σ.
+Proof.
+  constructor.
+  intros ???? X HΓ.
+  destruct X as [T₀ T₁ X XT Xr].
+  eapply infering_CC in X; tea.
+  eapply change_context in XT, Xr; tea; tc.
+  eapply infer_TOR_TOR in X; tea; tc.
+  eapply infer_TOR_RedW; tea; tc.
+Qed.
+
+Instance checking_CC {TC RedW TOR} Σ {Pre : InferCCPrecondition Σ} : ContextChangeable (checking Σ (infering Σ)) Σ.
+Proof.
+  constructor.
+  intros ???? X HΓ.
+  apply (BDXcheck _ _ (global_infering_CC _)) in X as X'.
+  eapply X'; tas.
+  eapply cmp_wf_local; tea.
+  by apply checking_wf_local_bd in X.
+Qed.
+
+Lemma lift_sorting_CC {TC CC} Σ Pc Ps : ContextChangeable Pc Σ -> ContextChangeable Ps Σ ->
+  forall Γ Δ j, Σ ⊢ Δ ≤Γ Γ -> lift_sorting (Pc Γ) (fun T s => Ps Γ T (tSort s)) j -> lift_sorting (Pc Δ) (fun T s => Ps Δ T (tSort s)) j.
+Proof.
+  intros ?Pre?Pre ??? XΓ X.
+  eapply lift_sorting_fmap with (1 := X).
+  all: intros; now eapply change_context.
+Qed.
+
+Lemma lift_typing_CC {TC CC} Σ P : ContextChangeable P Σ ->
+  forall Γ Δ j, Σ ⊢ Δ ≤Γ Γ -> lift_typing1 P Γ j -> lift_typing1 P Δ j.
+Proof.
+  intros ?Pre ??? XΓ X.
+  eapply lift_typingε. 1: apply X.
+  intros; now eapply change_context.
+Qed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Module Export InferTypeTrial.
+
+Section Closure.
+Local Set Elimination Schemes.
+
+Context {TC RedW} Σ.
+Variable (R : forall (Γ : context) (t t' T : term), Type).
+Notation "Σ ;;; Γ ⊢ t ~R t' ▹ T " := (R Γ t t' T) (only parsing).
+Variable (R' : forall Γ t t' T, Σ ;;; Γ ⊢ t ~R t' ▹ T -> Type).
+Notation "Σ ;;; Γ ⊢ t ~R' t' ▹ T 'on' H" := (R' Γ t t' T H) (only parsing).
+
+Inductive red0 Γ : forall (t t' T : term), Type :=
+  | red0_beta na A t T u :
+      [(Xj : wf_judgment_bd Σ Γ (j_vass na A))] ->
+      [(Xt : Σ ;;; Γ ,, vass na A ⊢ t ▹ T)] ->
+      [(Xu : Σ ;;; Γ ⊢ u ◃ A)] ->
+      Σ ;;; Γ ⊢ tApp (tLambda na A t) u ~>0 t { 0 := u } ▹ T { 0 := u }
+where "Σ ;;; Γ ⊢ t ~>0 t' ▹ T" := (@red0 Γ t t' T) (only parsing).
+Derive Signature for red0.
+
+Inductive pred0 Γ : forall (t t' T : term), Type :=
+  | pred0_beta na A₀ A t t' T u u' :
+      [(Xj : wf_judgment_bd Σ Γ (j_vass na A))] ->
+      [(Xt : Σ ;;; Γ ,, vass na A ⊢ t ~R t' ▹ T)] ->
+      [(Xu : Σ ;;; Γ ⊢ u ~R u' ▹ A₀)] ->
+      [(XTA : Σ ;;; Γ ⊢ A₀ ≤T A)] ->
+      Σ ;;; Γ ⊢ tApp (tLambda na A t) u ≡>0 t' { 0 := u' } ▹ T { 0 := u }
+where "Σ ;;; Γ ⊢ t ≡>0 t' ▹ T" := (@pred0 Γ t t' T) (only parsing).
+Derive Signature for pred0.
+
+Inductive pred0ε Γ : forall (t t' T : term), Σ ;;; Γ ⊢ t ≡>0 t' ▹ T -> Type :=
+  | pred0ε_beta na A₀ A t t' T u u' :
+      [(Xj: wf_judgment_bd Σ Γ (j_vass na A))] ->
+      [(Xt : Σ ;;; Γ ,, vass na A ⊢ t ~R t' ▹ T)] ->
+      [(IXt : Σ ;;; Γ ,, vass na A ⊢ t ~R' t' ▹ T on Xt)] ->
+      [(Xu : Σ ;;; Γ ⊢ u ~R u' ▹ A₀)] ->
+      [(IXu : Σ ;;; Γ ⊢ u ~R' u' ▹ A₀ on Xu)] ->
+      [(XT : Σ ;;; Γ ⊢ A₀ ≤T A)] ->
+      Σ ;;; Γ ⊢ tApp (tLambda na A t) u ≡>0 t' { 0 := u' } ▹ T { 0 := u } on ⌈pred0_beta⌋ with R'
+where "Σ ;;; Γ ⊢ t ≡>0 t' ▹ T 'on' p 'with' R'" := (@pred0ε Γ t t' T p) (only parsing).
+Derive Signature for pred0ε.
+
+
+Inductive eta_red0 Γ t : forall (t' T : term), Type :=
+| eta_nored T :
+    [(X : Σ ;;; Γ ⊢ t ▹ T)] ->
+    Σ ;;; Γ ⊢ t ~>η0 t ▹ T
+
+| eta_red0_prod na A B :
+    [(X : Σ ;;; Γ ⊢ t ▹Π (na : A), B)] ->
+    Σ ;;; Γ ⊢ t ~>η0 tLambda na A (tApp (lift0 1 t) (tRel 0)) ▹ tProd na A B
+where "Σ ;;; Γ ⊢ t ~>η0 t' ▹ T" := (eta_red0 Γ t t' T) (only parsing).
+Derive Signature for eta_red0.
+
+Inductive context_closure Rα Rs Γ : forall (t t' T : term), Type :=
+  | clos_rel n decl :
+      [(wfΓ : wf_local_bd Σ Γ)] ->
+      [(hnth : nth_error Γ n = Some decl)] ->
+      Σ ;;; Γ ⊢ tRel n ~ tRel n ▹ lift0 (S n) decl.(decl_type)
+
+  | clos_lambda na na' A A' t t' T S s :
+      [(Xα : Rα na na')] ->
+      [(XA : Σ ;;; Γ ⊢ A ~R A' ▹ S)] ->
+      [(XT : Σ ;;; Γ ⊢ S ~>□ s)] ->
+      [(Xs : isSortRel s na.(binder_relevance))] ->
+      [(Xt : Σ ;;; Γ ,, vass na A ⊢ t ~R t' ▹ T)] ->
+      Σ ;;; Γ ⊢ tLambda na A t ~ tLambda na' A' t' ▹ tProd na A T
+
+  | clos_app A₀ T na A B t t' u u' :
+      [(Xt : Σ ;;; Γ ⊢ t ~R t' ▹ T)] ->
+      [(XT : Σ ;;; Γ ⊢ T ~>Π(na : A), B)] ->
+      [(Xu : Σ ;;; Γ ⊢ u ~R u' ▹ A₀)] ->
+      [(XTA : Σ ;;; Γ ⊢ A₀ ≤T A)] ->
+      Σ ;;; Γ ⊢ tApp t u ~ tApp t' u' ▹ B { 0 := u }
+
+  | clos_prod na na' A A' B B' S s S' s' :
+      [(Xα : Rα na na')] ->
+      [(XA : Σ ;;; Γ ⊢ A ~R A' ▹ S)] ->
+      [(XT : Σ ;;; Γ ⊢ S ~>□ s)] ->
+      [(Xs : isSortRel s na.(binder_relevance))] ->
+      [(XB : Σ ;;; Γ ,, vass na A ⊢ B ~R B' ▹ S')] ->
+      [(XT' : Σ ;;; Γ ,, vass na A ⊢ S' ~>□ s')] ->
+      Σ ;;; Γ ⊢ tProd na A B ~ tProd na' A' B' ▹ tSort (Sort.sort_of_product s s')
+
+  | clos_sort s s' :
+      [(wfΓ : wf_local_bd Σ Γ)] ->
+      [(wfs : wf_sort Σ s)] ->
+      [(wfs': wf_sort Σ s')] ->
+      [(Xs : Rs s s')] ->
+      Σ ;;; Γ ⊢ tSort s ~ tSort s' ▹ tSort (Sort.super s)
+where " Σ ;;; Γ ⊢ t ~ t' ▹ T " := (context_closure _ _ Γ t t' T) (only parsing).
+Notation " Σ ;;; Γ ⊢ t ~ t' ▹ T 'with' R , R' , R'' " := (@context_closure R' R'' Γ t t' T) (only parsing).
+Derive Signature for context_closure.
+
+Inductive context_closureε Rα Rs Γ : forall (t t' T : term), Σ ;;; Γ ⊢ t ~ t' ▹ T with R, Rα, Rs -> Type :=
+  | closε_rel n decl :
+      [(wfΓ : wf_local_bd Σ Γ)] ->
+      [(hnth : nth_error Γ n = Some decl)] ->
+      Σ ;;; Γ ⊢ tRel n ~ tRel n ▹ lift0 (S n) decl.(decl_type) on ⌈clos_rel⌋ with R'
+
+  | closε_lambda na na' A A' t t' T S s :
+      [(Xα : Rα na na')] ->
+      [(XA : Σ ;;; Γ ⊢ A ~R A' ▹ S)] ->
+      [(IXA : Σ ;;; Γ ⊢ A ~R' A' ▹ S on XA)] ->
+      [(XT : Σ ;;; Γ ⊢ S ~>□ s)] ->
+      [(Xs : isSortRel s na.(binder_relevance))] ->
+      [(Xt : Σ ;;; Γ ,, vass na A ⊢ t ~R t' ▹ T)] ->
+      [(IXt : Σ ;;; Γ ,, vass na A ⊢ t ~R' t' ▹ T on Xt)] ->
+      Σ ;;; Γ ⊢ tLambda na A t ~ tLambda na' A' t' ▹ tProd na A T on ⌈clos_lambda⌋ with R'
+
+  | closε_app A₀ T na A B t t' u u' :
+      [(Xt : Σ ;;; Γ ⊢ t ~R t' ▹ T)] ->
+      [(IXt : Σ ;;; Γ ⊢ t ~R' t' ▹ T on Xt)] ->
+      [(XT : Σ ;;; Γ ⊢ T ~>Π(na : A), B)] ->
+      [(Xu : Σ ;;; Γ ⊢ u ~R u' ▹ A₀)] ->
+      [(IXu : Σ ;;; Γ ⊢ u ~R' u' ▹ A₀ on Xu)] ->
+      [(XTA : Σ ;;; Γ ⊢ A₀ ≤T A)] ->
+      Σ ;;; Γ ⊢ tApp t u ~ tApp t' u' ▹ B { 0 := u } on ⌈clos_app⌋ with R'
+
+  | closε_prod na na' A A' B B' S s S' s' :
+      [(Xα : Rα na na')] ->
+      [(Xα : Rα na na')] ->
+      [(XA : Σ ;;; Γ ⊢ A ~R A' ▹ S)] ->
+      [(IXA : Σ ;;; Γ ⊢ A ~R' A' ▹ S on XA)] ->
+      [(XT : Σ ;;; Γ ⊢ S ~>□ s)] ->
+      [(Xs : isSortRel s na.(binder_relevance))] ->
+      [(XB : Σ ;;; Γ ,, vass na A ⊢ B ~R B' ▹ S')] ->
+      [(IXB : Σ ;;; Γ ,, vass na A ⊢ B ~R' B' ▹ S' on XB)] ->
+      [(XT' : Σ ;;; Γ ,, vass na A ⊢ S' ~>□ s')] ->
+      Σ ;;; Γ ⊢ tProd na A B ~ tProd na' A' B' ▹ tSort (Sort.sort_of_product s s') on ⌈clos_prod⌋ with R'
+
+  | closε_sort s s' :
+      [(wfΓ : wf_local_bd Σ Γ)] ->
+      [(wfs : wf_sort Σ s)] ->
+      [(wfs': wf_sort Σ s')] ->
+      [(Xs : Rs s s')] ->
+      Σ ;;; Γ ⊢ tSort s ~ tSort s' ▹ tSort (Sort.super s) on ⌈clos_sort⌋ with R'
+where " Σ ;;; Γ ⊢ t ~ t' ▹ T 'on' p 'with' R'" := (context_closureε _ _ Γ t t' T p) (only parsing).
+Derive Signature for context_closureε.
+
+
+Inductive elimination_context_closure Rα Rs Γ : forall (t t' T : term), Type :=
+| elim_clos_rel n decl :
+    [(wfΓ : wf_local_bd Σ Γ)] ->
+    [(hnth : nth_error Γ n = Some decl)] ->
+    Σ ;;; Γ ⊢ tRel n ~e tRel n ▹ lift0 (S n) decl.(decl_type)
+
+| elim_clos_lambda na na' A A' t t' T B s :
+    [(Xα : Rα na na')] ->
+    [(XA : Σ ;;; Γ ⊢ A ~R A' ▹ T)] ->
+    [(XT : Σ ;;; Γ ⊢ T ~>□ s)] ->
+    [(Xs : isSortRel s na.(binder_relevance))] ->
+    [(Xt : Σ ;;; Γ ,, vass na A ⊢ t ~R t' ▹ B)] ->
+    Σ ;;; Γ ⊢ tLambda na A t ~e tLambda na' A' t' ▹ tProd na A B
+
+| elim_clos_app A₀ T na A B t t' u u' :
+    [(Xt : Σ ;;; Γ ⊢ t ~e t' ▹ T)] ->
+    [(XT : Σ ;;; Γ ⊢ T ~>Π(na : A), B)] ->
+    [(Xu : Σ ;;; Γ ⊢ u ~R u' ▹ A₀)] ->
+    [(XTA : Σ ;;; Γ ⊢ A₀ ≤T A)] ->
+    Σ ;;; Γ ⊢ tApp t u ~e tApp t' u' ▹ B { 0 := u }
+
+| elim_clos_prod na na' A A' B B' T s T' s' :
+    [(Xα : Rα na na')] ->
+    [(XA : Σ ;;; Γ ⊢ A ~R A' ▹ T)] ->
+    [(XT : Σ ;;; Γ ⊢ T ~>□ s)] ->
+    [(Xs : isSortRel s na.(binder_relevance))] ->
+    [(XB : Σ ;;; Γ ,, vass na A ⊢ B ~R B' ▹ T')] ->
+    [(XT' : Σ ;;; Γ ,, vass na A ⊢ T' ~>□ s')] ->
+    Σ ;;; Γ ⊢ tProd na A B ~e tProd na' A' B' ▹ tSort (Sort.sort_of_product s s')
+
+| elim_clos_sort s s' :
+    [(wfΓ : wf_local_bd Σ Γ)] ->
+    [(wfs : wf_sort Σ s)] ->
+    [(wfs': wf_sort Σ s')] ->
+    [(Xs : Rs s s')] ->
+    Σ ;;; Γ ⊢ tSort s ~e tSort s' ▹ tSort (Sort.super s)
+where " Σ ;;; Γ ⊢ t ~e t' ▹ T " := (elimination_context_closure _ _ Γ t t' T) (only parsing).
+Notation "Σ ;;; Γ ⊢ t ~e t' ▹ T 'with' R , R' , R''" := (elimination_context_closure R' R'' Γ t t' T) (only parsing).
+Derive Signature for elimination_context_closure.
+
+Inductive elimination_context_closureε Rα Rs Γ : forall (t t' T : term), Σ ;;; Γ ⊢ t ~e t' ▹ T with R, Rα, Rs -> Type :=
+| elim_closε_rel n decl :
+    [(wfΓ : wf_local_bd Σ Γ)] ->
+    [(hnth : nth_error Γ n = Some decl)] ->
+    Σ ;;; Γ ⊢ tRel n ~e tRel n ▹ lift0 (S n) decl.(decl_type) on ⌈elim_clos_rel⌋ with R'
+
+| elim_closε_lambda na na' A A' t t' T B s :
+    [(Xα : Rα na na')] ->
+    [(XA : Σ ;;; Γ ⊢ A ~R A' ▹ T)] ->
+    [(IXA : Σ ;;; Γ ⊢ A ~R' A' ▹ T on XA)] ->
+    [(XT : Σ ;;; Γ ⊢ T ~>□ s)] ->
+    [(Xs : isSortRel s na.(binder_relevance))] ->
+    [(Xt : Σ ;;; Γ ,, vass na A ⊢ t ~R t' ▹ B)] ->
+    [(IXt : Σ ;;; Γ ,, vass na A ⊢ t ~R' t' ▹ B on Xt)] ->
+    Σ ;;; Γ ⊢ tLambda na A t ~e tLambda na' A' t' ▹ tProd na A B on ⌈elim_clos_lambda⌋ with R'
+
+| elim_closε_app A₀ T na A B t t' u u' :
+    [(Xt : Σ ;;; Γ ⊢ t ~e t' ▹ T)] ->
+    [(IXt : Σ ;;; Γ ⊢ t ~e t' ▹ T on Xt with R')] ->
+    [(XT : Σ ;;; Γ ⊢ T ~>Π(na : A), B)] ->
+    [(Xu : Σ ;;; Γ ⊢ u ~R u' ▹ A₀)] ->
+    [(IXu : Σ ;;; Γ ⊢ u ~R' u' ▹ A₀ on Xu)] ->
+    [(XTA : Σ ;;; Γ ⊢ A₀ ≤T A)] ->
+    Σ ;;; Γ ⊢ tApp t u ~e tApp t' u' ▹ B { 0 := u } on ⌈elim_clos_app⌋ with R'
+
+| elim_closε_prod na na' A A' B B' T s T' s' :
+    [(Xα : Rα na na')] ->
+    [(XA : Σ ;;; Γ ⊢ A ~R A' ▹ T)] ->
+    [(IXA : Σ ;;; Γ ⊢ A ~R' A' ▹ T on XA)] ->
+    [(XT : Σ ;;; Γ ⊢ T ~>□ s)] ->
+    [(Xs : isSortRel s na.(binder_relevance))] ->
+    [(XB : Σ ;;; Γ ,, vass na A ⊢ B ~R B' ▹ T')] ->
+    [(IXB : Σ ;;; Γ ,, vass na A ⊢ B ~R' B' ▹ T' on XB)] ->
+    [(XT' : Σ ;;; Γ ,, vass na A ⊢ T' ~>□ s')] ->
+    Σ ;;; Γ ⊢ tProd na A B ~e tProd na' A' B' ▹ tSort (Sort.sort_of_product s s') on ⌈elim_clos_prod⌋ with R'
+
+| elim_closε_sort s s' :
+    [(wfΓ : wf_local_bd Σ Γ)] ->
+    [(wfs : wf_sort Σ s)] ->
+    [(wfs': wf_sort Σ s')] ->
+    [(Xs : Rs s s')] ->
+    Σ ;;; Γ ⊢ tSort s ~e tSort s' ▹ tSort (Sort.super s) on ⌈elim_clos_sort⌋ with R'
+where " Σ ;;; Γ ⊢ t ~e t' ▹ T 'on' p 'with' R'" := (elimination_context_closureε _ _ Γ t t' T p) (only parsing).
+Derive Signature for elimination_context_closureε.
+
+
+End Closure.
+Section Closure.
+Local Set Elimination Schemes.
+
+Context {TC RedW} Σ Γ (R : forall (t t' T : term), Type).
+Notation "Σ ;;; Γ ⊢ t ~R t' ▹ T" := (R t t' T) (only parsing).
+Context (R' : forall t t' T, Σ ;;; Γ ⊢ t ~R t' ▹ T -> Type).
+Notation "Σ ;;; Γ ⊢ t ~R' t' ▹ T 'on' p" := (R' t t' T p) (only parsing).
+
+
+Inductive head_context1_closure : forall (t t' T : term), Type :=
+  | hclos1_app na A B t t' u T₀ :
+      [(Xt : Σ ;;; Γ ⊢ t ~R t' ▹ T₀)] ->
+      [(XT : Σ ;;; Γ ⊢ T₀ ↘ tProd na A B)] ->
+      [(Xu : Σ ;;; Γ ⊢ u ◃ A)] ->
+      Σ ;;; Γ ⊢ tApp t u ~h1 tApp t' u ▹ B { 0 := u }
+where "Σ ;;; Γ ⊢ t ~h1 t' ▹ T" := (head_context1_closure t t' T) (only parsing).
+Derive Signature for head_context1_closure.
+
+Inductive head_context1_closureε : forall (t t' T : term), Σ ;;; Γ ⊢ t ~h1 t' ▹ T -> Type :=
+  | hclos1ε_app na A B t t' u T₀ :
+      [(Xt : Σ ;;; Γ ⊢ t ~R t' ▹ T₀)] ->
+      [(IXt : Σ ;;; Γ ⊢ t ~R' t' ▹ T₀ on Xt)] ->
+      [(XT : Σ ;;; Γ ⊢ T₀ ↘ tProd na A B)] ->
+      [(Xu : Σ ;;; Γ ⊢ u ◃ A)] ->
+      Σ ;;; Γ ⊢ tApp t u ~h1 tApp t' u ▹ B { 0 := u } on ⌈hclos1_app⌋ with R'
+where " Σ ;;; Γ ⊢ t ~h1 t' ▹ T 'on' p 'with' R'" := (head_context1_closureε t t' T p) (only parsing).
+
+End Closure.
+
+
+(* Begin Closure renotations *)
+  Notation "Σ ;;; Γ ⊢ t ~>0 t' ▹ T " := (red0 Σ Γ t t' T).
+  Notation "Σ ;;; Γ ⊢ t ~>η0 t' ▹ T " := (eta_red0 Σ Γ t t' T).
+  Notation "Σ ;;; Γ ⊢ t ≡>0 t' ▹ T " := (pred0 Σ _ Γ t t' T).
+  Notation "Σ ;;; Γ ⊢ t ≡>0 t' ▹ T 'with' R " := (pred0 Σ R Γ t t' T) (only parsing).
+  Notation "Σ ;;; Γ ⊢ t ≡>0 t' ▹ T 'on' p 'with' R'" := (pred0ε Σ _ R' Γ t t' T p).
+  Notation "Σ ;;; Γ ⊢ t ≡>0 t' ▹| T " := (P_TOR (pred0 Σ _ Γ t t') Γ T).
+  Notation "Σ ;;; Γ ⊢ t ~ t' ▹ T " := (context_closure Σ _ _ _ Γ t t' T).
+  Notation "Σ ;;; Γ ⊢ t ~ t' ▹ T 'with' R , R' , R'' " := (context_closure Σ R R' R'' Γ t t' T) (only parsing).
+  Notation "Σ ;;; Γ ⊢ t ~ t' ▹ T 'on' p 'with' R'" := (context_closureε Σ _ R' _ _ Γ t t' T p).
+  Notation "Σ ;;; Γ ⊢ t ~ t' ▹| T " := (P_TOR (context_closure Σ _ _ _ Γ t t') Γ T).
+  Notation "Σ ;;; Γ ⊢ t ~ t' ▹| T 'with' R , R' , R'' " := (P_TOR (context_closure Σ R R' R'' Γ t t') Γ T) (only parsing).
+  Notation "Σ ;;; Γ ⊢ t ~e t' ▹ T " := (elimination_context_closure Σ _ _ _ Γ t t' T).
+  Notation "Σ ;;; Γ ⊢ t ~e t' ▹ T 'with' R , R' , R'' " := (elimination_context_closure Σ R R' R'' Γ t t' T) (only parsing).
+  Notation "Σ ;;; Γ ⊢ t ~e t' ▹ T 'on' p 'with' R'" := (elimination_context_closureε Σ _ R' _ _ Γ t t' T p).
+  Notation "Σ ;;; Γ ⊢ t ~e t' ▹ T " := (elimination_context_closure Σ _ _ _ Γ t t' T).
+  Notation "Σ ;;; Γ ⊢ t ~h1 t' ▹ T " := (head_context1_closure Σ Γ _ t t' T).
+  Notation "Σ ;;; Γ ⊢ t ~h1 t' ▹ T 'with' R " := (head_context1_closure Σ Γ R t t' T) (only parsing).
+  Notation "Σ ;;; Γ ⊢ t ~h1 t' ▹ T 'on' p 'with' R'" := (head_context1_closureε Σ Γ _ R' t t' T p).
+(* End Closure notations *)
+
+Section InferClasses.
+Context {TC RedW} Σ.
+
+Lemma pred0_toε R R' Γ t t' T :
+  [(p : Σ ;;; Γ ⊢ t ≡>0 t' ▹ T with R)] ->
+  [(X Γ t t' T : [(H : R Γ t t' T)] -> R' Γ t t' T H)] ->
+  Σ ;;; Γ ⊢ t ≡>0 t' ▹ T on p with R'.
+Proof.
+  intros H X.
+  induction H.
+  all: try now econstructor.
+Defined.
+
+Lemma pred0_ofε R R' Γ t t' T :
+  [(p : Σ ;;; Γ ⊢ t ≡>0 t' ▹ T with R)] ->
+  [(X : Σ ;;; Γ ⊢ t ≡>0 t' ▹ T on p with (fun Γ t t' T _ => R' Γ t t' T))] ->
+  Σ ;;; Γ ⊢ t ≡>0 t' ▹ T with R'.
+Proof.
+  intros.
+  induction X.
+  all: now econstructor.
+Defined.
+
+Lemma pred0ε_fmap R R' R'' Γ t t' T :
+  [(p : Σ ;;; Γ ⊢ t ≡>0 t' ▹ T with R)] ->
+  [(H : Σ ;;; Γ ⊢ t ≡>0 t' ▹ T on p with R')] ->
+  [(X Γ t t' T H : R' Γ t t' T H -> R'' Γ t t' T H)] ->
+  Σ ;;; Γ ⊢ t ≡>0 t' ▹ T on p with R''.
+Proof.
+  intros p H X.
+  induction H.
+  all: try now econstructor.
+Defined.
+
+Lemma context_closure_toε R R' Rα Rs Γ t t' T :
+  [(p : Σ ;;; Γ ⊢ t ~ t' ▹ T with R, Rα, Rs)] ->
+  [(X Γ t t' T : [(H : R Γ t t' T)] -> R' Γ t t' T H)] ->
+  Σ ;;; Γ ⊢ t ~ t' ▹ T on p with R'.
+Proof.
+  intros H X.
+  induction H.
+  all: try now econstructor.
+Defined.
+
+Lemma context_closure_ofε R R' Rα Rs Γ t t' T :
+  [(p : Σ ;;; Γ ⊢ t ~ t' ▹ T with R, Rα, Rs)] ->
+  [(X : Σ ;;; Γ ⊢ t ~ t' ▹ T on p with (fun Γ t t' T _ => R' Γ t t' T))] ->
+  Σ ;;; Γ ⊢ t ~ t' ▹ T with R', Rα, Rs.
+Proof.
+  intros.
+  induction X.
+  all: try now econstructor.
+Defined.
+
+Lemma context_closureε_fmap R R' R'' Rα Rs Γ t t' T :
+  [(p : Σ ;;; Γ ⊢ t ~ t' ▹ T with R, Rα, Rs)] ->
+  [(H : Σ ;;; Γ ⊢ t ~ t' ▹ T on p with R')] ->
+  [(X Γ t t' T H : R' Γ t t' T H -> R'' Γ t t' T H)] ->
+  Σ ;;; Γ ⊢ t ~ t' ▹ T on p with R''.
+Proof.
+  intros p H X.
+  induction H.
+  all: try now econstructor.
+Defined.
+
+Lemma context_closure_fmap R R' Rα Rs Rα' Rs' Γ t t' T :
+  [(H : Σ ;;; Γ ⊢ t ~ t' ▹ T with R, Rα, Rs)] ->
+  [(X Γ t t' T : R Γ t t' T -> R' Γ t t' T)] ->
+  [(Xα na na' : Rα na na' -> Rα' na na')] ->
+  [(Xs s s' : Rs s s' -> Rs' s s')] ->
+  Σ ;;; Γ ⊢ t ~ t' ▹ T with R', Rα', Rs'.
+Proof.
+  intros H X Xα Xs.
+  induction H.
+  all: try now econstructor.
+Defined.
+
+Lemma elimination_context_closure_toε R R' Rα Rs Γ t t' T :
+  [(p : Σ ;;; Γ ⊢ t ~e t' ▹ T with R, Rα, Rs)] ->
+  [(X Γ t t' T : [(H : R Γ t t' T)] -> R' Γ t t' T H)] ->
+  Σ ;;; Γ ⊢ t ~e t' ▹ T on p with R'.
+Proof.
+  intros H X.
+  induction H.
+  all: now econstructor; eauto with fmap.
+Defined.
+
+Lemma elimination_context_closure_ofε R R' Rα Rs Γ Γ' t t' T :
+  [(p : Σ ;;; Γ ⊢ t ~e t' ▹ T with R, Rα, Rs)] ->
+  [(X : Σ ;;; Γ ⊢ t ~e t' ▹ T on p with (fun Γ t t' T _ => R' Γ t t' T))] ->
+  Σ ;;; Γ ⊢ t ~e t' ▹ T with R', Rα, Rs.
+Proof.
+  intros.
+  induction X.
+  all: now econstructor; eauto with fmap.
+Defined.
+
+Lemma elimination_context_closureε_fmap R R' R'' Rα Rs Γ t t' T :
+  [(p : Σ ;;; Γ ⊢ t ~e t' ▹ T with R, Rα, Rs)] ->
+  [(H : Σ ;;; Γ ⊢ t ~e t' ▹ T on p with R')] ->
+  [(X Γ t t' T H : R' Γ t t' T H -> R'' Γ t t' T H)] ->
+  Σ ;;; Γ ⊢ t ~e t' ▹ T on p with R''.
+Proof.
+  intros p H X.
+  induction H.
+  all: now econstructor; eauto with fmap.
+Defined.
+
+Lemma elimination_context_closure_fmap R R' Rα Rα' Rs Rs' Γ t t' T :
+  [(H : Σ ;;; Γ ⊢ t ~e t' ▹ T with R, Rα, Rs)] ->
+  [(X Γ t t' T : R Γ t t' T -> R' Γ t t' T)] ->
+  [(Xα na na' : Rα na na' -> Rα' na na')] ->
+  [(Xs s s' : Rs s s' -> Rs' s s')] ->
+  Σ ;;; Γ ⊢ t ~e t' ▹ T with R', Rα', Rs'.
+Proof.
+  intros H X Xα Xs.
+  induction H.
+  all: try now econstructor; eauto.
+Defined.
+
+Lemma head_context1_closure_toε R R' Γ t t' T :
+  [(p : Σ ;;; Γ ⊢ t ~h1 t' ▹ T with R)] ->
+  [(X t t' T : [(H : R t t' T)] -> R' t t' T H)] ->
+  Σ ;;; Γ ⊢ t ~h1 t' ▹ T on p with R'.
+Proof.
+  intros H X.
+  induction H.
+  all: try now econstructor.
+Defined.
+
+Lemma head_context1_closure_ofε R R' Γ t t' T :
+  [(p : Σ ;;; Γ ⊢ t ~h1 t' ▹ T with R)] ->
+  [(X : Σ ;;; Γ ⊢ t ~h1 t' ▹ T on p with fun t t' T _ => R' t t' T)] ->
+  Σ ;;; Γ ⊢ t ~h1 t' ▹ T with R'.
+Proof.
+  intros.
+  induction X.
+  all: try now econstructor.
+Defined.
+
+Lemma head_context1_closureε_fmap R R' R'' Γ t t' T :
+  [(p : Σ ;;; Γ ⊢ t ~h1 t' ▹ T with R)] ->
+  [(H : Σ ;;; Γ ⊢ t ~h1 t' ▹ T on p with R')] ->
+  [(X Γ t t' T H : R' t t' T H -> R'' t t' T H)] ->
+  Σ ;;; Γ ⊢ t ~h1 t' ▹ T on p with R''.
+Proof.
+  intros p H X.
+  induction H.
+  all: try now econstructor.
+Defined.
+End InferClasses.
+
+Hint Resolve pred0_toε pred0_ofε pred0ε_fmap
+  context_closure_toε context_closure_ofε context_closureε_fmap
+  elimination_context_closure_toε elimination_context_closure_ofε elimination_context_closureε_fmap
+  head_context1_closure_toε head_context1_closure_ofε head_context1_closureε_fmap
+  : fmap.
+
+
+
+
+
+
+
+
+
+
+
+
+Inductive hred1 {TC RedW} Σ Γ t u T :=
+  | hred1_red0 :
+      [(X : Σ ;;; Γ ⊢ t ~>0 u ▹ T)] ->
+      Σ ;;; Γ ⊢ t ~>h u ▹ T
+
+  | hred1_clos1 :
+      [(X : Σ ;;; Γ ⊢ t ~h1 u ▹ T with hred1 Σ Γ)] ->
+      Σ ;;; Γ ⊢ t ~>h u ▹ T
+where "Σ ;;; Γ ⊢ t ~>h t' ▹ T" := (hred1 Σ Γ t t' T).
+Derive Signature for hred1.
+
+Definition hred1_rect TC RedW Σ Γ P :
+  [(XRed0 t t' T : [(H : Σ ;;; Γ ⊢ t ~>0 t' ▹ T)] -> P t t' T ⌈hred1_red0⌋)] ->
+  [(XClosure t t' T :
+      [(H : Σ ;;; Γ ⊢ t ~h1 t' ▹ T with hred1 Σ Γ)] ->
+      [(X : Σ ;;; Γ ⊢ t ~h1 t' ▹ T on H with P)] ->
+      P t t' T ⌈hred1_clos1⌋)] ->
+
+  forall t t' T, [(X : Σ ;;; Γ ⊢ t ~>h t' ▹ T)] -> P t t' T X.
+Proof.
+  intros ??.
+  fix Xrec 4.
+  intros t u T X; destruct X.
+  - apply XRed0; eauto.
+  - unshelve eapply XClosure; eauto with fmap.
+Defined.
+Definition hred1_ind := hred1_rect.
+
+Inductive hred {TC RedW} Σ Γ : forall (t t' T : term), Type :=
+  | hred_refl t T :
+      [(Xt : Σ ;;; Γ ⊢ t ▹ T)] ->
+      Σ ;;; Γ ⊢ t ~>h* t ▹ T
+
+  | hred_step t u v T T' :
+      [(Xt : Σ ;;; Γ ⊢ t ~>h u ▹ T)] ->
+      [(Xu : Σ ;;; Γ ⊢ u ~>h* v ▹ T')] ->
+      Σ ;;; Γ ⊢ t ~>h* v ▹ T
+where " Σ ;;; Γ ⊢ t ~>h* t' ▹ T " := (hred Σ Γ t t' T).
+
+Derive Signature for hred.
+
+Definition hred_rect TC RedW Σ Γ P :
+  [(XRefl t T :
+      [(Xt : Σ ;;; Γ ⊢ t ▹ T)] ->
+      P t t T ⌈hred_refl⌋)] ->
+  [(XStep t t' t'' T T' :
+      [(Xt : Σ ;;; Γ ⊢ t ~>h t' ▹ T)] ->
+      [(Xu : Σ ;;; Γ ⊢ t' ~>h* t'' ▹ T')] ->
+      P t' t'' T' Xu ->
+      P t t'' T ⌈hred_step⌋)] ->
+  forall t u T, [(X : Σ ;;; Γ ⊢ t ~>h* u ▹ T)] -> P t u T X.
+Proof.
+  intros.
+  revert t u T X.
+  fix Xrec 4.
+  intros t u T X; destruct X.
+  - apply XRefl; eauto with fmap.
+  - eapply XStep; eauto.
+Defined.
+
+
+
+
+Inductive standard_red {TC RedW} Σ Γ t u T :=
+  | stredc t' T' :
+    [(h : Σ ;;; Γ ⊢ t ~>h* t' ▹ T)] ->
+    [(X : Σ ;;; Γ ⊢ t' ~ u ▹ T' with standard_red Σ, eq, eq)] ->
+    Σ ;;; Γ ⊢ t =>s u ▹ T
+where "Σ  ;;; Γ ⊢ t =>s t' ▹ T" := (standard_red Σ Γ t t' T).
+Derive Signature for standard_red.
+
+
+Inductive standard_redε {TC RedW} Σ (R : forall Γ t t' T, Σ  ;;; Γ ⊢ t =>s t' ▹ T -> Type) Γ t u T : Σ ;;; Γ ⊢ t =>s u ▹ T -> Type :=
+  | stredcε t' T' :
+    [(h : Σ ;;; Γ ⊢ t ~>h* t' ▹ T)] ->
+    [(X : Σ ;;; Γ ⊢ t' ~ u ▹ T' with standard_red Σ, eq, eq)] ->
+    [(IX : Σ ;;; Γ ⊢ t' ~ u ▹ T' on X with (fun Γ t t' T H => R Γ t t' T H × standard_redε Σ R Γ t t' T H))] ->
+    Σ ;;; Γ ⊢ t =>s u ▹ T on ⌈stredc⌋ with R
+
+where "Σ  ;;; Γ ⊢ t =>s t' ▹ T 'on' H 'with' R" := (standard_redε Σ R Γ t t' T H).
+Derive Signature for standard_redε.
+
+
+Definition standard_red_rect TC RedW Σ P :
+  [(X Γ t u T H : [(X : Σ ;;; Γ ⊢ t =>s u ▹ T on H with P)] -> P Γ t u T H)] ->
+  forall Γ t u T, [(H : Σ ;;; Γ ⊢ t =>s u ▹ T)] -> P Γ t u T H.
+Proof.
+  intros ? Γ t u T H.
+  apply X.
+  revert Γ t u T H.
+  fix Xrec 5.
+  intros Γ t u T H. destruct H.
+  constructor.
+  eapply context_closure_toε; intros; split; eauto.
+Defined.
+Definition standard_red_ind := standard_red_rect.
+
+
+
+
+
+
+Inductive standard_red_eta {TC RedW} Σ Γ t u T :=
+| stredetac t' t'' T' T'' :
+  [(h : Σ ;;; Γ ⊢ t ~>h* t' ▹ T)] ->
+  [(h' : Σ ;;; Γ ⊢ t' ~>η0 t'' ▹ T')] ->
+  [(X : Σ ;;; Γ ⊢ t'' ~e u ▹ T'' with standard_red_eta Σ, eq, eq)] ->
+  Σ ;;; Γ ⊢ t =>sη u ▹ T
+where "Σ  ;;; Γ ⊢ t =>sη t' ▹ T" := (standard_red_eta Σ Γ t t' T).
+Derive Signature for standard_red_eta.
+
+
+Inductive standard_red_etaε {TC RedW} Σ (R : forall Γ t t' T, Σ  ;;; Γ ⊢ t =>sη t' ▹ T -> Type) Γ t u T : Σ ;;; Γ ⊢ t =>sη u ▹ T -> Type :=
+| stredetacε t' t'' T' T'' :
+  [(h : Σ ;;; Γ ⊢ t ~>h* t' ▹ T)] ->
+  [(h' : Σ ;;; Γ ⊢ t' ~>η0 t'' ▹ T')] ->
+  [(X : Σ ;;; Γ ⊢ t'' ~e u ▹ T'' with standard_red_eta Σ, eq, eq)] ->
+  [(IX : Σ ;;; Γ ⊢ t'' ~e u ▹ T'' on X with (fun Γ t t' T H => R Γ t t' T H × standard_red_etaε Σ R Γ t t' T H))] ->
+  Σ ;;; Γ ⊢ t =>sη u ▹ T on ⌈stredetac⌋ with R
+
+where "Σ  ;;; Γ ⊢ t =>sη t' ▹ T 'on' H 'with' R" := (standard_red_etaε Σ R Γ t t' T H).
+Derive Signature for standard_red_etaε.
+
+
+Definition standard_red_eta_rect TC RedW Σ P :
+  [(X Γ t u T H : [(X : Σ ;;; Γ ⊢ t =>sη u ▹ T on H with P)] -> P Γ t u T H)] ->
+  forall Γ t u T, [(H : Σ ;;; Γ ⊢ t =>sη u ▹ T)] -> P Γ t u T H.
+Proof.
+  intros ? Γ t u T H.
+  apply X.
+  revert Γ t u T H.
+  fix Xrec 5.
+  intros Γ t u T H. destruct H.
+  constructor.
+  eapply elimination_context_closure_toε; intros; split; eauto.
+Defined.
+Definition standard_red_eta_ind := standard_red_eta_rect.
+
+
+
+
+
+
+Inductive pred1 {TC RedW} Σ Γ t u T : Type :=
+  | pred1_pred0 :
+      [(X : Σ ;;; Γ ⊢ t ≡>0 u ▹ T with pred1 Σ)] ->
+      Σ ;;; Γ ⊢ t ≡>1 u ▹ T
+
+  | pred1_clos :
+      [(X : Σ ;;; Γ ⊢ t ~ u ▹ T with pred1 Σ, eq, eq)] ->
+      Σ ;;; Γ ⊢ t ≡>1 u ▹ T
+where "Σ ;;; Γ ⊢ t ≡>1 t' ▹ T" := (pred1 Σ Γ t t' T).
+Notation "Σ ;;; Γ ⊢ t ≡>1 t' ▹| T" := (P_TOR (pred1 Σ Γ t t') Γ T).
+Derive Signature for pred1.
+
+
+Inductive pred1ε {TC RedW} Σ (P : forall Γ t t' T, Σ ;;; Γ ⊢ t ≡>1 t' ▹ T -> Type) Γ t t' T : Σ ;;; Γ ⊢ t ≡>1 t' ▹ T -> Type :=
+  | pred1ε_pred0 :
+      [(X : Σ ;;; Γ ⊢ t ≡>0 t' ▹ T with pred1 Σ)] ->
+      [(IX : Σ ;;; Γ ⊢ t ≡>0 t' ▹ T on X with fun Γ t t' T H => P Γ t t' T H × pred1ε Σ P Γ t t' T H)] ->
+      Σ ;;; Γ ⊢ t ≡>1 t' ▹ T on ⌈pred1_pred0⌋ with P
+
+  | pred1ε_clos :
+      [(X : Σ ;;; Γ ⊢ t ~ t' ▹ T with pred1 Σ, eq, eq)] ->
+      [(IX : Σ ;;; Γ ⊢ t ~ t' ▹ T on X with fun Γ t t' T H => P Γ t t' T H × pred1ε Σ P Γ t t' T H)] ->
+      Σ ;;; Γ ⊢ t ≡>1 t' ▹ T on ⌈pred1_clos⌋ with P
+where "Σ ;;; Γ ⊢ t ≡>1 t' ▹ T 'on' H 'with' P" := (pred1ε Σ P Γ t t' T H).
+Derive Signature for pred1ε.
+
+
+Definition pred1_rect TC RedW Σ P :
+  [(X Γ t t' T H : [(X : Σ ;;; Γ ⊢ t ≡>1 t' ▹ T on H with P)] -> P Γ t t' T H)] ->
+  forall Γ t t' T, [(H : Σ ;;; Γ ⊢ t ≡>1 t' ▹ T)] -> P Γ t t' T H.
+Proof.
+  intros X ?????.
+  apply X.
+  revert Γ t t' T H.
+  fix Xrec 5.
+  intros Γ t t' T H; destruct H.
+  all: constructor; eauto with fmap.
+Defined.
+Definition pred1_ind := pred1_rect.
+
+Class RedW_reflexive RedW Σ := {
+  RedW_refl_prod Γ na A B : Σ ;;; Γ ⊢ tProd na A B ~>Π(na : A), B;
+  RedW_refl_sort Γ s : Σ ;;; Γ ⊢ tSort s ~>□ s;
+  }.
+
+Section InferClasses.
+Context {TC RedW} Σ.
+
+Context {RedW_refl : RedW_reflexive RedW Σ}.
+Context {RedW_inj : BidirUniquePrecondition RedW Σ}.
+
+Instance LeftInfer_red0 : LeftInfer (red0 Σ) Σ.
+Proof.
+  constructor. induction 1.
+  - econstructor; tea.
+    econstructor; tea.
+    + econstructor; tea.
+    + apply RedW_refl_prod.
+Qed.
+
+Lemma LeftInfer_headcontext1 P P' Γ t u T :
+  [(onP' t u T H : P' t u T H -> Σ ;;; Γ ⊢ t ▹ T)] ->
+  [(H : Σ ;;; Γ ⊢ t ~h1 u ▹ T with P)] ->
+  Σ ;;; Γ ⊢ t ~h1 u ▹ T on H with P' ->
+  Σ ;;; Γ ⊢ t ▹ T.
+Proof.
+  destruct 2.
+  - apply onP' in IXt.
+    econstructor; tea.
+    econstructor; tea.
+Qed.
+
+Instance LeftInfer_head_context_clos' P : LeftInfer P Σ -> LeftInfer (fun Γ => head_context1_closure Σ Γ (P Γ)) Σ.
+Proof.
+  constructor.
+  intros; unshelve eapply LeftInfer_headcontext1; revgoals; tea; revgoals.
+  - intros; exact True.
+  - cbn; intros. by apply infer_left in H.
+  - eauto with fmap.
+Qed.
+
+Instance LeftInfer_hred1 : LeftInfer (hred1 Σ) Σ.
+Proof.
+  constructor. induction 1.
+  - by eapply infer_left in H.
+  - eapply LeftInfer_headcontext1; tea.
+    auto.
+Qed.
+
+Instance LeftInfer_hred : LeftInfer (hred Σ) Σ.
+Proof.
+  constructor. induction 1.
+  - assumption.
+  - by eapply infer_left in Xt.
+Qed.
+
+Lemma LeftInfer_pred0 P P' Γ t u T :
+  [(onP' Γ t u T H : P' Γ t u T H -> Σ ;;; Γ ⊢ t ▹ T)] ->
+  [(H : Σ ;;; Γ ⊢ t ≡>0 u ▹ T with P)] ->
+  Σ ;;; Γ ⊢ t ≡>0 u ▹ T on H with P' ->
+  Σ ;;; Γ ⊢ t ▹ T.
+Proof.
+  destruct 2.
+  - apply onP' in IXt, IXu.
+    econstructor; tea.
+    + econstructor; tea.
+      * econstructor; tea.
+      * apply RedW_refl_prod.
+    + econstructor; tea.
+Qed.
+
+Lemma LeftInfer_clos P P' Pα Ps Γ t u T :
+  [(onP' Γ t u T H : P' Γ t u T H -> Σ ;;; Γ ⊢ t ▹ T)] ->
+  [(H : Σ ;;; Γ ⊢ t ~ u ▹ T with P, Pα, Ps)] ->
+  Σ ;;; Γ ⊢ t ~ u ▹ T on H with P' ->
+  Σ ;;; Γ ⊢ t ▹ T.
+Proof.
+  destruct 2.
+  - by constructor.
+  - apply onP' in IXA, IXt.
+    econstructor; tea.
+    repeat (eexists; cbn; tea).
+  - apply onP' in IXt, IXu.
+    repeat (econstructor; tea).
+  - apply onP' in IXA, IXB.
+    repeat (econstructor; tea).
+  - constructor; tas.
+Qed.
+
+Instance LeftInfer_clos' P Pα Ps : LeftInfer P Σ -> LeftInfer (context_closure Σ P Pα Ps) Σ.
+Proof.
+  constructor.
+  intros; unshelve eapply LeftInfer_clos; revgoals; tea; revgoals.
+  - intros; exact True.
+  - cbn; intros. by apply infer_left in H.
+  - eauto with fmap.
+Qed.
+
+Instance LeftInfer_pred1 : LeftInfer (pred1 Σ) Σ.
+Proof.
+  constructor.
+  intros * H. induction H. destruct X.
+  - eapply LeftInfer_pred0; tea. by intros ????? [].
+  - eapply LeftInfer_clos; tea. by intros ????? [].
+Qed.
+
+Instance LeftInfer_standard_red : LeftInfer (standard_red Σ) Σ.
+Proof.
+  constructor. destruct 1.
+  by apply infer_left in h.
+Qed.
+
+
+Context {TOR} {BDContext : InferCCPrecondition Σ}.
+
+Class TOR_Prod_contra {TC RedW TOR} Σ := {
+  TOR_prod_contra Γ na na' A A' B B' :
+    wf_local_bd Σ Γ ->
+    eq_binder_annot na na' ->
+    Γ ⊢ A' ≤O A -> Γ ,, vass na A ⊢ B ≤O B' ->
+    Γ ⊢ tProd na A B ≤O tProd na' A' B'
+}.
+
+Class TOR_Subst10_contra {TC RedW TOR} Σ P := {
+  TOR_subst10_contra Γ na A₀ A B B' u u' :
+    wf_local_bd Σ Γ ->
+    P Γ u u' A₀ ->
+    Σ ;;; Γ ⊢ A₀ ≤T A ->
+    Γ ,, vass na A ⊢ B ≤O B' ->
+    Γ ⊢ B {0 := u'} ≤O B' {0 := u}
+}.
+
+Lemma RightInferTOR_head_context1_closure P P' Γ t u T :
+  [(onP' t u T H : P' t u T H -> Σ ;;; Γ ⊢ u ▹| T)] ->
+  [(H : Σ ;;; Γ ⊢ t ~h1 u ▹ T with P)] ->
+  [(X : Σ ;;; Γ ⊢ t ~h1 u ▹ T on H with P')] ->
+  Σ ;;; Γ ⊢ u ▹| T.
+Proof.
+  intros.
+  induction X.
+  - apply onP' in IXt.
+    apply @infer_congr_to_TOR; tc.
+    econstructor; tea.
+    eapply infer_TOR_RedW; tea; tc.
+Qed.
+
+Instance RightInferTOR_head_context_clos' P : RightInferTOR P Σ -> RightInferTOR (fun Γ => head_context1_closure Σ Γ (P Γ)) Σ.
+Proof.
+  constructor.
+  intros; unshelve eapply RightInferTOR_head_context1_closure; revgoals; tea; revgoals.
+  - intros; exact True.
+  - cbn; intros. by apply infer_opt_right in H.
+  - eauto with fmap.
+Qed.
+
+Class RightInferClosure_Precondition P := {
+  RIPred_Subst10 :: TOR_Subst10_contra Σ P;
+  RIPred_Prod :: TOR_Prod_contra Σ;
+  RIPred_ImpliesTOR :: ImpliesTOR Σ P;
+  RIPred_RevImpliesTOR :: RevImpliesTOR Σ P;
+}.
+
+Lemma convertible_contexts_snoc_vass Γ na na' A A' :
+  wf_local_bd Σ Γ ->
+  eq_binder_annot na na' ->
+  Γ ⊢ A' ≤O A ->
+  Σ ⊢ Γ,, vass na' A' ≤Γ Γ,, vass na A.
+Proof.
+  intros.
+  apply convertible_contexts_snoc.
+  1: apply convertible_contexts_refl; tc; tea.
+  repeat constructor; cbn; tea.
+  1: by symmetry.
+  by eapply TOR_to_CMPTYPE.
+Qed.
+
+Lemma RightInferTOR_Lambda {Pre : TOR_Prod_contra Σ} Γ na na' A A' t B :
+  wf_local_bd Σ Γ ->
+  [(e : eq_binder_annot na na')] ->
+  [(XA : lift_sorting (fun t T => Σ ;;; Γ ⊢ t ◃ T) (fun T s => Σ ;;; Γ ⊢ T ▹|↘ tSort s) (j_vass na A))] ->
+  [(XTA : Γ ⊢ A ≤O A')] ->
+  [(XTA' : Γ ⊢ A' ≤O A)] ->
+  [(Xt : Σ ;;; Γ ,, vass na' A' ⊢ t ▹| B)] ->
+  Σ ;;; Γ ⊢ tLambda na A t ▹| tProd na' A' B.
+Proof.
+  intros wfΓ ?????.
+  apply lift_infer_congr in XA as Xj; tc; trea.
+  destruct XA as (_ & s & XA & _ & Hrel); cbn in *.
+  have XΓ : Σ ⊢ Γ ,, vass na A ≤Γ Γ ,, vass na' A'.
+  { apply convertible_contexts_snoc_vass; tea. symmetry; eassumption. }
+  apply infer_TOR_sort_inv in XA as (s₁ & XT & Xs); tea; tc.
+  eapply change_context in Xt; tea.
+  destruct Xt as [B₀ Xt XB].
+  econstructor.
+  1: by econstructor; tea.
+  apply TOR_prod_contra; tas.
+Qed.
+
+Lemma RightInferTOR_context_closure P {RIC_Pre : RightInferClosure_Precondition P} P' Pα Ps Γ t u T :
+  [(onPα na na' : Pα na na' -> eq_binder_annot na na')] ->
+  [(onPs Γ s s' : wf_local_bd Σ Γ -> wf_sort Σ s -> wf_sort Σ s' -> Ps s s' -> Γ ⊢ tSort (Sort.super s') ≤O tSort (Sort.super s))] ->
+  [(onP' Γ t u T H : P' Γ t u T H -> Σ ;;; Γ ⊢ u ▹| T)] ->
+  [(H : Σ ;;; Γ ⊢ t ~ u ▹ T with P, Pα, Ps)] ->
+  [(X : Σ ;;; Γ ⊢ t ~ u ▹ T on H with P')] ->
+  Σ ;;; Γ ⊢ u ▹| T.
+Proof.
+  intros.
+  induction X.
+  - apply infer_to_TOR; tc.
+    by constructor.
+  - apply onP' in IXA, IXt.
+    eapply onPα in Xα. symmetry in Xα.
+    eapply rto_tor in XA as XA₀; tea.
+    eapply to_tor in XA; tea.
+    apply RightInferTOR_Lambda; tea.
+    + now eapply infer_TOR_wf_local_bd.
+    + eapply infer_TOR_RedW in IXA; tc; tea.
+      repeat (eexists; cbn; tea).
+      rewrite Xα //.
+
+  - apply onP' in IXt, IXu.
+    eapply infer_TOR_RedW in IXt; tea; tc. clear XT.
+    apply infer_TOR_prod_inv in IXt as (na₁ & A₁ & B₁ & XT & XA & XB); tea; tc.
+    eapply TC_TOR in XA; tea.
+    eapply infer_TOR_TC in IXu; tea; tc.
+    econstructor.
+    1: by econstructor; tea.
+    eapply TOR_subst10_contra; tea.
+    now eapply checking_wf_local_bd.
+
+  - apply onP' in IXA, IXB.
+    eapply onPα in Xα.
+    eapply rto_tor in XA; tea.
+    eapply infer_TOR_RedW in IXA, IXB; tea; tc. clear XT XT'.
+    apply infer_TOR_sort_inv in IXA as (s₁ & IXA & Xs₁); tea; tc.
+    eapply change_context in IXB; tc.
+    2:{ apply convertible_contexts_snoc_vass; tea. now eapply infer_red_wf_local_bd. }
+    apply infer_TOR_sort_inv in IXB as (s₂ & IXB & Xs₂); tea; tc.
+    econstructor.
+    + econstructor; tea.
+      repeat (eexists; tea).
+      apply TOR_sort_relevance in Xs₁ as ->.
+      rewrite /= Xs Xα //.
+    + eapply TOR_sort_of_product; tea.
+
+  - econstructor.
+    1: by constructor.
+    by eapply onPs; tas.
+Qed.
+
+Instance RightInferTOR_context_clos' P {RIC_Pre : RightInferClosure_Precondition P} Pα Ps : RightInferTOR P Σ ->
+  [(onPα na na' : Pα na na' -> eq_binder_annot na na')] ->
+  [(onPs Γ s s' : wf_local_bd Σ Γ -> wf_sort Σ s -> wf_sort Σ s' -> Ps s s' -> Γ ⊢ tSort (Sort.super s') ≤O tSort (Sort.super s))] ->
+  RightInferTOR (context_closure Σ P Pα Ps) Σ.
+Proof.
+  constructor.
+  intros; unshelve eapply RightInferTOR_context_closure; revgoals; tea; revgoals.
+  - intros; exact True.
+  - cbn; intros. by apply infer_opt_right in H.
+  - eauto with fmap.
+Qed.
+
+
+Lemma RightInferTOR_pred0 P {RIC_Pre : RightInferClosure_Precondition P} {Pre1 : TCImpliesTOR Σ} {BDSubst : TypingSubstPrecondition TC RedW TOR Σ} P' Γ t u T :
+  [(onP' Γ t u T H : P' Γ t u T H -> Σ ;;; Γ ⊢ u ▹| T)] ->
+  [(H : Σ ;;; Γ ⊢ t ≡>0 u ▹ T with P)] ->
+  [(X : Σ ;;; Γ ⊢ t ≡>0 u ▹ T on H with P')] ->
+  Σ ;;; Γ ⊢ u ▹| T.
+Proof.
+  intros ?? X.
+  induction X.
+  - apply onP' in IXt as [T₀ IXt XT₀], IXu as [A₁ IXu XA₁].
+    eapply infer_TOR_TOR; tc.
+    + eapply infer_subst with (Δ := [_]); tea.
+      repeat constructor.
+      rewrite subst_empty.
+      eexists; tea.
+      eapply tc_to_tor.
+      now eapply TOR_TC.
+    + rewrite -/(subst10 _ _).
+      eapply TOR_subst10_contra; tea.
+      now eapply infering_wf_local_bd.
+Qed.
+
+Instance RightInferTOR_pred0' P {RIC_Pre : RightInferClosure_Precondition P} {Pre1 : TCImpliesTOR Σ} {BDSubst : TypingSubstPrecondition TC RedW TOR Σ} : RightInferTOR P Σ -> RightInferTOR (pred0 Σ P) Σ.
+Proof.
+  constructor.
+  intros; unshelve eapply RightInferTOR_pred0; revgoals; tea; revgoals.
+  - intros; exact True.
+  - cbn; intros. by apply infer_opt_right in H.
+  - eauto with fmap.
+Qed.
+
+
+Instance RightInferTOR_red0 {Pre1 : TCImpliesTOR Σ} {BDSubst : TypingSubstPrecondition TC RedW TOR Σ} : RightInferTOR (red0 Σ) Σ.
+Proof.
+  constructor.
+  induction 1.
+  - eapply infer_subst with (Δ := [_]); tea.
+    repeat constructor.
+    rewrite subst_empty.
+    destruct Xu; eexists; tea.
+    by eapply tc_to_tor.
+Qed.
+
+Instance RightInferTOR_hred1 : RightInferTOR (red0 Σ) Σ -> RightInferTOR (hred1 Σ) Σ.
+Proof.
+  intro Pre.
+  constructor.
+  induction 1.
+  - now eapply infer_opt_right.
+  - now apply RightInferTOR_head_context1_closure in X.
+Qed.
+
+Instance RightInferTOR_hred : RightInferTOR (hred1 Σ) Σ -> RightInferTOR (hred Σ) Σ.
+Proof.
+  intro Pre.
+  constructor.
+  induction 1.
+  - eexists; tea.
+    eapply ttrefl; tea.
+  - apply infer_left in X.
+    apply infer_opt_right in Xt as [T₀ Xt XT].
+    eapply infer_unique in Xt; tea. subst T₀.
+    eapply infer_TOR_TOR; tea; tc.
+Qed.
+
+
+Instance RightInferTOR_pred1 {Pre1 : TCImpliesTOR Σ} {BDSubst : TypingSubstPrecondition TC RedW TOR Σ} : RightInferClosure_Precondition (pred1 Σ) -> RightInferTOR (pred1 Σ) Σ.
+Proof.
+  constructor.
+  intros ???? H.
+  induction H as [????? H']. destruct H'.
+  - eapply RightInferTOR_pred0; tea; tc.
+    by intros ?????[].
+  - apply RightInferTOR_context_closure in IX; tas; tc.
+    + intros ?? <- => //.
+    + intros ?????? <-. eapply ttrefl. now constructor.
+    + by intros ?????[].
+Qed.
+
+
+Instance RightInferTOR_standard_red {Pre1 : TCImpliesTOR Σ} {BDSubst : TypingSubstPrecondition TC RedW TOR Σ} : RightInferClosure_Precondition (standard_red Σ) -> RightInferTOR (standard_red Σ) Σ.
+Proof.
+  constructor.
+  intros ???? H.
+  induction H as [????? H']. destruct H'.
+  eapply infer_opt_right in h as [T₀ Xt' XT]; tea.
+  apply infer_left in X0 as Xt.
+  eapply infer_unique in Xt'; tea. subst T₀.
+  eapply infer_TOR_TOR; tea; tc. clear Xt XT.
+
+  apply RightInferTOR_context_closure in IX; tas; tc.
+  + intros ?? <- => //.
+  + intros ?????? <-. eapply ttrefl. now constructor.
+  + by intros ?????[].
+Qed.
+
+End InferClasses.
+
+
+
+
+
+Definition map_term1 f Γ t :=
+  match t with
+  | tLambda na A t => tLambda na (f Γ A) (f (Γ ,, vass na A) t)
+  | tProd na A B => tProd na (f Γ A) (f (Γ ,, vass na A) B)
+  | tApp t u => tApp (f Γ t) (f Γ u)
+  | _ => t
+  end.
+
+Lemma context_closure_sym_map_term1 {TC RedW TOR} Σ f P Pα Ps P' Γ t u T :
+  [(Pre : RightInferClosure_Precondition Σ P)] ->
+  [(BDContext : InferCCPrecondition Σ)] ->
+  [(PCH : ContextChangeable2 P Σ)] ->
+  [(LI : LeftInfer P Σ)] ->
+  [(SymPα : Symmetric Pα)] ->
+  [(onPα na na' : Pα na na' -> eq_binder_annot na na')] ->
+  [(SymPs : Symmetric Ps)] ->
+  [(onPs Γ s s' : wf_local_bd Σ Γ -> wf_sort Σ s -> wf_sort Σ s' -> Ps s s' -> Γ ⊢ tSort (Sort.super s') ≤O tSort (Sort.super s))] ->
+  [(onP' Γ t u T H : P' Γ t u T H -> P_TOR (P Γ u (f Γ t)) Γ T)] ->
+  [(X : Σ ;;; Γ ⊢ t ~ u ▹ T with P, Pα, Ps)] ->
+  [(IX : Σ ;;; Γ ⊢ t ~ u ▹ T on X with P')] ->
+  Σ ;;; Γ ⊢ u ~ map_term1 f Γ t ▹| T with P, Pα, Ps.
+Proof.
+  intros ????????? X IX.
+  induction IX; cbn.
+  - eexists.
+    1: now constructor.
+    eapply ttrefl. 1: now constructor.
+  - apply onP' in IXA as [S₀ IXA XS], IXt as [T₀ IXt XT₀].
+    eapply onPα in Xα as Hα.
+    symmetry in Xα.
+    eapply infer_left in XA as HA, Xt as Ht, IXA as HA', IXt as Ht'.
+    eapply rto_tor in XA as XA₀; tea.
+    (* eapply to_tor in XA; tea. *)
+
+    have wfΓ : wf_local_bd Σ Γ by now eapply infering_wf_local_bd.
+    have XΓ : Σ ⊢ Γ ,, vass na' A' ≤Γ Γ ,, vass na A.
+    { apply convertible_contexts_snoc_vass; tea. }
+    eapply TOR_sort_invert in XS as (s₁ & XS & Xs₁); tea; tc.
+    apply TOR_sort_relevance in Xs₁.
+    eexists; [econstructor|]; tea.
+    + rewrite Xs₁ Xs Hα //.
+    + eapply change_context2; tea.
+    + apply TOR_prod_contra; tas.
+      * by symmetry.
+      * eapply change_context; tea.
+
+  - apply onP' in IXt as [T₀ IXt XT₀], IXu as [A₀₀ IXu XTA₀].
+    eapply infer_left in IXt as Ht', IXu as Hu'.
+    eapply TOR_prod_invert in XT as (na₁ & A₁ & B₁ & XT & XA & XB); tea; tc.
+    eapply TC_TOR in XA; tea. clear A XTA.
+    eapply TOR_TC in XTA₀; tea.
+    econstructor.
+    1: by econstructor; tea.
+    eapply TOR_subst10_contra; tea.
+    now eapply infering_wf_local_bd.
+
+  - apply onP' in IXA as [S₀ IXA XS], IXB as [S₁ IXB XT₁].
+    eapply onPα in Xα as Hα. symmetry in Xα.
+    eapply infer_left in XA as HA, XB as HB, IXA as HA', IXB as HB'.
+    eapply rto_tor in XA; tea.
+
+    have wfΓ : wf_local_bd Σ Γ by now eapply infering_wf_local_bd.
+    have XΓ : Σ ⊢ Γ ,, vass na' A' ≤Γ Γ ,, vass na A.
+    { apply convertible_contexts_snoc_vass; tea. }
+    eapply TOR_sort_invert in XS as (s₁ & XS & Xs₁); tea; tc.
+    eapply TOR_sort_invert in XT₁ as (s₂ & XS' & Xs₂); tea; tc.
+    apply TOR_sort_relevance in Xs₁ as Hs, Xs₂ as Hs'.
+    eexists; [econstructor|]; tea.
+    + rewrite Hs Xs Hα //.
+    + eapply change_context2; tea.
+    + eapply change_context; tea.
+    + eapply TOR_sort_of_product; tea.
+
+  - econstructor.
+    + constructor; tas.
+      by symmetry.
+    + by eapply onPs.
+Qed.
+
+
+
+Definition infer_alt_rect TC RedW Σ P :
+  [(XClosure Γ t T :
+      [(X : Σ ;;; Γ ⊢ t ~ t ▹ T with P, eq, eq)] ->
+      P Γ t t T)] ->
+  forall Γ t T, [(X : Σ ;;; Γ ⊢ t ▹ T)] -> P Γ t t T.
+Proof.
+  intros ?.
+  set XX :=
+  let Pcheck Γ t T := checking Σ (fun Γ t T => P Γ t t T) Γ t T in
+  let Pinferred Γ t T' := infer_red Σ (fun Γ t T => P Γ t t T) Γ t T' in
+  let Pinfersort Γ t s := Pinferred Γ t (tSort s) in
+  let Pj Γ j := lift_sorting1 Pcheck Pinfersort Γ j in
+  {|
+    Pinfer Γ t T := P Γ t t T;
+    Pinfer_red := Pinferred;
+    Pcheck := Pcheck;
+    Pj := Pj;
+    PΓ Γ := True;
+  |}.
+  eenough (X : BidirTypingElimResult Σ XX).
+  1: by eapply (BDXinfer _ _ X).
+  eapply bidir_ind; cbn; subst XX; unfold Pinfersort, Pcheck; auto; intros.
+  all: try match goal with H : lift_sorting _ _ _ |- _ => destruct H as (_ & ?s & H & e & ?Hs); cbn in H, Hs, e; subst end.
+  all: repeat match goal with H : infer_red _ _ _ _ _ |- _ => destruct H | H : checking _ _ _ _ _ |- _ => destruct H end.
+  all: try solve [ try eapply XClosure; econstructor; eauto with fmap ].
+Defined.
+
+
+Section Confluence.
+Context {TC RedW} Σ.
+
+Context {BDUniq : BidirUniquePrecondition RedW Σ}.
+Context {RedWrefl : RedW_reflexive RedW Σ}.
+
+Lemma pred1_trefl Γ t T :
+  Σ ;;; Γ ⊢ t ▹ T ->
+  Σ ;;; Γ ⊢ t ≡>1 t ▹ T.
+Proof.
+  induction 1 using infer_alt_rect with (P := pred1 Σ).
+  eapply pred1_clos; eauto with fmap.
+Qed.
+
+Fixpoint ρ t :=
+  match t with
+  | tApp (tLambda na A t) u => (ρ t) {0 := ρ u}
+  | tApp t u => tApp (ρ t) (ρ u)
+  | tLambda na A t => tLambda na (ρ A) (ρ t)
+  | tProd na A B => tProd na (ρ A) (ρ B)
+  | tSort s => tSort s
+  | t => t
+  end.
+
+
+Lemma pred1_rho Γ t T :
+  Σ ;;; Γ ⊢ t ▹ T ->
+  Σ ;;; Γ ⊢ t ≡>1 ρ t ▹ T.
+Proof.
+  intro H.
+  induction H. destruct X; cbn.
+  all: try match goal with IXj : lift_sortingε _ _ _ _ _ ?Xj |- _ => destruct IXj as (_ & ?IX); destruct Xj as (?XX & ?s & H & e & ?Hs); cbn in H, Hs, e, IX; clear XX; subst end.
+  all: repeat match goal with H : infer_redε _ _ _ _ _ _ _ |- _ => destruct H | H : checkingε _ _ _ _ _ _ _ |- _ => destruct H end.
+  all: try solve [ apply pred1_clos; now econstructor ].
+  - have Xdef : Σ ;;; Γ ⊢ tApp t u ≡>1 tApp (ρ t) (ρ u) ▹ B {0 := u}
+      by now eapply pred1_clos, clos_app.
+    destruct t => //.
+    apply fst in IX0 as IXu. clear X0 IX0.
+    apply snd in IX.
+    depelim IX. clear IXj Ht IX.
+    eapply RedW_inj in XR.
+    2: by eapply RedW_refl_prod.
+
+    injection XR as [= <- <- <-].
+    now eapply pred1_pred0, pred0_beta.
+Qed.
+
+Context {TOR} {RIC_Pre : RightInferClosure_Precondition Σ (pred1 Σ)} {BDCP : BidirCongrPrecondition TC RedW TOR Σ} {BDCC : InferCCPrecondition Σ} {PRCC : ContextChangeable2 (pred1 Σ) Σ}.
+Existing Instance LeftInfer_pred1.
+
+Lemma pred1_triangle Γ t u T :
+  Σ ;;; Γ ⊢ t ≡>1 u ▹ T ->
+  Σ ;;; Γ ⊢ u ≡>1 ρ t ▹| T.
+Proof.
+  intro H.
+  induction H. destruct X.
+  - induction IX.
+    + cbn. apply fst in IXt, IXu.
+      now eapply PC_pred_subst10.
+  - have Xdef : Σ ;;; Γ ⊢ t' ≡>1 map_term1 (fun _ => ρ) Γ t ▹| T.
+    {
+      eapply context_closure_sym_map_term1 with (f := fun _ => ρ) in IX; tc; auto.
+      - destruct IX. eexists; tea.
+        by apply pred1_clos.
+      - by intros ?? <-.
+      - intros ??? ??? <-.
+        eapply ttrefl. 1: now constructor.
+      - by intros ?????[].
+    }
+    induction IX; cbn in Xdef |- *; try by apply Xdef.
+
+    + destruct t => //. clear Xdef.
+      rename na0 into na₁, t1 into A₁, t2 into t.
+      apply fst in IXu.
+      apply snd in IXt.
+      destruct IXt.
+      1: by depelim IX.
+      depelim IX. subst na₁.
+      apply fst in IXt.
+      eapply fst in IXA. clear Xt.
+      eapply RedW_inj in XT0.
+      2: by eapply RedW_refl_prod.
+
+      injection XT0 as [= -> -> ->].
+      destruct IXA as [S₀ IXA XS], IXt as [T₀ IXt XT₀], IXu as [A₀₀ IXu XTA₀].
+      eapply infer_left in IXA.
+      eapply TOR_sort_invert in XS as (s₁ & XS & Xs₁); tea; tc.
+      apply TOR_sort_relevance in Xs₁ as Hs.
+      eapply TOR_TC in XTA as XTA'; tea.
+      eapply rto_tor in XA as XA'; tea.
+      (* eapply to_tor in XA; tea. *)
+      apply infering_wf_local_bd in IXA as wfΓ.
+      have Xj : wf_judgment_bd Σ Γ (j_vass na A').
+      { repeat (eexists; tea). rewrite Hs //. }
+      eassert (XΓ : Σ ⊢ Γ ,, vass na A' ≤Γ Γ ,, vass na A).
+      { apply convertible_contexts_snoc_vass; trea. }
+      eapply change_context2 in IXt; tea.
+      eexists.
+      1: eapply pred1_pred0, pred0_beta; tea.
+      * eapply TC_TOR; tea.
+      * eapply TOR_subst10_contra; tea.
+Qed.
+
+
+
+
+
+
+
+
+Definition stred_hred1 Γ t u v T T' : Σ ;;; Γ ⊢ t ~>h u ▹ T -> Σ ;;; Γ ⊢ u =>s v ▹ T' -> Σ ;;; Γ ⊢ t =>s v ▹ T.
+Proof.
+  intros h [u' T'' h' X].
+  exists u' T''; tea.
+  now eapply hred_step.
+Defined.
+
+Definition stred_hred Γ t u v T T' : Σ ;;; Γ ⊢ t ~>h* u ▹ T -> Σ ;;; Γ ⊢ u =>s v ▹ T' -> Σ ;;; Γ ⊢ t =>s v ▹ T.
+Proof.
+  induction 1.
+  - intro. apply infer_left in X as H'.
+    eapply infer_unique with (2 := Xt) in H' as <-. 2: tc.
+    assumption.
+  - intro. eapply stred_hred1; eauto.
+Defined.
+
+Definition stred_clos Γ t u T : Σ ;;; Γ ⊢ t ~ u ▹ T with standard_red Σ, eq, eq -> Σ ;;; Γ ⊢ t =>s u ▹ T.
+Proof.
+  intro X.
+  exists t T; tas. apply hred_refl. by apply infer_left in X.
+Defined.
+
+
+
+Lemma red0_discriminate Γ t u T :
+  Σ ;;; Γ ⊢ t ~>0 u ▹ T ->
+  red0_discr t.
+Proof.
+  induction 1 => //=.
+Qed.
+Lemma hred1_discriminate Γ t u T :
+  Σ ;;; Γ ⊢ t ~>h u ▹ T ->
+  hred1_discr t.
+Proof.
+  induction 1 => //=.
+  - induction H => //.
+  - induction Xtu => //=.
+    now destruct t.
+Qed.
+Lemma hred_discriminate Γ t u T :
+  Σ ;;; Γ ⊢ t ~>h* u ▹ T ->
+  ~~ hred1_discr t ->
+  t = u.
+Proof.
+  induction 1 using hred_rect => //=.
+  apply hred1_discriminate in Xt as ->.
+  intro => //.
+Qed.
+
+Lemma head_context1_discriminate Γ t u T :
+  Σ ;;; Γ ⊢ t ~h1 u ▹ T with hred1 Σ ->
+  head_context1_discr t.
+Proof.
+  induction 1 => //=.
+  now eapply hred1_discriminate.
+Qed.
+
+Lemma red0_inj Γ t u T u' T' :
+  Σ ;;; Γ ⊢ t ~>0 u ▹ T ->
+  Σ ;;; Γ ⊢ t ~>0 u' ▹ T' ->
+  u = u'.
+Proof.
+  induction 1 in u' => //=; eauto.
+  intro H.
+  depelim H; eauto.
+Qed.
+
+Lemma hred1_inj Γ t u T u' T' :
+  Σ ;;; Γ ⊢ t ~>h u ▹ T ->
+  Σ ;;; Γ ⊢ t ~>h u' ▹ T' ->
+  u = u'.
+Proof.
+  induction 1 in T', u' => //=; eauto.
+  - apply red0_discriminate in H as h.
+    induction 1 => //=; eauto.
+    + now eapply red0_inj.
+    + apply head_context1_discriminate in Htu as H'.
+      destruct t => //. destruct t1 => //.
+  - apply head_context1_discriminate in Htu as H.
+    destruct Xtu.
+    intro X'.
+    depelim X' => //=; eauto.
+    + apply red0_discriminate in X as H'.
+      destruct t => //.
+    + depelim X.
+      f_equal. now eapply IXt.
+Qed.
+
+Lemma hred_inj Γ t u T u' T' :
+  Σ ;;; Γ ⊢ t ~>h* u ▹ T ->
+  Σ ;;; Γ ⊢ t ~>h* u' ▹ T' ->
+  ~~ hred1_discr u -> ~~ hred1_discr u' ->
+  u = u'.
+Proof.
+  intros X X' H H'.
+  induction X in u', T', H, X', H' using hred_rect.
+  - by apply hred_discriminate in X'.
+  - destruct X'.
+    + apply hred1_discriminate in Xt.
+      now rewrite Xt in H'.
+    + eapply IHX; tas.
+      eapply hred1_inj with (1 := Xt0) in Xt as ->; tea.
+Qed.
+
+Lemma stred_nhred_inv Γ t u T :
+  ~~ hred1_discr t ->
+  Σ ;;; Γ ⊢ t =>s u ▹ T ->
+  Σ ;;; Γ ⊢ t ~ u ▹ T with standard_red Σ, eq, eq.
+Proof.
+  intros H [u' T' h X].
+  apply infer_left in h as Xt.
+  apply hred_discriminate in h as <-; tas.
+  apply infer_left in X as Xt'.
+  eapply infer_unique with (2 := Xt) in Xt' as <-; tc.
+  assumption.
+Qed.
+
+Variable (PreLift : TCLift TC RedW Σ) (PreLift' : RedWLift TC RedW Σ).
+
+Lemma head_context_closure_lift P {PreInfer : LeftInfer P Σ} P' Γ Δ Γ' t u T :
+  [(onP' Γ' t u T H : P' (Γ ,,, Γ') t u T H ->
+    P (Γ ,,, Δ,,, lift_context #|Δ| 0 Γ') (lift #|Δ| #|Γ'| t) (lift #|Δ| #|Γ'| u) (lift #|Δ| #|Γ'| T))] ->
+  wf_local_bd_rel Σ Γ Δ ->
+  [(H : Σ ;;; Γ ,,, Γ' ⊢ t ~h1 u ▹ T with P)] ->
+  [(X : Σ ;;; Γ ,,, Γ' ⊢ t ~h1 u ▹ T on H with P')] ->
+  Σ ;;; Γ ,,, Δ ,,, lift_context #|Δ| 0 Γ' ⊢ lift #|Δ| #|Γ'| t ~h1 lift #|Δ| #|Γ'| u ▹ lift #|Δ| #|Γ'| T with P.
+Proof.
+  intros ? wfΔ H X.
+  eapply (BDXΓ _ _ (global_infer_lift _ _ _ _ _)) in wfΔ as wfΔ'; trea.
+  2: now clear X; eapply infer_left, infering_wf_local_bd in H.
+  destruct X; cbn.
+  - rewrite distr_lift_subst /=.
+    econstructor; eauto.
+    + now eapply RedW_lift with (B := tProd _ _ _).
+    + now eapply check_lift.
+Qed.
+
+Lemma context_closure_lift P {PreInfer : LeftInfer P Σ} P' Pα Ps Γ Δ Γ' t u T :
+  [(onP' Γ' t u T H : P' (Γ ,,, Γ') t u T H ->
+    P (Γ ,,, Δ,,, lift_context #|Δ| 0 Γ') (lift #|Δ| #|Γ'| t) (lift #|Δ| #|Γ'| u) (lift #|Δ| #|Γ'| T))] ->
+  wf_local_bd_rel Σ Γ Δ ->
+  [(H : Σ ;;; Γ ,,, Γ' ⊢ t ~ u ▹ T with P, Pα, Ps)] ->
+  [(X : Σ ;;; Γ ,,, Γ' ⊢ t ~ u ▹ T on H with P')] ->
+  Σ ;;; Γ ,,, Δ ,,, lift_context #|Δ| 0 Γ' ⊢ lift #|Δ| #|Γ'| t ~ lift #|Δ| #|Γ'| u ▹ lift #|Δ| #|Γ'| T with P, Pα, Ps.
+Proof.
+  intros ? wfΔ H X.
+  eapply (BDXΓ _ _ (global_infer_lift _ _ _ _ _)) in wfΔ as wfΔ'; trea.
+  2: now clear X; eapply infer_left, infering_wf_local_bd in H.
+  destruct X; cbn.
+  - relativize (lift _ _ _).
+    1: constructor; tas.
+    + rewrite -(lift_context_length #|Δ| 0 Γ') nth_error_insertion nth_error_app.
+      rewrite lift_context_length nth_error_lift_context_eq.
+      instantiate (1 := if #|Γ'| <=? n then _ else _).
+      rewrite nth_error_app in hnth.
+      destruct (leb_spec_Set #|Γ'| n); cbn; tea. rewrite hnth //=.
+    + destruct (leb_spec_Set #|Γ'| n); cbn.
+      * rewrite simpl_lift //=; lia_f_equal.
+      * rewrite permute_lift //=; lia_f_equal.
+  - econstructor; eauto.
+    + now eapply RedW_lift with (B := tSort _).
+    + eapply onP' with (Γ' := Γ' ,, _) in IXt.
+      rewrite lift_context_snoc //= Nat.add_0_r //= in IXt.
+  - rewrite distr_lift_subst /=.
+    econstructor; eauto.
+    + now eapply RedW_lift with (B := tProd _ _ _).
+    + now eapply TC_lift.
+  - econstructor; eauto.
+    + now eapply RedW_lift with (B := tSort _).
+    + eapply onP' with (Γ' := Γ' ,, _) in IXB.
+      rewrite lift_context_snoc //= Nat.add_0_r //= in IXB.
+      apply IXB.
+    + eapply RedW_lift with (Γ' := _ ,, _) (B := tSort _) in XT'; trea; revgoals.
+      * eapply (BDXΓ _ _ (global_infer_lift _ _ _ _ _)); trea.
+        now clear IXB; eapply infer_left, infering_wf_local_bd in XB.
+      * rewrite lift_context_snoc //= Nat.add_0_r //= in XT'.
+  - constructor; tas.
+Qed.
+
+Lemma red0_lift Γ Δ Γ' t u T :
+  wf_local_bd_rel Σ Γ Δ ->
+  Σ ;;; Γ ,,, Γ' ⊢ t ~>0 u ▹ T ->
+  Σ ;;; Γ ,,, Δ ,,, lift_context #|Δ| 0 Γ' ⊢ lift #|Δ| #|Γ'| t ~>0 lift #|Δ| #|Γ'| u ▹ lift #|Δ| #|Γ'| T.
+Proof.
+  intros wfΔ H.
+  induction H; cbn.
+  - rewrite !distr_lift_subst /=.
+    constructor.
+    + eapply (BDXj _ _ (global_infer_lift _ _ _ _ _) _ (j_vass na A)); trea.
+      eapply (BDXΓ _ _ (global_infer_lift _ _ _ _ _)); trea.
+      now eapply checking_wf_local_bd.
+    + eapply infer_lift with (Γ' := _ ,, _) in Xt; trea.
+      rewrite /= lift_context_snoc //= Nat.add_0_r // in Xt.
+    + eapply check_lift in Xu; trea.
+Qed.
+
+Lemma hred1_lift Γ Δ Γ' t u T :
+  wf_local_bd_rel Σ Γ Δ ->
+  Σ ;;; Γ ,,, Γ' ⊢ t ~>h u ▹ T ->
+  Σ ;;; Γ ,,, Δ ,,, lift_context #|Δ| 0 Γ' ⊢ lift #|Δ| #|Γ'| t ~>h lift #|Δ| #|Γ'| u ▹ lift #|Δ| #|Γ'| T.
+Proof.
+  intros wfΔ H. rename Γ into Γ₀.
+  remember (Γ₀ ,,, Γ') as Γ eqn:e.
+  induction H in Γ', e.
+  - constructor.
+    now eapply red0_lift.
+  - econstructor 2. subst Γ.
+    eapply head_context_closure_lift; tea; tc.
+    by eauto.
+Qed.
+
+Lemma hred_lift Γ Δ Γ' t u T :
+  wf_local_bd_rel Σ Γ Δ ->
+  Σ ;;; Γ ,,, Γ' ⊢ t ~>h* u ▹ T ->
+  Σ ;;; Γ ,,, Δ ,,, lift_context #|Δ| 0 Γ' ⊢ lift #|Δ| #|Γ'| t ~>h* lift #|Δ| #|Γ'| u ▹ lift #|Δ| #|Γ'| T.
+Proof.
+  intros wfΔ H.
+  induction H.
+  - constructor.
+    eapply infer_lift; tas.
+  - econstructor 2.
+    2: by eauto.
+    now eapply hred1_lift.
+Qed.
+
+Lemma stred_lift Γ Δ Γ' t u T :
+  wf_local_bd_rel Σ Γ Δ ->
+  Σ ;;; Γ ,,, Γ' ⊢ t =>s u ▹ T ->
+  Σ ;;; Γ ,,, Δ ,,, lift_context #|Δ| 0 Γ' ⊢ lift #|Δ| #|Γ'| t =>s lift #|Δ| #|Γ'| u ▹ lift #|Δ| #|Γ'| T.
+Proof.
+  intros wfΔ H. rename Γ into Γ₀.
+  remember (Γ₀ ,,, Γ') as ΓΓ' eqn:e.
+  induction H in Γ', e. subst Γ. destruct X.
+  econstructor.
+  - now eapply hred_lift.
+  - eapply context_closure_lift; tea; tc.
+    cbn.
+    intros ????? H. apply H. reflexivity.
+Qed.
+
+(*
+Lemma stred_subst s s' k t u :
+  All2 (fun t u => t =>s u) s s' ->
+  t =>s u ->
+  subst s k t =>s subst s' k u.
+Proof.
+  intro Hs.
+  induction 1 in k. destruct X0.
+  eapply stred_hred with (subst s k t').
+  - clear Htu Xtu.
+    induction h in k.
+    + by constructor.
+    + eapply hred_step; eauto.
+      clear h IHh.
+      induction H in k.
+      * eapply hred1_red0.
+        induction H in k.
+        --cbn. relativize (subst _ _ (_ {0 := _})).
+          1: constructor.
+          rewrite distr_subst //=.
+      * eapply hred1_clos.
+        destruct Xtu.
+        --cbn.
+          by constructor.
+  - destruct Xtu; repeat match goal with H : _ × _ |- _ => destruct H as [?H ?H] end.
+    all: try solve [ eexists (subst s k _); [by apply hred_refl|]; cbn; by constructor ].
+    * cbn.
+      rewrite -(All2_length Hs).
+      destruct (leb_spec_Set k n).
+      2: by eexists; [by apply hred_refl|]; cbn; by constructor.
+      destruct nth_error eqn:hnth.
+      2: { eapply All2_nth_error_None in Hs as ->; tea. by eexists; [by apply hred_refl|]; cbn; by constructor. }
+      eapply All2_nth_error_Some in Hs as (t' & -> & Ht); tea.
+      by eapply stred_lift.
+Qed. *)
+
+
+Lemma stred_step Γ t u v T T' : Σ ;;; Γ ⊢ t =>s u ▹ T -> Σ ;;; Γ ⊢ u ≡>1 v ▹ T' -> Σ ;;; Γ ⊢ t =>s v ▹ T.
+Proof.
+  intros Xtu Xuv.
+  induction Xtu in v, T', Xuv. destruct X.
+  eapply stred_hred with (T' := T'0); tea. clear t T h; rename t' into t, T'0 into T.
+  destruct Xuv.
+  - destruct X0 as [na' A₀' A' t' t'' T' u' u'' Xj Xt' Xu' XTA'].
+    depelim IX.
+    specialize (IXu.1 _ _ ltac:(eassumption)). clear IXu Xu Xu'. intro Xu.
+    apply snd in IXt. rename t0 into t₀, T0 into T₀.
+    destruct IXt as [t T h Xt IXt].
+    apply stred_hred with (tApp t u) T.
+    1: {
+      have {} Xu : Σ ;;; Γ ⊢ u ◃ A
+        by econstructor; tea; eapply infer_left in Xu; [> eapply Xu|..]; tea.
+      clear -h XT Xu.
+      induction h in XT |- *.
+      - constructor. econstructor; tea. now econstructor.
+      - econstructor 2; eauto. constructor 2. by constructor. }
+    clear t0 h; rename t'0 into t.
+    depelim Xtu.
+    specialize (IXt.1 _ ltac:(eassumption)) as Xt'. clear IXA IXt Xt0 XA Xt.
+    eapply stred_hred1.
+    + econstructor. constructor.
+    + apply stred_subst; tea. repeat (constructor; tea).
+  - destruct Xtu; repeat match goal with H : _ × _ |- _ => destruct H as [?H ?H] end.
+    all: depelim X.
+    + apply stred_clos; constructor.
+    + apply stred_clos; constructor; eauto. congruence.
+    + apply stred_clos; constructor; eauto.
+    + apply stred_clos; constructor; eauto. congruence.
+    + apply stred_clos; constructor. congruence.
+Qed.
+
+Lemma stred_init TC Σ Γ t T : Σ ;;; Γ ⊢ t : T -> t =>s t.
+Proof.
+  induction 1 using typing_rect with (PΓ := fun _ => True) (Pj := fun Γ => lift_wf_term (fun t => t =>s t)) => //.
+  - destruct X0 as (? & ? & ? & ?); cbn in *.
+    split; tas.
+  - apply stred_clos; constructor.
+  - apply stred_clos; constructor; eauto.
+  - apply stred_clos; constructor; eauto.
+    apply IHX.
+  - apply stred_clos; constructor; eauto.
+    apply IHX.
+  - apply stred_clos; constructor; eauto.
+Qed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Module Export Heterogenous.
+
+
+  Section Closure.
+  Local Set Elimination Schemes.
+
+  Context {TC RedW} Σ Γ Γ' (R : forall (T T' : term), Type).
+  Context (R' : forall T T', R T T' -> Type).
+
+  Inductive infer_red2 T T' :=
+    | infer_red2C T₀ T₀' :
+      [(Xt : R T₀ T₀')] ->
+      [(XT : Σ ;;; Γ ⊢ T₀ ↘ T)] ->
+      [(XT' : Σ ;;; Γ' ⊢ T₀' ↘ T')] ->
+      infer_red2 T T'.
+
+  Inductive infer_red2ε T T' : infer_red2 T T' -> Type :=
+    | infer_red2εC T₀ T₀' :
+      [(Xt : R T₀ T₀')] ->
+      [(IXt : R' T₀ T₀' Xt)] ->
+      [(XT : Σ ;;; Γ ⊢ T₀ ↘ T)] ->
+      [(XT' : Σ ;;; Γ' ⊢ T₀' ↘ T')] ->
+      infer_red2ε T T' ⌈infer_red2C⌋.
+
+
+  Inductive check2 T T' :=
+    | check2C T₀ T₀' :
+      [(Xt : R T₀ T₀')] ->
+      [(XT : Σ ;;; Γ ⊢ T₀ ≤T T)] ->
+      [(XT' : Σ ;;; Γ' ⊢ T₀' ≤T T')] ->
+      check2 T T'.
+
+  Inductive check2ε T T' : check2 T T' -> Type :=
+    | check2εC T₀ T₀' :
+      [(Xt : R T₀ T₀')] ->
+      [(IXt : R' T₀ T₀' Xt)] ->
+      [(XT : Σ ;;; Γ ⊢ T₀ ≤T T)] ->
+      [(XT' : Σ ;;; Γ' ⊢ T₀' ≤T T')] ->
+      check2ε T T' ⌈check2C⌋.
+
+  End Closure.
+
+  Notation "Σ ;;; Γ | Γ' ⊢ t ~R t' ▹↘ T | T' 'with' R" := (infer_red2 Σ Γ Γ' (R Γ Γ' t t') T T').
+  Notation "Σ ;;; Γ | Γ' ⊢ '_' ~R '_' ▹↘ T | T' 'with0' R" := (infer_red2 Σ Γ Γ' R T T').
+  Notation "Σ ;;; Γ | Γ' ⊢ t ~R' t' ▹↘ T | T' 'on' p 'with' R'" := (infer_red2ε Σ Γ Γ' _ (R' Γ Γ' t t') T T' p).
+  Notation "Σ ;;; Γ | Γ' ⊢ '_' ~R' '_' ▹↘ T | T' 'on' p 'with0' R'" := (infer_red2ε Σ Γ Γ' _ R' T T' p).
+  Notation "Σ ;;; Γ | Γ' ⊢ t ~R t' ◃ T | T' 'with' R" := (check2 Σ Γ Γ' (R Γ Γ' t t') T T').
+  Notation "Σ ;;; Γ | Γ' ⊢ '_' ~R '_' ◃ T | T' 'with0' R" := (check2 Σ Γ Γ' R T T').
+  Notation "Σ ;;; Γ | Γ' ⊢ t ~R' t' ◃ T | T' 'on' p 'with' R'" := (check2ε Σ Γ Γ' _ (R' Γ Γ' t t') T T' p).
+  Notation "Σ ;;; Γ | Γ' ⊢ '_' ~R' '_' ◃ T | T' 'on' p 'with0' R'" := (check2ε Σ Γ Γ' _ R' T T' p).
+
+  Section Closure.
+  Local Set Elimination Schemes.
+
+  Context {TC RedW} Σ (R : forall (Γ Γ' : context) (t t' T T' : term), Type).
+  Notation "Σ ;;; Γ | Γ' ⊢ t ~R t' ▹ T | T'" := (R Γ Γ' t t' T T') (only parsing).
+  Context (R' : forall Γ Γ' t t' T T', Σ ;;; Γ | Γ' ⊢ t ~R t' ▹ T | T' -> Type).
+  Notation "Σ ;;; Γ | Γ' ⊢ t ~R' t' ▹ T | T' 'on' p" := (R' Γ Γ' t t' T T' p) (only parsing).
+
+
+  Inductive red0 Γ : forall (t t' T : term), Type :=
+    | red0_beta na A t T u :
+        [(Xt : Σ ;;; Γ ,, vass na A ⊢ t ▹ T)] ->
+        [(Xu : Σ ;;; Γ ⊢ u ◃ A)] ->
+        Σ ;;; Γ ⊢ tApp (tLambda na A t) u ~>0 t { 0 := u } ▹ T { 0 := u }
+  where "Σ ;;; Γ ⊢ t ~>0 t' ▹ T" := (red0 Γ t t' T) (only parsing).
+  Derive Signature for red0.
+
+  Inductive eta_red0 Γ t : forall (t' T : term), Type :=
+    | eta_nored T :
+        [(X : Σ ;;; Γ ⊢ t ▹ T)] ->
+        Σ ;;; Γ ⊢ t ~>η0 t ▹ T
+
+    | eta_red0_prod na A B :
+        [(X : Σ ;;; Γ ⊢ t ▹Π (na : A), B)] ->
+        Σ ;;; Γ ⊢ t ~>η0 tLambda na A (tApp (lift0 1 t) (tRel 0)) ▹ tProd na A B
+  where "Σ ;;; Γ ⊢ t ~>η0 t' ▹ T" := (eta_red0 Γ t t' T) (only parsing).
+  Derive Signature for eta_red0.
+
+  Inductive pred0 Γ Γ' : forall (t t' T T' : term), Type :=
+    | pred0_beta na A A' s s' t t' T u u' T' T'' :
+        [(XA : Σ ;;; Γ | Γ' ⊢ A ~R A' ▹↘ tSort s | tSort s' with R)] ->
+        [(Xs : isSortRel s na.(binder_relevance))] ->
+        [(Xs' : isSortRel s' na.(binder_relevance))] ->
+        [(Xt : Σ ;;; Γ ,, vass na A | Γ' ,, vass na A' ⊢ t ~R t' ▹ T | T')] ->
+        [(Xu : Σ ;;; Γ | Γ' ⊢ u ~R u' ◃ A | A' with R)] ->
+        [(Xright : Σ ;;; Γ' ⊢ t' { 0 := u' } ▹ T'')] ->
+        Σ ;;; Γ | Γ' ⊢ tApp (tLambda na A t) u ≡>0 t' { 0 := u' } ▹ T { 0 := u } | T''
+  where "Σ ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T'" := (pred0 Γ Γ' t t' T T') (only parsing).
+  Derive Signature for pred0.
+
+  Inductive pred0ε Γ Γ' : forall (t t' T T' : term), Σ ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T' -> Type :=
+    | pred0ε_beta na A A' s s' t t' T u u' T' T'' :
+        [(XA : Σ ;;; Γ | Γ' ⊢ A ~R A' ▹↘ tSort s | tSort s' with R)] ->
+        [(IXA : Σ ;;; Γ | Γ' ⊢ A ~R' A' ▹↘ tSort s | tSort s' on XA with R')] ->
+        [(Hs : isSortRel s na.(binder_relevance))] ->
+        [(Hs' : isSortRel s' na.(binder_relevance))] ->
+        [(Xt : Σ ;;; Γ ,, vass na A | Γ' ,, vass na A' ⊢ t ~R t' ▹ T | T')] ->
+        [(IXt : Σ ;;; Γ ,, vass na A | Γ' ,, vass na A' ⊢ t ~R' t' ▹ T | T' on Xt)] ->
+        [(Xu : Σ ;;; Γ | Γ' ⊢ u ~R u' ◃ A | A' with R)] ->
+        [(IXu : Σ ;;; Γ | Γ' ⊢ u ~R' u' ◃ A | A' on Xu with R')] ->
+        [(Xright : Σ ;;; Γ' ⊢ t' {0 := u'} ▹ T'')] ->
+        Σ ;;; Γ | Γ' ⊢ tApp (tLambda na A t) u ≡>0 t' { 0 := u' } ▹ T { 0 := u } | T'' on ⌈pred0_beta⌋ with R'
+  where " Σ ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T' 'on' p 'with' R'" := (pred0ε Γ Γ' t t' T T' p) (only parsing).
+  Derive Signature for pred0ε.
+
+  Inductive eta_pred0 Γ Γ' t : forall t' T T', Type :=
+    | eta_pred0_prod t' T T' na A B :
+        [(X : Σ ;;; Γ | Γ' ⊢ t ~R t' ▹ T | T')] ->
+        [(XT : Σ ;;; Γ ⊢ T ~>Π (na : A), B)] ->
+        Σ ;;; Γ | Γ' ⊢ t ≡>η0 tLambda na A (tApp (lift0 1 t') (tRel 0)) ▹ T | T'
+  where "Σ ;;; Γ | Γ' ⊢ t ≡>η0 t' ▹ T | T'" := (eta_pred0 Γ Γ' t t' T T') (only parsing).
+  Derive Signature for eta_pred0.
+
+  Inductive eta_pred0ε Γ Γ' t : forall t' T T', Σ ;;; Γ | Γ' ⊢ t ≡>η0 t' ▹ T | T' -> Type :=
+    | eta_pred0ε_prod t' T T' na A B :
+        [(X : Σ ;;; Γ | Γ' ⊢ t ~R t' ▹ T | T')] ->
+        [(IX : Σ ;;; Γ | Γ' ⊢ t ~R' t' ▹ T | T' on X)] ->
+        [(XT : Σ ;;; Γ ⊢ T ~>Π (na : A), B)] ->
+        Σ ;;; Γ | Γ' ⊢ t ≡>η0 tLambda na A (tApp (lift0 1 t') (tRel 0)) ▹ T | T' on ⌈eta_pred0_prod⌋ with R
+  where "Σ ;;; Γ | Γ' ⊢ t ≡>η0 t' ▹ T | T' 'on' H 'with' R" := (eta_pred0ε Γ Γ' t t' T T' H) (only parsing).
+  Derive Signature for eta_pred0ε.
+
+
+  Inductive context_closure Rα Rs Γ Γ' : forall (t t' T T' : term), Type :=
+    | clos_rel n decl decl' :
+        [(wfΓ : wf_local_bd Σ Γ)] ->
+        [(wfΓ' : wf_local_bd Σ Γ')] ->
+        [(hnth : nth_error Γ n = Some decl)] ->
+        [(hnth' : nth_error Γ' n = Some decl')] ->
+        Σ ;;; Γ | Γ' ⊢ tRel n ~ tRel n ▹ lift0 (S n) decl.(decl_type) | lift0 (S n) decl'.(decl_type)
+
+    | clos_lambda na na' A A' s s' t t' B B' :
+        [(Xα : Rα na na')] ->
+        [(XA : Σ ;;; Γ | Γ' ⊢ A ~R A' ▹↘ tSort s | tSort s' with R)] ->
+        [(Xs : isSortRel s na.(binder_relevance))] ->
+        [(Xs' : isSortRel s' na'.(binder_relevance))] ->
+        [(Xt : Σ ;;; Γ ,, vass na A | Γ' ,, vass na' A' ⊢ t ~R t' ▹ B | B')] ->
+        Σ ;;; Γ | Γ' ⊢ tLambda na A t ~ tLambda na' A' t' ▹ tProd na A B | tProd na' A' B'
+
+    | clos_app na na' A A' B B' t t' u u' :
+        [(Xt : Σ ;;; Γ | Γ' ⊢ t ~R t' ▹↘ tProd na A B | tProd na' A' B' with R)] ->
+        [(Xu : Σ ;;; Γ | Γ' ⊢ u ~R u' ◃ A | A' with R)] ->
+        Σ ;;; Γ | Γ' ⊢ tApp t u ~ tApp t' u' ▹ B { 0 := u } | B' { 0 := u' }
+
+    | clos_prod na na' A A' B B' s₀ s₀' s₁ s₁' :
+        [(Xα : Rα na na')] ->
+        [(XA : Σ ;;; Γ | Γ' ⊢ A ~R A' ▹↘ tSort s₀ | tSort s₀' with R)] ->
+        [(Xs : isSortRel s₀ na.(binder_relevance))] ->
+        [(Xs' : isSortRel s₀' na'.(binder_relevance))] ->
+        [(XB : Σ ;;; Γ ,, vass na A | Γ' ,, vass na' A' ⊢ B ~R B' ▹↘ tSort s₁ | tSort s₁' with R)] ->
+        Σ ;;; Γ | Γ' ⊢ tProd na A B ~ tProd na' A' B' ▹ tSort (Sort.sort_of_product s₀ s₁) | tSort (Sort.sort_of_product s₀' s₁')
+
+    | clos_sort s s' :
+        [(wfΓ : wf_local_bd Σ Γ)] ->
+        [(wfΓ : wf_local_bd Σ Γ')] ->
+        [(wfs : wf_sort Σ s)] ->
+        [(wfs': wf_sort Σ s')] ->
+        [(Xs : Rs s s')] ->
+        Σ ;;; Γ | Γ' ⊢ tSort s ~ tSort s' ▹ tSort (Sort.super s) | tSort (Sort.super s')
+  where "Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T'" := (context_closure _ _ Γ Γ' t t' T T') (only parsing).
+  Notation " Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' 'with' R , R' , R'' " := (context_closure R' R'' Γ Γ' t t' T T') (only parsing).
+  Derive Signature for context_closure.
+
+  Inductive context_closureε Rα Rs Γ Γ' : forall (t t' T T' : term), Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' with R, Rα, Rs -> Type :=
+    | closε_rel n decl decl' :
+        [(wfΓ : wf_local_bd Σ Γ)] ->
+        [(wfΓ' : wf_local_bd Σ Γ')] ->
+        [(hnth : nth_error Γ n = Some decl)] ->
+        [(hnth' : nth_error Γ' n = Some decl')] ->
+        Σ ;;; Γ | Γ' ⊢ tRel n ~ tRel n ▹ lift0 (S n) decl.(decl_type) | lift0 (S n) decl'.(decl_type) on ⌈clos_rel⌋ with R'
+
+    | closε_lambda na na' A A' s s' t t' B B' :
+        [(Xα : Rα na na')] ->
+        [(XA : Σ ;;; Γ | Γ' ⊢ A ~R A' ▹↘ tSort s | tSort s' with R)] ->
+        [(IXA : Σ ;;; Γ | Γ' ⊢ A ~R' A' ▹↘ tSort s | tSort s' on XA with R')] ->
+        [(Xs : isSortRel s na.(binder_relevance))] ->
+        [(Xs' : isSortRel s' na'.(binder_relevance))] ->
+        [(Xt : Σ ;;; Γ ,, vass na A | Γ' ,, vass na' A' ⊢ t ~R t' ▹ B | B')] ->
+        [(IXt : Σ ;;; Γ ,, vass na A | Γ' ,, vass na' A' ⊢ t ~R' t' ▹ B | B' on Xt)] ->
+        Σ ;;; Γ | Γ' ⊢ tLambda na A t ~ tLambda na' A' t' ▹ tProd na A B | tProd na' A' B' on ⌈clos_lambda⌋ with R'
+
+    | closε_app na na' A A' B B' t t' u u' :
+        [(Xt : Σ ;;; Γ | Γ' ⊢ t ~R t' ▹↘ tProd na A B | tProd na' A' B' with R)] ->
+        [(IXt : Σ ;;; Γ | Γ' ⊢ t ~R' t' ▹↘ tProd na A B | tProd na' A' B' on Xt with R')] ->
+        [(Xu : Σ ;;; Γ | Γ' ⊢ u ~R u' ◃ A | A' with R)] ->
+        [(IXu : Σ ;;; Γ | Γ' ⊢ u ~R' u' ◃ A | A' on Xu with R')] ->
+        Σ ;;; Γ | Γ' ⊢ tApp t u ~ tApp t' u' ▹ B { 0 := u } | B' { 0 := u' } on ⌈clos_app⌋ with R'
+
+    | closε_prod na na' A A' B B' s₀ s₀' s₁ s₁' :
+        [(Xα : Rα na na')] ->
+        [(XA : Σ ;;; Γ | Γ' ⊢ A ~R A' ▹↘ tSort s₀ | tSort s₀' with R)] ->
+        [(IXA : Σ ;;; Γ | Γ' ⊢ A ~R' A' ▹↘ tSort s₀ | tSort s₀' on XA with R')] ->
+        [(Xs : isSortRel s₀ na.(binder_relevance))] ->
+        [(Xs' : isSortRel s₀' na'.(binder_relevance))] ->
+        [(XB : Σ ;;; Γ ,, vass na A | Γ' ,, vass na' A' ⊢ B ~R B' ▹↘ tSort s₁ | tSort s₁' with R)] ->
+        [(IXB : Σ ;;; Γ ,, vass na A | Γ' ,, vass na' A' ⊢ B ~R' B' ▹↘ tSort s₁ | tSort s₁' on XB with R')] ->
+        Σ ;;; Γ | Γ' ⊢ tProd na A B ~ tProd na' A' B' ▹ tSort (Sort.sort_of_product s₀ s₁) | tSort (Sort.sort_of_product s₀' s₁')
+          on ⌈clos_prod⌋ with R'
+
+    | closε_sort s s' :
+        [(wfΓ : wf_local_bd Σ Γ)] ->
+        [(wfΓ : wf_local_bd Σ Γ')] ->
+        [(wfs : wf_sort Σ s)] ->
+        [(wfs': wf_sort Σ s')] ->
+        [(Xs : Rs s s')] ->
+        Σ ;;; Γ | Γ' ⊢ tSort s ~ tSort s' ▹ tSort (Sort.super s) | tSort (Sort.super s') on ⌈clos_sort⌋ with R'
+  where " Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' 'on' p 'with' R'" := (context_closureε _ _ Γ Γ' t t' T T' p) (only parsing).
+  Derive Signature for context_closureε.
+
+  End Closure.
+  Section Closure.
+  Local Set Elimination Schemes.
+
+  Context {TC RedW} Σ (R : forall Γ (t t' T : term), Type).
+  Notation "Σ ;;; Γ ⊢ t ~R t' ▹ T" := (R Γ t t' T) (only parsing).
+  Context (R' : forall Γ t t' T, Σ ;;; Γ ⊢ t ~R t' ▹ T -> Type).
+  Notation "Σ ;;; Γ ⊢ t ~R' t' ▹ T 'on' p" := (R' Γ t t' T p) (only parsing).
+
+
+  Inductive elimination_context_closure Rα Rs Γ : forall (t t' T : term), Type :=
+    | elim_clos_rel n decl :
+        [(wfΓ : wf_local_bd Σ Γ)] ->
+        [(hnth : nth_error Γ n = Some decl)] ->
+        Σ ;;; Γ ⊢ tRel n ~e tRel n ▹ lift0 (S n) decl.(decl_type)
+
+    | elim_clos_lambda na na' A A' t t' T B s :
+        [(Xα : Rα na na')] ->
+        [(XA : Σ ;;; Γ ⊢ A ~R A' ▹ T)] ->
+        [(XT : Σ ;;; Γ ⊢ T ~>□ s)] ->
+        [(Xs : isSortRel s na.(binder_relevance))] ->
+        [(Xt : Σ ;;; Γ ,, vass na A ⊢ t ~R t' ▹ B)] ->
+        Σ ;;; Γ ⊢ tLambda na A t ~e tLambda na' A' t' ▹ tProd na A B
+
+    | elim_clos_app A₀ T na A B t t' u u' :
+        [(Xt : Σ ;;; Γ ⊢ t ~e t' ▹ T)] ->
+        [(XT : Σ ;;; Γ ⊢ T ~>Π(na : A), B)] ->
+        [(Xu : Σ ;;; Γ ⊢ u ~R u' ▹ A₀)] ->
+        [(XTA : Σ ;;; Γ ⊢ A₀ ≤T A)] ->
+        Σ ;;; Γ ⊢ tApp t u ~e tApp t' u' ▹ B { 0 := u }
+
+    | elim_clos_prod na na' A A' B B' T s T' s' :
+        [(Xα : Rα na na')] ->
+        [(XA : Σ ;;; Γ ⊢ A ~R A' ▹ T)] ->
+        [(XT : Σ ;;; Γ ⊢ T ~>□ s)] ->
+        [(Xs : isSortRel s na.(binder_relevance))] ->
+        [(XB : Σ ;;; Γ ,, vass na A ⊢ B ~R B' ▹ T')] ->
+        [(XT' : Σ ;;; Γ ,, vass na A ⊢ T' ~>□ s')] ->
+        Σ ;;; Γ ⊢ tProd na A B ~e tProd na' A' B' ▹ tSort (Sort.sort_of_product s s')
+
+    | elim_clos_sort s s' :
+        [(wfΓ : wf_local_bd Σ Γ)] ->
+        [(wfs : wf_sort Σ s)] ->
+        [(wfs': wf_sort Σ s')] ->
+        [(Xs : Rs s s')] ->
+        Σ ;;; Γ ⊢ tSort s ~e tSort s' ▹ tSort (Sort.super s)
+  where " Σ ;;; Γ ⊢ t ~e t' ▹ T " := (elimination_context_closure _ _ Γ t t' T) (only parsing).
+  Notation "Σ ;;; Γ ⊢ t ~e t' ▹ T 'with' R , R' , R''" := (elimination_context_closure R' R'' Γ t t' T) (only parsing).
+  Derive Signature for elimination_context_closure.
+
+  Inductive elimination_context_closureε Rα Rs Γ : forall (t t' T : term), Σ ;;; Γ ⊢ t ~e t' ▹ T with R, Rα, Rs -> Type :=
+    | elim_closε_rel n decl :
+        [(wfΓ : wf_local_bd Σ Γ)] ->
+        [(hnth : nth_error Γ n = Some decl)] ->
+        Σ ;;; Γ ⊢ tRel n ~e tRel n ▹ lift0 (S n) decl.(decl_type) on ⌈elim_clos_rel⌋ with R'
+
+    | elim_closε_lambda na na' A A' t t' T B s :
+        [(Xα : Rα na na')] ->
+        [(XA : Σ ;;; Γ ⊢ A ~R A' ▹ T)] ->
+        [(IXA : Σ ;;; Γ ⊢ A ~R' A' ▹ T on XA)] ->
+        [(XT : Σ ;;; Γ ⊢ T ~>□ s)] ->
+        [(Xs : isSortRel s na.(binder_relevance))] ->
+        [(Xt : Σ ;;; Γ ,, vass na A ⊢ t ~R t' ▹ B)] ->
+        [(IXt : Σ ;;; Γ ,, vass na A ⊢ t ~R' t' ▹ B on Xt)] ->
+        Σ ;;; Γ ⊢ tLambda na A t ~e tLambda na' A' t' ▹ tProd na A B on ⌈elim_clos_lambda⌋ with R'
+
+    | elim_closε_app A₀ T na A B t t' u u' :
+        [(Xt : Σ ;;; Γ ⊢ t ~e t' ▹ T)] ->
+        [(IXt : Σ ;;; Γ ⊢ t ~e t' ▹ T on Xt with R')] ->
+        [(XT : Σ ;;; Γ ⊢ T ~>Π(na : A), B)] ->
+        [(Xu : Σ ;;; Γ ⊢ u ~R u' ▹ A₀)] ->
+        [(IXu : Σ ;;; Γ ⊢ u ~R' u' ▹ A₀ on Xu)] ->
+        [(XTA : Σ ;;; Γ ⊢ A₀ ≤T A)] ->
+        Σ ;;; Γ ⊢ tApp t u ~e tApp t' u' ▹ B { 0 := u } on ⌈elim_clos_app⌋ with R'
+
+    | elim_closε_prod na na' A A' B B' T s T' s' :
+        [(Xα : Rα na na')] ->
+        [(XA : Σ ;;; Γ ⊢ A ~R A' ▹ T)] ->
+        [(IXA : Σ ;;; Γ ⊢ A ~R' A' ▹ T on XA)] ->
+        [(XT : Σ ;;; Γ ⊢ T ~>□ s)] ->
+        [(Xs : isSortRel s na.(binder_relevance))] ->
+        [(XB : Σ ;;; Γ ,, vass na A ⊢ B ~R B' ▹ T')] ->
+        [(IXB : Σ ;;; Γ ,, vass na A ⊢ B ~R' B' ▹ T' on XB)] ->
+        [(XT' : Σ ;;; Γ ,, vass na A ⊢ T' ~>□ s')] ->
+        Σ ;;; Γ ⊢ tProd na A B ~e tProd na' A' B' ▹ tSort (Sort.sort_of_product s s') on ⌈elim_clos_prod⌋ with R'
+
+    | elim_closε_sort s s' :
+        [(wfΓ : wf_local_bd Σ Γ)] ->
+        [(wfs : wf_sort Σ s)] ->
+        [(wfs': wf_sort Σ s')] ->
+        [(Xs : Rs s s')] ->
+        Σ ;;; Γ ⊢ tSort s ~e tSort s' ▹ tSort (Sort.super s) on ⌈elim_clos_sort⌋ with R'
+  where " Σ ;;; Γ ⊢ t ~e t' ▹ T 'on' p 'with' R'" := (elimination_context_closureε _ _ Γ t t' T p) (only parsing).
+  Derive Signature for elimination_context_closureε.
+
+
+  End Closure.
+  Section Closure.
+  Local Set Elimination Schemes.
+
+  Context {TC RedW} Σ Γ (R : forall (t t' T : term), Type).
+  Notation "Σ ;;; Γ ⊢ t ~R t' ▹ T" := (R t t' T) (only parsing).
+  Context (R' : forall t t' T, Σ ;;; Γ ⊢ t ~R t' ▹ T -> Type).
+  Notation "Σ ;;; Γ ⊢ t ~R' t' ▹ T 'on' p" := (R' t t' T p) (only parsing).
+
+
+  Inductive head_context1_closure : forall (t t' T : term), Type :=
+    | hclos1_app na A B t t' u T₀ :
+        [(Xt : Σ ;;; Γ ⊢ t ~R t' ▹ T₀)] ->
+        [(XT : Σ ;;; Γ ⊢ T₀ ↘ tProd na A B)] ->
+        [(Xu : Σ ;;; Γ ⊢ u ◃ A)] ->
+        Σ ;;; Γ ⊢ tApp t u ~h1 tApp t' u ▹ B { 0 := u }
+  where "Σ ;;; Γ ⊢ t ~h1 t' ▹ T" := (head_context1_closure t t' T) (only parsing).
+  Derive Signature for head_context1_closure.
+
+  Inductive head_context1_closureε : forall (t t' T : term), Σ ;;; Γ ⊢ t ~h1 t' ▹ T -> Type :=
+    | hclos1ε_app na A B t t' u T₀ :
+        [(Xt : Σ ;;; Γ ⊢ t ~R t' ▹ T₀)] ->
+        [(IXt : Σ ;;; Γ ⊢ t ~R' t' ▹ T₀ on Xt)] ->
+        [(XT : Σ ;;; Γ ⊢ T₀ ↘ tProd na A B)] ->
+        [(Xu : Σ ;;; Γ ⊢ u ◃ A)] ->
+        Σ ;;; Γ ⊢ tApp t u ~h1 tApp t' u ▹ B { 0 := u } on ⌈hclos1_app⌋ with R'
+  where " Σ ;;; Γ ⊢ t ~h1 t' ▹ T 'on' p 'with' R'" := (head_context1_closureε t t' T p) (only parsing).
+
+  End Closure.
+
+  (* Begin Closure renotations *)
+    Notation "Σ ;;; Γ ⊢ t ~>0 t' ▹ T" := (red0 Σ Γ t t' T).
+    Notation "Σ ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T'" := (pred0 Σ _ Γ Γ' t t' T T').
+    Notation "Σ ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T' 'with' R" := (pred0 Σ R Γ Γ' t t' T T') (only parsing).
+    Notation "Σ ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T' 'on' p 'with' R'" := (pred0ε Σ _ R' Γ Γ' t t' T T' p).
+    Notation "Σ ;;; Γ ⊢ t ~>η0 t' ▹ T" := (eta_red0 Σ Γ t t' T).
+    Notation "Σ ;;; Γ ⊢ t ~h1 t' ▹ T 'with' R " := (head_context1_closure Σ Γ R t t' T) (only parsing).
+    Notation "Σ ;;; Γ ⊢ t ~h1 t' ▹ T 'on' p 'with' R'" := (head_context1_closureε Σ Γ _ R' t t' T p).
+  (* End Closure notations *)
+
+  Section Σ.
+  Context {TC RedW} Σ.
+
+  Lemma infer_red2_toε R R' Γ Γ' T T' :
+    [(p : Σ ;;; Γ | Γ' ⊢ _ ~R _ ▹↘ T | T' with0 R)] ->
+    [(X T T' : [(H : R T T')] -> R' T T' H)] ->
+    Σ ;;; Γ | Γ' ⊢ _ ~R' _ ▹↘ T | T' on p with0 R'.
+  Proof.
+    intros H X.
+    induction H.
+    all: now econstructor.
+  Defined.
+
+  Lemma infer_red2_ofε R R' Γ Γ' T T' :
+    [(p : Σ ;;; Γ | Γ' ⊢ _ ~R _ ▹↘ T | T' with0 R)] ->
+    [(X : Σ ;;; Γ | Γ' ⊢ _ ~R' _ ▹↘ T | T' on p with0 (fun T T' _ => R' T T'))] ->
+    Σ ;;; Γ | Γ' ⊢ _ ~R _ ▹↘ T | T' with0 R'.
+  Proof.
+    intros.
+    induction X.
+    all: now econstructor.
+  Defined.
+
+  Lemma infer_red2ε_fmap R R' R'' Γ Γ' T T' :
+    [(p : Σ ;;; Γ | Γ' ⊢ _ ~R _ ▹↘ T | T' with0 R)] ->
+    [(H : Σ ;;; Γ | Γ' ⊢ _ ~R' _ ▹↘ T | T' on p with0 R')] ->
+    [(X T T' H : R' T T' H -> R'' T T' H)] ->
+    Σ ;;; Γ | Γ' ⊢ _ ~R' _ ▹↘ T | T' on p with0 R''.
+  Proof.
+    intros p H X.
+    induction H.
+    all: now econstructor.
+  Defined.
+
+  Lemma infer_red2_fmap R R' Γ Γ' T T' :
+    [(H : Σ ;;; Γ | Γ' ⊢ _ ~R _ ▹↘ T | T' with0 R)] ->
+    [(X T T' : R T T' -> R' T T')] ->
+    Σ ;;; Γ | Γ' ⊢ _ ~R _ ▹↘ T | T' with0 R'.
+  Proof.
+    intros H X.
+    induction H.
+    all: now econstructor.
+  Defined.
+
+  Lemma check2_toε R R' Γ Γ' T T' :
+    [(p : Σ ;;; Γ | Γ' ⊢ _ ~R _ ◃ T | T' with0 R)] ->
+    [(X T T' : [(H : R T T')] -> R' T T' H)] ->
+    Σ ;;; Γ | Γ' ⊢ _ ~R' _ ◃ T | T' on p with0 R'.
+  Proof.
+    intros H X.
+    induction H.
+    all: now econstructor.
+  Defined.
+
+  Lemma check2_ofε R R' Γ Γ' T T' :
+    [(p : Σ ;;; Γ | Γ' ⊢ _ ~R _ ◃ T | T' with0 R)] ->
+    [(X : Σ ;;; Γ | Γ' ⊢ _ ~R' _ ◃ T | T' on p with0 (fun T T' _ => R' T T'))] ->
+    Σ ;;; Γ | Γ' ⊢ _ ~R _ ◃ T | T' with0 R'.
+  Proof.
+    intros.
+    induction X.
+    all: now econstructor.
+  Defined.
+
+  Lemma check2ε_fmap R R' R'' Γ Γ' T T' :
+    [(p : Σ ;;; Γ | Γ' ⊢ _ ~R _ ◃ T | T' with0 R)] ->
+    [(H : Σ ;;; Γ | Γ' ⊢ _ ~R' _ ◃ T | T' on p with0 R')] ->
+    [(X T T' H : R' T T' H -> R'' T T' H)] ->
+    Σ ;;; Γ | Γ' ⊢ _ ~R' _ ◃ T | T' on p with0 R''.
+  Proof.
+    intros p H X.
+    induction H.
+    all: now econstructor.
+  Defined.
+
+  Lemma check2_fmap R R' Γ Γ' T T' :
+    [(H : Σ ;;; Γ | Γ' ⊢ _ ~R _ ◃ T | T' with0 R)] ->
+    [(X T T' : R T T' -> R' T T')] ->
+    Σ ;;; Γ | Γ' ⊢ _ ~R _ ◃ T | T' with0 R'.
+  Proof.
+    intros H X.
+    induction H.
+    all: now econstructor.
+  Defined.
+
+  Hint Resolve infer_red2_toε infer_red2_ofε infer_red2ε_fmap infer_red2_fmap check2_toε check2_ofε check2ε_fmap check2_fmap : fmap.
+
+  Lemma pred0_toε R R' Γ Γ' t t' T T' :
+    [(p : Σ ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T' with R)] ->
+    [(X Γ Γ' t t' T T' : [(H : R Γ Γ' t t' T T')] -> R' Γ Γ' t t' T T' H)] ->
+    Σ ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T' on p with R'.
+  Proof.
+    intros H X.
+    induction H.
+    all: now econstructor; eauto with fmap.
+  Defined.
+
+  Lemma pred0_ofε R R' Γ Γ' t t' T T' :
+    [(p : Σ ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T' with R)] ->
+    [(X : Σ ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T' on p with (fun Γ Γ' t t' T T' _ => R' Γ Γ' t t' T T'))] ->
+    Σ ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T' with R'.
+  Proof.
+    intros.
+    induction X.
+    all: now econstructor; eauto with fmap.
+  Defined.
+
+  Lemma pred0ε_fmap R R' R'' Γ Γ' t t' T T' :
+    [(p : Σ ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T' with R)] ->
+    [(H : Σ ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T' on p with R')] ->
+    [(X Γ Γ' t t' T T' H : R' Γ Γ' t t' T T' H -> R'' Γ Γ' t t' T T' H)] ->
+    Σ ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T' on p with R''.
+  Proof.
+    intros p H X.
+    induction H.
+    all: now econstructor; eauto with fmap.
+  Defined.
+
+
+  Lemma context_closure_toε R R' Rα Rs Γ Γ' t t' T T' :
+    [(p : Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' with R, Rα, Rs)] ->
+    [(X Γ Γ' t t' T T' : [(H : R Γ Γ' t t' T T')] -> R' Γ Γ' t t' T T' H)] ->
+    Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' on p with R'.
+  Proof.
+    intros H X.
+    induction H.
+    all: now econstructor; eauto with fmap.
+  Defined.
+
+  Lemma context_closure_ofε R R' Rα Rs Γ Γ' t t' T T' :
+    [(p : Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' with R, Rα, Rs)] ->
+    [(X : Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' on p with (fun Γ Γ' t t' T T' _ => R' Γ Γ' t t' T T'))] ->
+    Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' with R', Rα, Rs.
+  Proof.
+    intros.
+    induction X.
+    all: now econstructor; eauto with fmap.
+  Defined.
+
+  Lemma context_closureε_fmap R R' R'' Rα Rs Γ Γ' t t' T T' :
+    [(p : Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' with R, Rα, Rs)] ->
+    [(H : Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' on p with R')] ->
+    [(X Γ Γ' t t' T T' H : R' Γ Γ' t t' T T' H -> R'' Γ Γ' t t' T T' H)] ->
+    Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' on p with R''.
+  Proof.
+    intros p H X.
+    induction H.
+    all: now econstructor; eauto with fmap.
+  Defined.
+
+  Lemma context_closure_fmap R R' Rα Rα' Rs Rs' Γ Γ' t t' T T' :
+    [(H : Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' with R, Rα, Rs)] ->
+    [(X Γ Γ' t t' T T' : R Γ Γ' t t' T T' -> R' Γ Γ' t t' T T')] ->
+    [(Xα na na' : Rα na na' -> Rα' na na')] ->
+    [(Xs s s' : Rs s s' -> Rs' s s')] ->
+    Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' with R', Rα', Rs'.
+  Proof.
+    intros H X Xα Xs.
+    induction H.
+    all: try now econstructor; unshelve eauto using infer_red2_fmap, check2_fmap.
+  Defined.
+
+  Lemma elimination_context_closure_toε R R' Rα Rs Γ t t' T :
+    [(p : Σ ;;; Γ ⊢ t ~e t' ▹ T with R, Rα, Rs)] ->
+    [(X Γ t t' T : [(H : R Γ t t' T)] -> R' Γ t t' T H)] ->
+    Σ ;;; Γ ⊢ t ~e t' ▹ T on p with R'.
+  Proof.
+    intros H X.
+    induction H.
+    all: now econstructor; eauto with fmap.
+  Defined.
+
+  Lemma elimination_context_closure_ofε R R' Rα Rs Γ Γ' t t' T :
+    [(p : Σ ;;; Γ ⊢ t ~e t' ▹ T with R, Rα, Rs)] ->
+    [(X : Σ ;;; Γ ⊢ t ~e t' ▹ T on p with (fun Γ t t' T _ => R' Γ t t' T))] ->
+    Σ ;;; Γ ⊢ t ~e t' ▹ T with R', Rα, Rs.
+  Proof.
+    intros.
+    induction X.
+    all: now econstructor; eauto with fmap.
+  Defined.
+
+  Lemma elimination_context_closureε_fmap R R' R'' Rα Rs Γ t t' T :
+    [(p : Σ ;;; Γ ⊢ t ~e t' ▹ T with R, Rα, Rs)] ->
+    [(H : Σ ;;; Γ ⊢ t ~e t' ▹ T on p with R')] ->
+    [(X Γ t t' T H : R' Γ t t' T H -> R'' Γ t t' T H)] ->
+    Σ ;;; Γ ⊢ t ~e t' ▹ T on p with R''.
+  Proof.
+    intros p H X.
+    induction H.
+    all: now econstructor; eauto with fmap.
+  Defined.
+
+  Lemma elimination_context_closure_fmap R R' Rα Rα' Rs Rs' Γ t t' T :
+    [(H : Σ ;;; Γ ⊢ t ~e t' ▹ T with R, Rα, Rs)] ->
+    [(X Γ t t' T : R Γ t t' T -> R' Γ t t' T)] ->
+    [(Xα na na' : Rα na na' -> Rα' na na')] ->
+    [(Xs s s' : Rs s s' -> Rs' s s')] ->
+    Σ ;;; Γ ⊢ t ~e t' ▹ T with R', Rα', Rs'.
+  Proof.
+    intros H X Xα Xs.
+    induction H.
+    all: try now econstructor; unshelve eauto using infer_red2_fmap, check2_fmap.
+  Defined.
+
+
+  Lemma head_context1_closure_toε R R' Γ t t' T :
+    [(p : Σ ;;; Γ ⊢ t ~h1 t' ▹ T with R)] ->
+    [(X t t' T : [(H : R t t' T)] -> R' t t' T H)] ->
+    Σ ;;; Γ ⊢ t ~h1 t' ▹ T on p with R'.
+  Proof.
+    intros H X.
+    induction H.
+    all: now econstructor; eauto with fmap.
+  Defined.
+
+  Lemma head_context1_closure_ofε R R' Γ Γ' t t' T :
+    [(p : Σ ;;; Γ ⊢ t ~h1 t' ▹ T with R)] ->
+    [(X : Σ ;;; Γ ⊢ t ~h1 t' ▹ T on p with (fun t t' T _ => R' t t' T))] ->
+    Σ ;;; Γ ⊢ t ~h1 t' ▹ T with R'.
+  Proof.
+    intros.
+    induction X.
+    all: now econstructor; eauto with fmap.
+  Defined.
+
+  Lemma head_context1_closureε_fmap R R' R'' Γ Γ' t t' T :
+    [(p : Σ ;;; Γ ⊢ t ~h1 t' ▹ T with R)] ->
+    [(H : Σ ;;; Γ ⊢ t ~h1 t' ▹ T on p with R')] ->
+    [(X t t' T H : R' t t' T H -> R'' t t' T H)] ->
+    Σ ;;; Γ ⊢ t ~h1 t' ▹ T on p with R''.
+  Proof.
+    intros p H X.
+    induction H.
+    all: now econstructor; eauto with fmap.
+  Defined.
+
+  End Σ.
+
+  Hint Resolve infer_red2_toε infer_red2_ofε infer_red2ε_fmap infer_red2_fmap check2_toε check2_ofε check2ε_fmap check2_fmap : fmap.
+  Hint Resolve pred0_toε pred0_ofε pred0ε_fmap
+    context_closure_toε context_closure_ofε context_closureε_fmap
+    elimination_context_closure_toε elimination_context_closure_ofε elimination_context_closureε_fmap
+    head_context1_closure_toε head_context1_closure_ofε head_context1_closureε_fmap
+    : fmap.
+
+
+
+  Inductive hred1 {TC RedW} Σ Γ t t' T :=
+    | hred1_red0 :
+        [(X : Σ ;;; Γ ⊢ t ~>0 t' ▹ T)] ->
+        Σ ;;; Γ ⊢ t ~>h t' ▹ T
+
+    | hred1_clos :
+        [(X : Σ ;;; Γ ⊢ t ~h1 t' ▹ T with hred1 Σ Γ)] ->
+        Σ ;;; Γ ⊢ t ~>h t' ▹ T
+  where "Σ ;;; Γ ⊢ t ~>h t' ▹ T" := (hred1 Σ Γ t t' T).
+  Derive Signature for hred1.
+
+  Inductive hred1ε {TC RedW} Σ Γ (P : forall t t' T, Σ ;;; Γ ⊢ t ~>h t' ▹ T -> Type) t t' T : Σ ;;; Γ ⊢ t ~>h t' ▹ T -> Type :=
+    | hred1ε_red0 :
+        [(X : Σ ;;; Γ ⊢ t ~>0 t' ▹ T)] ->
+        Σ ;;; Γ ⊢ t ~>h t' ▹ T on ⌈hred1_red0⌋ with P
+
+    | hred1ε_clos :
+        [(X : Σ ;;; Γ ⊢ t ~h1 t' ▹ T with hred1 Σ Γ)] ->
+        [(IX : Σ ;;; Γ ⊢ t ~h1 t' ▹ T on X with fun t t' T H => P t t' T H × hred1ε Σ Γ P t t' T H)] ->
+        Σ ;;; Γ ⊢ t ~>h t' ▹ T on ⌈hred1_clos⌋ with P
+  where "Σ ;;; Γ ⊢ t ~>h t' ▹ T 'on' H 'with' P" := (hred1ε Σ Γ P t t' T H).
+  Derive Signature for hred1ε.
+
+  Definition hred1_rect TC RedW Σ Γ P :
+    [(X t t' T H : Σ ;;; Γ ⊢ t ~>h t' ▹ T on H with P -> P t t' T H)] ->
+    forall t t' T, [(H : Σ ;;; Γ ⊢ t ~>h t' ▹ T)] -> P t t' T H.
+  Proof.
+    intros X ????.
+    apply X. revert t t' T H.
+    fix Xrec 4.
+    intros t t' T H; destruct H.
+    all: constructor; eauto with fmap.
+  Defined.
+  Definition hred1_ind := hred1_rect.
+
+  Inductive pred1 {TC RedW} Σ Γ Γ' t t' T T' :=
+    | pred1_pred0 :
+        [(X : Σ ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T' with pred1 Σ)] ->
+        Σ ;;; Γ | Γ' ⊢ t ≡>1 t' ▹ T | T'
+
+    | pred1_clos :
+        [(X : Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' with pred1 Σ, eq, eq)] ->
+        Σ ;;; Γ | Γ' ⊢ t ≡>1 t' ▹ T | T'
+  where "Σ ;;; Γ | Γ' ⊢ t ≡>1 t' ▹ T | T'" := (pred1 Σ Γ Γ' t t' T T').
+  Derive Signature for pred1.
+
+  Inductive pred1ε {TC RedW} Σ (P : forall Γ Γ' t t' T T', Σ ;;; Γ | Γ' ⊢ t ≡>1 t' ▹ T | T' -> Type) Γ Γ' t t' T T' : Σ ;;; Γ | Γ' ⊢ t ≡>1 t' ▹ T | T' -> Type :=
+    | pred1ε_pred0 :
+        [(X : Σ ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T' with pred1 Σ)] ->
+        [(IX : Σ ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T' on X with fun Γ Γ' t t' T T' H => P Γ Γ' t t' T T' H × pred1ε Σ P Γ Γ' t t' T T' H)] ->
+        Σ ;;; Γ | Γ' ⊢ t ≡>1 t' ▹ T | T' on ⌈pred1_pred0⌋ with P
+
+    | pred1ε_clos :
+        [(X : Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' with pred1 Σ, eq, eq)] ->
+        [(IX : Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' on X with fun Γ Γ' t t' T T' H => P Γ Γ' t t' T T' H × pred1ε Σ P Γ Γ' t t' T T' H)] ->
+        Σ ;;; Γ | Γ' ⊢ t ≡>1 t' ▹ T | T' on ⌈pred1_clos⌋ with P
+  where "Σ ;;; Γ | Γ' ⊢ t ≡>1 t' ▹ T | T' 'on' H 'with' P" := (pred1ε Σ P Γ Γ' t t' T T' H).
+  Derive Signature for pred1ε.
+
+
+  Definition pred1_rect TC RedW Σ P :
+    [(X Γ Γ' t t' T T' H : [(X : Σ ;;; Γ | Γ' ⊢ t ≡>1 t' ▹ T | T' on H with P)] -> P Γ Γ' t t' T T' H)] ->
+    forall Γ Γ' t t' T T', [(H : Σ ;;; Γ | Γ' ⊢ t ≡>1 t' ▹ T | T')] -> P Γ Γ' t t' T T' H.
+  Proof.
+    intros X ???????.
+    apply X. revert Γ Γ' t t' T T' H.
+    fix Xrec 7.
+    intros Γ Γ' t t' T T' H; destruct H.
+    all: constructor; eauto with fmap.
+  Defined.
+  Definition pred1_ind := pred1_rect.
+
+
+  Inductive hred {TC RedW} Σ Γ t : forall t' T, Type :=
+    | hred_refl T :
+        [(Ht : Σ ;;; Γ ⊢ t ▹ T)] ->
+        Σ ;;; Γ ⊢ t ~>h* t ▹ T
+
+    | hred_step t' t'' T T' :
+        [(Xr : Σ ;;; Γ ⊢ t ~>h t' ▹ T)] ->
+        [(X : Σ ;;; Γ ⊢ t' ~>h* t'' ▹ T')] ->
+        Σ ;;; Γ ⊢ t ~>h* t'' ▹ T
+
+  where "Σ ;;; Γ ⊢ t ~>h* t' ▹ T" := (hred Σ Γ t t' T).
+  Derive Signature for hred.
+
+  Definition hred_rect TC RedW Σ Γ P :
+    [(Xrefl t T :
+        [(Ht : Σ ;;; Γ ⊢ t ▹ T)] ->
+        P t t T ⌈hred_refl⌋)] ->
+    [(Xstep t t' t'' T T' :
+        [(Xr : Σ ;;; Γ ⊢ t ~>h t' ▹ T)] ->
+        [(X : Σ ;;; Γ ⊢ t' ~>h* t'' ▹ T')] ->
+        [(IX : P t' t'' T' X)] ->
+        P t t'' T ⌈hred_step⌋)] ->
+
+    forall t t' T, [(X : Σ ;;; Γ ⊢ t ~>h* t' ▹ T)] -> P t t' T X.
+  Proof.
+    intros ??.
+    fix Xrec 4.
+    intros ??? X; destruct X.
+    - apply Xrefl.
+    - eapply Xstep; eauto.
+  Defined.
+
+
+  Inductive standard_red {TC RedW} Σ Γ t u T :=
+    | stredc t' T' :
+      [(h : Σ ;;; Γ ⊢ t ~>h* t' ▹ T)] ->
+      [(X : Σ ;;; Γ ⊢ t' ~e u ▹ T' with standard_red Σ, eq, eq)] ->
+      Σ ;;; Γ ⊢ t =>s u ▹ T
+  where "Σ  ;;; Γ ⊢ t =>s t' ▹ T" := (standard_red Σ Γ t t' T).
+  Derive Signature for standard_red.
+
+
+  Inductive standard_redε {TC RedW} Σ (R : forall Γ t t' T, Σ  ;;; Γ ⊢ t =>s t' ▹ T -> Type) Γ t u T : Σ ;;; Γ ⊢ t =>s u ▹ T -> Type :=
+    | stredcε t' T' :
+      [(h : Σ ;;; Γ ⊢ t ~>h* t' ▹ T)] ->
+      [(X : Σ ;;; Γ ⊢ t' ~e u ▹ T' with standard_red Σ, eq, eq)] ->
+      [(IX : Σ ;;; Γ ⊢ t' ~e u ▹ T' on X with (fun Γ t t' T H => R Γ t t' T H × standard_redε Σ R Γ t t' T H))] ->
+      Σ ;;; Γ ⊢ t =>s u ▹ T on ⌈stredc⌋ with R
+
+  where "Σ  ;;; Γ ⊢ t =>s t' ▹ T 'on' H 'with' R" := (standard_redε Σ R Γ t t' T H).
+  Derive Signature for standard_redε.
+
+
+  Definition standard_red_rect TC RedW Σ P :
+    [(X Γ t u T H : [(X : Σ ;;; Γ ⊢ t =>s u ▹ T on H with P)] -> P Γ t u T H)] ->
+    forall Γ t u T, [(H : Σ ;;; Γ ⊢ t =>s u ▹ T)] -> P Γ t u T H.
+  Proof.
+    intros ? Γ t u T H.
+    apply X.
+    revert Γ t u T H.
+    fix Xrec 5.
+    intros Γ t u T H. destruct H.
+    constructor.
+    eapply elimination_context_closure_toε; intros; split; eauto.
+  Defined.
+  Definition standard_red_ind := standard_red_rect.
+
+
+
+  Inductive pred {TC RedW} Σ : forall Γ Γ' (t t' T T' : term), Type :=
+    | pred_one Γ Γ' t t' T T' :
+        [(X : Σ ;;; Γ | Γ' ⊢ t ≡>1 t' ▹ T | T')] ->
+        Σ ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T'
+
+    | pred_trans Γ Γ' Γ'' t t' t'' T T' T'' :
+        [(Xr : Σ ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T')] ->
+        [(X : Σ ;;; Γ' | Γ'' ⊢ t' ≡> t'' ▹ T' | T'')] ->
+        Σ ;;; Γ | Γ'' ⊢ t ≡> t'' ▹ T | T''
+  where "Σ ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T'" := (pred Σ Γ Γ' t t' T T').
+
+  Definition pred_rect TC RedW Σ P :
+    [(Xone Γ Γ' t t' T T' :
+        [(Ht : Σ ;;; Γ | Γ' ⊢ t ≡>1 t' ▹ T | T')] ->
+        P Γ Γ' t t' T T' ⌈pred_one⌋)] ->
+    [(Xstep Γ Γ' Γ'' t t' t'' T T' T'' :
+        [(X : Σ ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T')] ->
+        [(IX : P Γ Γ' t t' T T' X)] ->
+        [(X' : Σ ;;; Γ' | Γ'' ⊢ t' ≡> t'' ▹ T' | T'')] ->
+        [(IX' : P Γ' Γ'' t' t'' T' T'' X')] ->
+        P Γ Γ'' t t'' T T'' ⌈pred_trans⌋)] ->
+
+    forall Γ Γ' t t' T T', [(X : Σ ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T')] -> P Γ Γ' t t' T T' X.
+  Proof.
+    intros ??.
+    fix Xrec 7.
+    intros ?????? X; destruct X.
+    - apply Xone.
+    - eapply Xstep; eauto.
+  Defined.
+
+  Inductive pred_eta {TC RedW} Σ : forall Γ Γ' (t t' T T' : term), Type :=
+    | pred_eta_one Γ Γ' t t' T T' :
+        [(X : Σ ;;; Γ | Γ' ⊢ t ≡>η0 t' ▹ T | T' with pred_eta Σ)] ->
+        Σ ;;; Γ | Γ' ⊢ t ≡>η t' ▹ T | T'
+
+    | pred_eta_trans Γ Γ' Γ'' t t' t'' T T' T'' :
+        [(Xr : Σ ;;; Γ | Γ' ⊢ t ≡>η t' ▹ T | T')] ->
+        [(X : Σ ;;; Γ' | Γ'' ⊢ t' ≡>η t'' ▹ T' | T'')] ->
+        Σ ;;; Γ | Γ'' ⊢ t ≡>η t'' ▹ T | T''
+
+    | pred_eta_clos Γ Γ' t t' T T' :
+        [(X : Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' with pred_eta Σ, eq, eq)] ->
+        Σ ;;; Γ | Γ' ⊢ t ≡>η t' ▹ T | T'
+  where "Σ ;;; Γ | Γ' ⊢ t ≡>η t' ▹ T | T'" := (pred_eta Σ Γ Γ' t t' T T').
+
+  Definition pred_eta_rect TC RedW Σ P :
+    [(Xone Γ Γ' t t' T T' :
+        [(Ht : Σ ;;; Γ | Γ' ⊢ t ≡>η0 t' ▹ T | T')] ->
+        P Γ Γ' t t' T T' ⌈pred_eta_one⌋)] ->
+    [(Xtrans Γ Γ' Γ'' t t' t'' T T' T'' :
+        [(X : Σ ;;; Γ | Γ' ⊢ t ≡>η t' ▹ T | T')] ->
+        [(IX : P Γ Γ' t t' T T' X)] ->
+        [(X' : Σ ;;; Γ' | Γ'' ⊢ t' ≡>η t'' ▹ T' | T'')] ->
+        [(IX' : P Γ' Γ'' t' t'' T' T'' X')] ->
+        P Γ Γ'' t t'' T T'' ⌈pred_eta_trans⌋)] ->
+    [(Xclos Γ Γ' t t' T T' :
+        [(X : Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' with pred_eta Σ, eq, eq)] ->
+        [(IX : Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' on X with P)] ->
+        P Γ Γ' t t' T T' ⌈pred_eta_clos⌋)] ->
+    forall Γ Γ' t t' T T', [(X : Σ ;;; Γ | Γ' ⊢ t ≡>η t' ▹ T | T')] -> P Γ Γ' t t' T T' X.
+  Proof.
+    intros ???.
+    fix Xrec 7.
+    intros ?????? X; destruct X.
+    - apply Xone.
+    - eapply Xtrans; eauto.
+    - eapply Xclos; eauto with fmap.
+  Defined.
+
+  Inductive standard_red_eta {TC RedW} Σ Γ t u T :=
+    | stredetac t' t'' T' T'' :
+      [(h : Σ ;;; Γ ⊢ t ~>h* t' ▹ T)] ->
+      [(h' : Σ ;;; Γ ⊢ t' ~>η0 t'' ▹ T')] ->
+      [(X : Σ ;;; Γ ⊢ t'' ~e u ▹ T'' with standard_red_eta Σ, eq, eq)] ->
+      Σ ;;; Γ ⊢ t =>sη u ▹ T
+  where "Σ  ;;; Γ ⊢ t =>sη t' ▹ T" := (standard_red_eta Σ Γ t t' T).
+  Derive Signature for standard_red_eta.
+
+
+  Inductive standard_red_etaε {TC RedW} Σ (R : forall Γ t t' T, Σ  ;;; Γ ⊢ t =>sη t' ▹ T -> Type) Γ t u T : Σ ;;; Γ ⊢ t =>sη u ▹ T -> Type :=
+    | stredetacε t' t'' T' T'' :
+      [(h : Σ ;;; Γ ⊢ t ~>h* t' ▹ T)] ->
+      [(h' : Σ ;;; Γ ⊢ t' ~>η0 t'' ▹ T')] ->
+      [(X : Σ ;;; Γ ⊢ t'' ~e u ▹ T'' with standard_red_eta Σ, eq, eq)] ->
+      [(IX : Σ ;;; Γ ⊢ t'' ~e u ▹ T'' on X with (fun Γ t t' T H => R Γ t t' T H × standard_red_etaε Σ R Γ t t' T H))] ->
+      Σ ;;; Γ ⊢ t =>sη u ▹ T on ⌈stredetac⌋ with R
+
+  where "Σ  ;;; Γ ⊢ t =>sη t' ▹ T 'on' H 'with' R" := (standard_red_etaε Σ R Γ t t' T H).
+  Derive Signature for standard_red_etaε.
+
+
+  Definition standard_red_eta_rect TC RedW Σ P :
+    [(X Γ t u T H : [(X : Σ ;;; Γ ⊢ t =>sη u ▹ T on H with P)] -> P Γ t u T H)] ->
+    forall Γ t u T, [(H : Σ ;;; Γ ⊢ t =>sη u ▹ T)] -> P Γ t u T H.
+  Proof.
+    intros ? Γ t u T H.
+    apply X.
+    revert Γ t u T H.
+    fix Xrec 5.
+    intros Γ t u T H. destruct H.
+    constructor.
+    eapply elimination_context_closure_toε; intros; split; eauto.
+  Defined.
+  Definition standard_red_eta_ind := standard_red_eta_rect.
+
+
+  Section CumulAddon.
+  Local Set Elimination Schemes.
+
+  Context {cf} {TC RedW} Σ (R : forall (pb : conv_pb) (Γ Γ' : context) (t t' T T' : term), Type).
+  Notation "Σ ;;; Γ | Γ' ⊢ t ≤R[ pb ] t' ▹ T | T'" := (R pb Γ Γ' t t' T T') (only parsing).
+
+  Context (R' : forall pb Γ Γ' t t' T T', Σ ;;; Γ | Γ' ⊢ t ≤R[pb] t' ▹ T | T' -> Type).
+  Notation "Σ ;;; Γ | Γ' ⊢ t ≤R'[ pb ] t' ▹ T | T' 'on' H 'with' P" := (R' pb Γ Γ' t t' T T') (only parsing).
+  Notation "Σ ;;; Γ | Γ' ⊢ t =R t' ▹ T | T'" := (Σ ;;; Γ | Γ' ⊢ t ≤R[Conv] t' ▹ T | T') (only parsing).
+  Notation "Σ ;;; Γ | Γ' ⊢ t =R' t' ▹ T | T' 'on' H 'with' P" := (Σ ;;; Γ | Γ' ⊢ t ≤R'[Conv] t' ▹ T | T' on H with P) (only parsing).
+
+  Inductive cumul_addon pb Γ Γ' : forall (t t' T T' : term), Type :=
+    | cumul_prod na na' A A' B B' s₀ s₀' s₁ s₁' :
+        [(Xα : eq_binder_annot na na')] ->
+        [(XA : Σ ;;; Γ | Γ' ⊢ A ~R A' ▹↘ tSort s₀ | tSort s₀' with R Conv)] ->
+        [(Xs : isSortRel s₀ na.(binder_relevance))] ->
+        [(Xs' : isSortRel s₀' na'.(binder_relevance))] ->
+        [(XB : Σ ;;; Γ ,, vass na A | Γ' ,, vass na' A' ⊢ B ~R B' ▹↘ tSort s₁ | tSort s₁' with R pb)] ->
+        Σ ;;; Γ | Γ' ⊢ tProd na A B ≤c[pb] tProd na' A' B' ▹ tSort (Sort.sort_of_product s₀ s₁) | tSort (Sort.sort_of_product s₀' s₁')
+
+    | cumul_sort s s' :
+        [(wfΓ : wf_local_bd Σ Γ)] ->
+        [(wfΓ : wf_local_bd Σ Γ')] ->
+        [(wfs : wf_sort Σ s)] ->
+        [(wfs' : wf_sort Σ s')] ->
+        [(Xs : compare_sort Σ pb s s')] ->
+        Σ ;;; Γ | Γ' ⊢ tSort s ≤c[pb] tSort s' ▹ tSort (Sort.super s) | tSort (Sort.super s')
+    (* | (indapp) *)
+  where "Σ ;;; Γ | Γ' ⊢ t ≤c[ pb ] t' ▹ T | T'" := (cumul_addon pb Γ Γ' t t' T T') (only parsing).
+  Derive Signature for cumul_addon.
+
+  Inductive cumul_addonε pb Γ Γ' : forall (t t' T T' : term), Σ ;;; Γ | Γ' ⊢ t ≤c[pb] t' ▹ T | T' -> Type :=
+    | cumulε_prod na na' A A' B B' s₀ s₀' s₁ s₁' :
+        [(Xα : eq_binder_annot na na')] ->
+        [(XA : Σ ;;; Γ | Γ' ⊢ A ~R A' ▹↘ tSort s₀ | tSort s₀' with R Conv)] ->
+        [(IXA : Σ ;;; Γ | Γ' ⊢ A ~R' A' ▹↘ tSort s₀ | tSort s₀' on XA with R' Conv)] ->
+        [(Xs : isSortRel s₀ na.(binder_relevance))] ->
+        [(Xs' : isSortRel s₀' na'.(binder_relevance))] ->
+        [(XB : Σ ;;; Γ ,, vass na A | Γ' ,, vass na' A' ⊢ B ~R B' ▹↘ tSort s₁ | tSort s₁' with R pb)] ->
+        [(IXB : Σ ;;; Γ ,, vass na A | Γ' ,, vass na' A' ⊢ B ~R' B' ▹↘ tSort s₁ | tSort s₁' on XB with R' pb)] ->
+        Σ ;;; Γ | Γ' ⊢ tProd na A B ≤c[pb] tProd na' A' B' ▹ tSort (Sort.sort_of_product s₀ s₁) | tSort (Sort.sort_of_product s₀' s₁') on ⌈cumul_prod⌋ with R'
+
+    | cumulε_sort s s' :
+        [(wfΓ : wf_local_bd Σ Γ)] ->
+        [(wfΓ : wf_local_bd Σ Γ')] ->
+        [(wfs : wf_sort Σ s)] ->
+        [(wfs' : wf_sort Σ s')] ->
+        [(Xs : compare_sort Σ pb s s')] ->
+        Σ ;;; Γ | Γ' ⊢ tSort s ≤c[pb] tSort s' ▹ tSort (Sort.super s) | tSort (Sort.super s') on ⌈cumul_sort⌋ with R'
+    (* | (indapp) *)
+  where "Σ ;;; Γ | Γ' ⊢ t ≤c[ pb ] t' ▹ T | T' 'on' p 'with' R'" := (cumul_addonε pb Γ Γ' t t' T T' p) (only parsing).
+
+  End CumulAddon.
+
+  Notation "Σ ;;; Γ | Γ' ⊢ t ≤c[ pb ] t' ▹ T | T'" := (cumul_addon Σ _ pb Γ Γ' t t' T T').
+  Notation "Σ ;;; Γ | Γ' ⊢ t ≤c[ pb ] t' ▹ T | T' 'with' R" := (cumul_addon Σ R pb Γ Γ' t t' T T') (only parsing).
+  Notation "Σ ;;; Γ | Γ' ⊢ t ≤c[ pb ] t' ▹ T | T' 'on' p 'with' R'" := (cumul_addonε Σ _ R' pb Γ Γ' t t' T T' p).
+
+
+  Section Σ.
+  Context {cf TC RedW} Σ.
+  Lemma cumul_addon_toε R R' pb Γ Γ' t u T T' :
+    [(H : Σ ;;; Γ | Γ' ⊢ t ≤c[pb] u ▹ T | T' with R)] ->
+    [(X pb Γ Γ' t u T T' : [(H : R pb Γ Γ' t u T T')] -> R' pb Γ Γ' t u T T' H)] ->
+    Σ ;;; Γ | Γ' ⊢ t ≤c[pb] u ▹ T | T' on H with R'.
+  Proof.
+    intros H X.
+    induction H.
+    all: now econstructor; eauto with fmap.
+  Defined.
+
+  Lemma cumul_addon_ofε R R' pb Γ Γ' t u T T' :
+    [(p : Σ ;;; Γ | Γ' ⊢ t ≤c[pb] u ▹ T | T' with R)] ->
+    [(X : Σ ;;; Γ | Γ' ⊢ t ≤c[pb] u ▹ T | T' on p with fun pb Γ Γ' t t' T T' _ => R' pb Γ Γ' t t' T T')] ->
+    Σ ;;; Γ | Γ' ⊢ t ≤c[pb] u ▹ T | T' with R'.
+  Proof.
+    intros.
+    induction X.
+    all: now econstructor; eauto with fmap.
+  Defined.
+
+  Lemma cumul_addonε_fmap R R' R'' pb Γ Γ' t u T T' :
+    [(p : Σ ;;; Γ | Γ' ⊢ t ≤c[pb] u ▹ T | T' with R)] ->
+    [(H : Σ ;;; Γ | Γ' ⊢ t ≤c[pb] u ▹ T | T' on p with R')] ->
+    [(X pb Γ Γ' t u T T' H : R' pb Γ Γ' t u T T' H -> R'' pb Γ Γ' t u T T' H)] ->
+    Σ ;;; Γ | Γ' ⊢ t ≤c[pb] u ▹ T | T' on p with R''.
+  Proof.
+    intros p H X.
+    induction H.
+    all: now econstructor; eauto with fmap.
+  Defined.
+
+  Lemma cumul_addon_fmap R R' pb Γ Γ' t u T T' :
+    [(H : Σ ;;; Γ | Γ' ⊢ t ≤c[pb] u ▹ T | T' with R)] ->
+    [(X pb Γ Γ' t u T T' : R pb Γ Γ' t u T T' -> R' pb Γ Γ' t u T T')] ->
+    Σ ;;; Γ | Γ' ⊢ t ≤c[pb] u ▹ T | T' with R'.
+  Proof.
+    intros H X.
+    induction H.
+    all: now econstructor; eauto using infer_red2_fmap.
+  Defined.
+
+  Lemma cumul_addon_clos R Γ Γ' t u T T' :
+    Σ ;;; Γ | Γ' ⊢ t ≤c[Conv] u ▹ T | T' with R ->
+    Σ ;;; Γ | Γ' ⊢ t ~ u ▹ T | T' with R Conv, eq_binder_annot, eq_sort Σ.
+  Proof.
+    induction 1.
+    all: now econstructor.
+  Defined.
+
+  Lemma cumul_addon_clos_fmap R R' Γ Γ' t u T T' :
+    [(H : Σ ;;; Γ | Γ' ⊢ t ≤c[Conv] u ▹ T | T' with R)] ->
+    [(X Γ Γ' t u T T' : R Conv Γ Γ' t u T T' -> R' Γ Γ' t u T T')] ->
+    Σ ;;; Γ | Γ' ⊢ t ~ u ▹ T | T' with R', eq_binder_annot, eq_sort Σ.
+  Proof.
+    intros H X.
+    induction H.
+    all: now econstructor; eauto using infer_red2_fmap.
+  Defined.
+
+  Lemma cumul_addon_clos_on R R' Γ Γ' t u T T' :
+    [(p : Σ ;;; Γ | Γ' ⊢ t ≤c[Conv] u ▹ T | T' with R)] ->
+    [(H : Σ ;;; Γ | Γ' ⊢ t ≤c[Conv] u ▹ T | T' on p with R')] ->
+    Σ ;;; Γ | Γ' ⊢ t ~ u ▹ T | T' on (ltac:(apply cumul_addon_clos with (1 := p))) with R' Conv.
+  Proof.
+    intros p H.
+    induction H.
+    all: now econstructor.
+  Qed.
+
+
+  Lemma cumul_addon_clos_onε R R' R'' Γ Γ' t u T T' :
+    [(p : Σ ;;; Γ | Γ' ⊢ t ≤c[Conv] u ▹ T | T' with R)] ->
+    [(H : Σ ;;; Γ | Γ' ⊢ t ≤c[Conv] u ▹ T | T' on p with R')] ->
+    [(X Γ Γ' t u T T' H : R' Conv Γ Γ' t u T T' H -> R'' Γ Γ' t u T T' H)] ->
+    Σ ;;; Γ | Γ' ⊢ t ~ u ▹ T | T' on (ltac:(apply cumul_addon_clos with (1 := p))) with R''.
+  Proof.
+    intros p H X.
+    induction H.
+    all: try now econstructor; eauto with fmap.
+  Defined.
+  End Σ.
+
+  Hint Resolve cumul_addon_toε cumul_addon_ofε cumul_addonε_fmap : fmap.
+
+  Inductive equality {cf TC RedW} Σ pb Γ Γ' t t' T T' :=
+    | eq_sprop T₀ :
+        [(XT₀ : Σ ;;; Γ ⊢ T₀ ▹□ sSProp)] ->
+        [(Xt : Σ ;;; Γ ⊢ t ▹ T)] ->
+        [(Xt' : Σ ;;; Γ' ⊢ t' ▹ T')] ->
+        [(XT : Σ ;;; Γ ⊢ T ≤T T₀)] ->
+        [(XT' : Σ ;;; Γ' ⊢ T' ≤T T₀)] ->
+        Σ ;;; Γ | Γ' ⊢ t <=[pb] t' ▹ T | T'
+
+    | eq_cumul_addon :
+        [(X : Σ ;;; Γ | Γ' ⊢ t ≤c[pb] t' ▹ T | T' with equality Σ)] ->
+        Σ ;;; Γ | Γ' ⊢ t <=[pb] t' ▹ T | T'
+
+    | eq_clos :
+        [(X : Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' with equality Σ Conv, eq_binder_annot, eq_sort Σ)] ->
+        Σ ;;; Γ | Γ' ⊢ t <=[pb] t' ▹ T | T'
+  where "Σ ;;; Γ | Γ' ⊢ t <=[ pb ] t' ▹ T | T'" := (equality Σ pb Γ Γ' t t' T T').
+  Derive Signature for equality.
+
+  Definition equality_rect cf TC RedW Σ P :
+    [(XSProp pb Γ Γ' t t' T T' T₀ :
+        [(Xt : Σ ;;; Γ ⊢ t ▹ T)] ->
+        [(Xt' : Σ ;;; Γ' ⊢ t' ▹ T')] ->
+        [(XT : Σ ;;; Γ ⊢ T ≤T T₀)] ->
+        [(XT' : Σ ;;; Γ' ⊢ T' ≤T T₀)] ->
+        [(XT₀ : Σ ;;; Γ ⊢ T₀ ▹□ sSProp)] ->
+        P pb Γ Γ' t t' T T' ⌈eq_sprop⌋)] ->
+
+    [(XCumulAddon pb Γ Γ' t t' T T' :
+        [(X : Σ ;;; Γ | Γ' ⊢ t ≤c[pb] t' ▹ T | T' with equality Σ)] ->
+        [(IX : Σ ;;; Γ | Γ' ⊢ t ≤c[pb] t' ▹ T | T' on X with P)] ->
+        P pb Γ Γ' t t' T T' ⌈eq_cumul_addon⌋)] ->
+
+    [(XClosure pb Γ Γ' t t' T T' :
+        [(X : Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' with equality Σ Conv, eq_binder_annot, eq_sort Σ)] ->
+        [(IX : Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' on X with P Conv)] ->
+        P pb Γ Γ' t t' T T' ⌈eq_clos⌋)] ->
+
+    forall pb Γ Γ' t t' T T', [(X : Σ ;;; Γ | Γ' ⊢ t <=[pb] t' ▹ T | T')] -> P pb Γ Γ' t t' T T' X.
+  Proof.
+    intros ???.
+    fix Xrec 8.
+    intros ??????? H; destruct H.
+    - eapply XSProp; eauto.
+    - eapply XCumulAddon; eauto with fmap.
+    - eapply XClosure; eauto with fmap.
+  Defined.
+
+  Definition equality_Conv_rect cf TC RedW Σ P :
+    [(XSProp Γ Γ' t t' T T' T₀ :
+        [(Xt : Σ ;;; Γ ⊢ t ▹ T)] ->
+        [(Xt' : Σ ;;; Γ' ⊢ t' ▹ T')] ->
+        [(XT : Σ ;;; Γ ⊢ T ≤T T₀)] ->
+        [(XT' : Σ ;;; Γ' ⊢ T' ≤T T₀)] ->
+        [(XT₀ : Σ ;;; Γ ⊢ T₀ ▹□ sSProp)] ->
+        P Γ Γ' t t' T T' ⌈eq_sprop⌋)] ->
+
+    [(XClosure Γ Γ' t u T T' H :
+        [(X : Σ ;;; Γ | Γ' ⊢ t ~ u ▹ T | T' with equality Σ Conv, eq_binder_annot, eq_sort Σ)] ->
+        [(IX : Σ ;;; Γ | Γ' ⊢ t ~ u ▹ T | T' on X with P)] ->
+        P Γ Γ' t u T T' H)] ->
+
+    forall Γ Γ' t t' T T', [(X : Σ ;;; Γ | Γ' ⊢ t <=[Conv] t' ▹ T | T')] -> P Γ Γ' t t' T T' X.
+  Proof.
+    intros ?? ?????? X.
+    dependent induction X.
+    - eapply XSProp; eauto.
+    - eapply cumul_addon_clos_on in IX.
+      eapply XClosure.
+      now eapply context_closureε_fmap in IX.
+    - eapply XClosure. eauto with fmap.
+  Defined.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  Definition infer_alt_rect TC RedW Σ P :
+    [(XClosure Γ t T :
+        [(X : Σ ;;; Γ | Γ ⊢ t ~ t ▹ T | T with P, eq, eq)] ->
+        P Γ Γ t t T T)] ->
+    forall Γ t T, [(X : Σ ;;; Γ ⊢ t ▹ T)] -> P Γ Γ t t T T.
+  Proof.
+    intros ?.
+    set XX :=
+    let Pcheck Γ t T := Σ ;;; Γ | Γ ⊢ t ~R t ◃ T | T with P in
+    let Pinfersort Γ t s := Σ ;;; Γ | Γ ⊢ t ~R t ▹↘ tSort s | tSort s with P in
+    let Pj Γ j := lift_sorting1 Pcheck Pinfersort Γ j in
+    {|
+      Pinfer Γ t T := P Γ Γ t t T T;
+      Pinfer_red Γ t T := Σ ;;; Γ | Γ ⊢ t ~R t ▹↘ T | T with P;
+      Pcheck := Pcheck;
+      Pj := Pj;
+      PΓ Γ := True;
+    |}.
+    eenough (X : BidirTypingElimResult Σ XX).
+    1: by eapply (BDXinfer _ _ X).
+    eapply bidir_ind; cbn; subst XX; unfold Pinfersort, Pcheck; auto; intros.
+    all: try match goal with H : lift_sorting _ _ _ |- _ => destruct H as (_ & ?s & H & e & ?Hs); cbn in H, Hs, e; subst end.
+    all: try solve [ try eapply XClosure; econstructor; eauto with fmap ].
+  Defined.
+
+
+  (*
+  Class PredConfluencePrecondition {TC} Σ := {
+    PC_pred_subst10 Γ na A t t' u u' T :
+      Σ ;;; Γ ,, vass na A ⊢ t ≡>1 t' : T ->
+      Σ ;;; Γ ⊢ u ≡>1 u' : A ->
+      Σ ;;; Γ ⊢ t {0 := u} ≡>1 t' {0 := u'} : T {0 := u};
+    (* PC_TypedRefl :: TypedReflexivity (pred1 Σ) Σ; *)
+    PC_LeftTyping :: LeftTyping (pred1 Σ) Σ;
+    PC_cmp_subst10 :: TCFromCompareSubst10 Σ (pred1 Σ);
+    PC_CC :: ContextComparator;
+    PC_change_context :: ContextChangeable2 (pred1 Σ) Σ;
+    PC_trefl :: CCTypedRefl PC_CC TC Σ;
+    PC_TCCC :: TCIsCmpType Σ;
+    PC_imp_cmp_type :: RevImpliesTC Σ (pred1 Σ);
+    PC_TCFromCompareSort :: TCFromCompareSort Σ eq;
+    PC_prod_injectivity Γ T na' A' B' : Σ ;;; Γ ⊢ T ≤* tProd na' A' B' ->
+      ∑ na A B, T = tProd na A B × eq_binder_annot na na' × Σ ;;; Γ ⊢ A' ≤* A × Σ ;;; Γ ,, vass na A ⊢ B ≤* B';
+    PC_TCFromCompareProd :: TCFromCompareProd Σ (pred1 Σ);
+    PC_TCFromCompareSubst10 :: TCFromCompareSubst10 Σ (pred1 Σ);
+    }.
+  Arguments PredConfluencePrecondition : clear implicits.
+
+  Class ProdInjectivity TC Σ := {
+    Prod_invert Γ na na' A A' B B' :
+      Σ ;;; Γ ⊢ tProd na A B ≤* tProd na' A' B' ->
+      eq_binder_annot na na' × Σ ;;; Γ ⊢ A' ≤* A × Σ ;;; Γ ⊢ A ≤* A' × Σ ;;; Γ ,, vass na A ⊢ B ≤* B';
+  }. *)
+
+  (* Lemma pred1_wf_local TC Σ Γ t u T :
+    Σ ;;; Γ ⊢ t ≡>1 u : T ->
+    wf_local Σ Γ.
+  Proof.
+    induction 1 => //.
+    - induction X => //.
+    - induction X => //.
+  Qed. *)
+
+  Class RedW_reflexive RedW Σ := {
+    RedW_refl_prod Γ na A B : Σ ;;; Γ ⊢ tProd na A B ~>Π(na : A), B;
+    RedW_refl_sort Γ s : Σ ;;; Γ ⊢ tSort s ~>□ s;
+    }.
+
+  Section InferClasses.
+  Context {TC RedW} Σ.
+
+  Context {RedW_refl : RedW_reflexive RedW Σ}.
+  Context {RedW_inj : BidirUniquePrecondition RedW Σ}.
+
+  Lemma LeftInfer_infer_red2 P P' Γ Γ' (t t' T T' : term) :
+    [(onP' Γ Γ' t t' T T' H : P' Γ Γ' t t' T T' H -> Σ ;;; Γ ⊢ t ▹ T)] ->
+    [(H : Σ ;;; Γ | Γ' ⊢ t ~R t' ▹↘ T | T' with P)] ->
+    [(X : Σ ;;; Γ | Γ' ⊢ t ~R' t' ▹↘ T | T' on H with P')] ->
+    Σ ;;; Γ ⊢ t ▹↘ T.
+  Proof.
+    intros ???.
+    destruct X.
+    econstructor; eauto.
+  Qed.
+
+  Lemma RightInfer_infer_red2 P P' Γ Γ' (t t' T T' : term) :
+    [(onP' Γ Γ' t t' T T' H : P' Γ Γ' t t' T T' H -> Σ ;;; Γ' ⊢ t' ▹ T')] ->
+    [(H : Σ ;;; Γ | Γ' ⊢ t ~R t' ▹↘ T | T' with P)] ->
+    [(X : Σ ;;; Γ | Γ' ⊢ t ~R' t' ▹↘ T | T' on H with P')] ->
+    Σ ;;; Γ' ⊢ t' ▹↘ T'.
+  Proof.
+    intros ???.
+    destruct X.
+    econstructor; eauto.
+  Qed.
+
+  Lemma LeftInfer_check2 P P' Γ Γ' (t t' T T' : term) :
+    [(onP' Γ Γ' t t' T T' H : P' Γ Γ' t t' T T' H -> Σ ;;; Γ ⊢ t ▹ T)] ->
+    [(H : Σ ;;; Γ | Γ' ⊢ t ~R t' ◃ T | T' with P)] ->
+    [(X : Σ ;;; Γ | Γ' ⊢ t ~R' t' ◃ T | T' on H with P')] ->
+    Σ ;;; Γ ⊢ t ◃ T.
+  Proof.
+    intros ???.
+    destruct X.
+    econstructor; eauto.
+  Qed.
+
+  Lemma RightInfer_check2 P P' Γ Γ' (t t' T T' : term) :
+    [(onP' Γ Γ' t t' T T' H : P' Γ Γ' t t' T T' H -> Σ ;;; Γ' ⊢ t' ▹ T')] ->
+    [(H : Σ ;;; Γ | Γ' ⊢ t ~R t' ◃ T | T' with P)] ->
+    [(X : Σ ;;; Γ | Γ' ⊢ t ~R' t' ◃ T | T' on H with P')] ->
+    Σ ;;; Γ' ⊢ t' ◃ T'.
+  Proof.
+    intros ???.
+    destruct X.
+    econstructor; eauto.
+  Qed.
+
+
+
+  Instance LeftInfer_red0 : LeftInfer (red0 Σ) Σ.
+  Proof.
+    constructor. induction 1.
+    - econstructor; tea.
+      econstructor; tea.
+      + econstructor; tea.
+        apply infering_wf_local_bd in Xt. by depelim Xt.
+      + apply RedW_refl_prod.
+  Qed.
+
+  Lemma LeftInfer_headcontext1 P P' Γ t u T :
+    [(onP' t u T H : P' t u T H -> Σ ;;; Γ ⊢ t ▹ T)] ->
+    [(H : Σ ;;; Γ ⊢ t ~h1 u ▹ T with P)] ->
+    Σ ;;; Γ ⊢ t ~h1 u ▹ T on H with P' ->
+    Σ ;;; Γ ⊢ t ▹ T.
+  Proof.
+    destruct 2.
+    - apply onP' in IXt.
+      econstructor; tea. econstructor; tea.
+  Qed.
+
+  Instance LeftInfer_head_context_clos' P : LeftInfer P Σ -> LeftInfer (fun Γ => head_context1_closure Σ Γ (P Γ)) Σ.
+  Proof.
+    constructor.
+    intros; unshelve eapply LeftInfer_headcontext1; revgoals; tea; revgoals.
+    - intros; exact True.
+    - cbn; intros. by apply infer_left in H.
+    - eauto with fmap.
+  Qed.
+
+  Instance LeftInfer_hred1 : LeftInfer (hred1 Σ) Σ.
+  Proof.
+    constructor.
+    intros *H.
+    induction H. destruct X.
+    - by eapply infer_left in X.
+    - eapply LeftInfer_headcontext1; tea.
+      by intros ???? [].
+  Qed.
+
+  Instance LeftInfer_hred : LeftInfer (hred Σ) Σ.
+  Proof.
+    constructor. induction 1.
+    - assumption.
+    - by eapply infer_left in Xr.
+  Qed.
+
+  Lemma LeftInfer_elim_clos P P' Pα Ps Γ t u T :
+    [(onP' Γ t u T H : P' Γ t u T H -> Σ ;;; Γ ⊢ t ▹ T)] ->
+    [(H : Σ ;;; Γ ⊢ t ~e u ▹ T with P, Pα, Ps)] ->
+    Σ ;;; Γ ⊢ t ~e u ▹ T on H with P' ->
+    Σ ;;; Γ ⊢ t ▹ T.
+  Proof.
+    intros ? H X.
+    induction X.
+    - by constructor.
+    - apply onP' in IXA, IXt.
+      econstructor; tea.
+      repeat (eexists; cbn; tea).
+    - apply onP' in IXu.
+      repeat (econstructor; tea).
+    - apply onP' in IXA, IXB.
+      repeat (econstructor; tea).
+    - constructor; tas.
+  Qed.
+
+  Instance LeftInfer_elim_clos' P Pα Ps : LeftInfer P Σ -> LeftInfer (elimination_context_closure Σ P Pα Ps) Σ.
+  Proof.
+    constructor.
+    intros; unshelve eapply LeftInfer_elim_clos; revgoals; tea; revgoals.
+    - intros; exact True.
+    - cbn; intros. by apply infer_left in H.
+    - eauto with fmap.
+  Qed.
+
+  Instance LeftInfer_standard_red : LeftInfer (standard_red Σ) Σ.
+  Proof.
+    constructor. destruct 1.
+    by apply infer_left in h.
+  Qed.
+
+
+  Lemma LeftInfer_pred0 P P' Γ Γ' (t t' T T' : term) :
+    [(onP' Γ Γ' t t' T T' H : P' Γ Γ' t t' T T' H -> Σ ;;; Γ ⊢ t ▹ T)] ->
+    [(H : Σ ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T' with P)] ->
+    [(X : Σ ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T' on H with P')] ->
+    Σ ;;; Γ ⊢ t ▹ T.
+  Proof.
+    intros ???.
+    destruct X.
+    - econstructor; eauto.
+      2: now eapply LeftInfer_check2.
+      eapply LeftInfer_infer_red2 in IXA; tea.
+      econstructor. 1: econstructor; eauto.
+      + repeat (eexists; tea).
+      + eapply RedW_refl_prod.
+  Qed.
+
+  Instance LeftInfer_pred0' P : LeftInfer2 P Σ -> LeftInfer2 (pred0 Σ P) Σ.
+  Proof.
+    constructor.
+    intros; unshelve eapply LeftInfer_pred0; revgoals; tea; revgoals.
+    - intros; exact True.
+    - cbn; intros. by eapply infer_left2 in H.
+    - eauto with fmap.
+  Qed.
+
+  Lemma RightInfer_pred0 P P' Γ Γ' (t t' T T' : term) :
+    [(onP' Γ Γ' t t' T T' H : P' Γ Γ' t t' T T' H -> Σ ;;; Γ' ⊢ t' ▹ T')] ->
+    [(H : Σ ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T' with P)] ->
+    [(X : Σ ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T' on H with P')] ->
+    Σ ;;; Γ' ⊢ t' ▹ T'.
+  Proof.
+    intros ???.
+    destruct X.
+    - assumption.
+  Qed.
+
+  Instance RightInfer_pred0' P : RightInfer2 P Σ -> RightInfer2 (pred0 Σ P) Σ.
+  Proof.
+    constructor.
+    intros; unshelve eapply RightInfer_pred0; revgoals; tea; revgoals.
+    - intros; exact True.
+    - cbn; intros. by eapply infer_right2 in H.
+    - eauto with fmap.
+  Qed.
+
+  Lemma LeftInfer_clos P P' Pα Ps Γ Γ' t u T T' :
+    [(onP' Γ Γ' t u T T' H : P' Γ Γ' t u T T' H -> Σ ;;; Γ ⊢ t ▹ T)] ->
+    [(H : Σ ;;; Γ | Γ' ⊢ t ~ u ▹ T | T' with P, Pα, Ps)] ->
+    Σ ;;; Γ | Γ' ⊢ t ~ u ▹ T | T' on H with P' ->
+    Σ ;;; Γ ⊢ t ▹ T.
+  Proof.
+    destruct 2.
+    - by constructor.
+    - apply LeftInfer_infer_red2 in IXA; tea.
+      apply onP' in IXt.
+      econstructor; tea.
+      repeat (eexists; cbn; tea).
+    - apply LeftInfer_infer_red2 in IXt; tea.
+      apply LeftInfer_check2 in IXu; tea.
+      repeat (econstructor; tea).
+    - apply LeftInfer_infer_red2 in IXA, IXB; tea.
+      repeat (econstructor; tea).
+    - constructor; tas.
+  Qed.
+
+  Instance LeftInfer_clos' P Pα Ps : LeftInfer2 P Σ -> LeftInfer2 (context_closure Σ P Pα Ps) Σ.
+  Proof.
+    constructor.
+    intros; unshelve eapply LeftInfer_clos; revgoals; tea; revgoals.
+    - intros; exact True.
+    - cbn; intros. by apply infer_left2 in H.
+    - eauto with fmap.
+  Qed.
+
+  Lemma RightInfer_clos P P' Pα Ps Γ Γ' t t' T T' :
+    [(onP' Γ Γ' t t' T T' H : P' Γ Γ' t t' T T' H -> Σ ;;; Γ' ⊢ t' ▹ T')] ->
+    [(H : Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' with P, Pα, Ps)] ->
+    Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' on H with P' ->
+    Σ ;;; Γ' ⊢ t' ▹ T'.
+  Proof.
+    destruct 2.
+    - by constructor.
+    - apply RightInfer_infer_red2 in IXA; tea.
+      apply onP' in IXt.
+      econstructor; tea.
+      repeat (eexists; cbn; tea).
+    - apply RightInfer_infer_red2 in IXt; tea.
+      apply RightInfer_check2 in IXu; tea.
+      repeat (econstructor; tea).
+    - apply RightInfer_infer_red2 in IXA, IXB; tea.
+      repeat (econstructor; tea).
+    - constructor; tas.
+  Qed.
+
+  Instance RightInfer_clos' P Pα Ps : RightInfer2 P Σ -> RightInfer2 (context_closure Σ P Pα Ps) Σ.
+  Proof.
+    constructor.
+    intros; unshelve eapply RightInfer_clos; revgoals; tea; revgoals.
+    - intros; exact True.
+    - cbn; intros. by apply infer_right2 in H.
+    - eauto with fmap.
+  Qed.
+
+  Instance LeftInfer_pred1 : LeftInfer2 (pred1 Σ) Σ.
+  Proof.
+    constructor.
+    intros *H. induction H. destruct X.
+    - eapply LeftInfer_pred0; tea. by intros ??????? [].
+    - eapply LeftInfer_clos; tea. by intros ??????? [].
+  Qed.
+
+  Instance RightInfer_pred1 : RightInfer2 (pred1 Σ) Σ.
+  Proof.
+    constructor.
+    intros *H. induction H. destruct X.
+    - eapply RightInfer_pred0; tea. by intros ??????? [].
+    - eapply RightInfer_clos; tea. by intros ??????? [].
+  Qed.
+
+  Instance LeftInfer_pred : LeftInfer2 (pred Σ) Σ.
+  Proof.
+    constructor.
+    intros *H. induction H.
+    - by eapply infer_left2 in Ht.
+    - assumption.
+  Qed.
+
+  Instance RightInfer_pred : RightInfer2 (pred Σ) Σ.
+  Proof.
+    constructor.
+    intros *H. induction H.
+    - by eapply infer_right2 in Ht.
+    - assumption.
+  Qed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  Lemma pred1_trefl Γ t T :
+    Σ ;;; Γ ⊢ t ▹ T ->
+    Σ ;;; Γ | Γ ⊢ t ≡>1 t ▹ T | T.
+  Proof.
+    induction 1 using infer_alt_rect with (P := pred1 Σ).
+    eapply pred1_clos; eauto with fmap.
+  Qed.
+
+(*
+
+
+  Lemma context_closure_retyping {TC} Σ Ps Pα P P' Γ t u T T' :
+    [(onP Γ t u T T' : P Γ t u T -> Σ ;;; Γ ⊢ t : T' -> P' Γ t u T')] ->
+    [(onPs Γ s s' : Ps s s' -> wf_sort Σ s -> wf_sort Σ s' -> Σ ;;; Γ ⊢ tSort (Sort.super s') ≤* tSort (Sort.super s))] ->
+    [(X : Σ ;;; Γ ⊢ t ~ u : T with P, Pα, Ps)] ->
+    Σ ;;; Γ ⊢ t : T' ->
+    ∑ T0, Σ ;;; Γ ⊢ T0 ≤* T' ×
+    Σ ;;; Γ ⊢ t ~ u : T0 with P', Pα, Ps.
+  Proof.
+    intros onP onPs X X'.
+    induction X in X', T'.
+    all: dependent induction X' using typing_elim.
+    1-4: eexists; split; [eassumption|].
+    - now econstructor.
+    - destruct X as (_ & s' & XA' & _ & Xs').
+      econstructor; now eauto.
+    - econstructor; eauto.
+    - destruct X as (_ & s1' & XA' & <- & Xs').
+      econstructor; now eauto.
+    - eexists; split.
+      2: now econstructor.
+      eapply TCI_trans; tea.
+      now eapply onPs.
+  Qed.
+
+  Lemma pred1_retyping TC Σ (Pre : ProdInjectivity TC Σ) Γ t u T T' :
+    Σ ;;; Γ ⊢ t ≡>1 u : T ->
+    Σ ;;; Γ ⊢ t : T' ->
+    Σ ;;; Γ ⊢ t ≡>1 u : T'.
+  Proof.
+    induction 1 in T'.
+    - intro X'.
+      induction X => //.
+      + dependent induction X' using typing_elim.
+        eapply TCI_elim; tc; tea.
+        apply pred1_pred0, pred0_beta; tas.
+        dependent induction X'1 using typing_elim.
+        apply Prod_invert in X0 as (_ & _ & _ & X0).
+        eapply TCI_elim; tc; revgoals; tea.
+        eauto.
+    - eauto.
+    - apply context_closure_ofε in X; clear H.
+      intro X'.
+      eapply context_closure_retyping in X as (T0 & HT & X); tea.
+      + eapply TCI_elim; tc; tea.
+        now apply pred1_clos.
+      + auto.
+      + intros ??? <- ??. constructor.
+  Qed. *)
+
+  Fixpoint ρ t :=
+    match t with
+    | tApp (tLambda na A t) u => (ρ t) {0 := ρ u}
+    | tApp t u => tApp (ρ t) (ρ u)
+    | tLambda na A t => tLambda na (ρ A) (ρ t)
+    | tProd na A B => tProd na (ρ A) (ρ B)
+    | tSort s => tSort s
+    | t => t
+    end.
+
+
+  Lemma pred1_rho (* (Pre : PredConfluencePrecondition TC Σ) *) Γ t T :
+    Σ ;;; Γ ⊢ t ▹ T ->
+    ∑ T', Σ ;;; Γ | map_context ρ Γ ⊢ t ≡>1 ρ t ▹ T | T' × Σ ;;; Γ ⊢ T' ≤T? T.
+  Proof.
+    (* induction 1 using infer_alt_rect.
+    depelim X; cbn.
+    - eexists. apply pred1_clos. econstructor; tea.
+      1: admit.
+      rewrite /map_context nth_error_map hnth //=.
+    - destruct XA as [T₀ T₀'].
+      destruct Xt as [B' Xt].
+      eexists. apply pred1_clos. econstructor; tas.
+      4: eassumption.
+      +
+
+    all: try solve [ eexists; apply pred1_clos; now econstructor; eauto with fmap ].
+    + cbn.
+      destruct IXt as [[T' IXt] ?].
+      eexists; apply pred1_clos; econstructor; eauto with fmap.
+    + cbn.
+      assert (Xdef : ∑ T', Σ ;;; Γ | Γ ⊢ tApp t u ≡>1 tApp (ρ t) (ρ u) ▹ B {0 := u} | T').
+      { destruct IXt as [??? [[T' IXt] _]]. destruct IXu as [??? [[T'' IXu] _]].
+        eexists; eapply pred1_clos, clos_app.
+        * econstructor. 1: eassumption. 1: eassumption. 1: admit. *  }
+      destruct t => //.
+      destruct IXt as [??? [_ IXt]].
+      destruct IXt.
+      1: by depelim X.
+      depelim IX.
+      destruct IXt as [[T' IXt] _].
+      apply PC_prod_injectivity in XT as (?&?&? & [= <- <- <-] & eqna & XTA & XTB).
+      apply typing_left in XA as XAt.
+      apply pred1_pred0, pred0_beta; tas.
+      (* * by repeat (eexists; cbn; tea).
+      * eapply TCI_elim; tea.
+        1: now econstructor.
+      * eapply TCI_elim; tea.
+        1: now econstructor. *)
+    + subst s'.
+      apply pred1_clos; now econstructor. *)
+  Abort.
+
+
+  Lemma pred1_triangle (* (Pre : PredConfluencePrecondition TC Σ) *) Γ Γ' t u T T' :
+    Σ ;;; Γ | Γ' ⊢ t ≡>1 u ▹ T | T' ->
+    Σ ;;; Γ' | Γ ⊢ u ≡>1 ρ t ▹ T' | T.
+  Proof.
+    (* intro H.
+    induction H. destruct X.
+    - induction IX.
+      + cbn.
+        eapply pred1_cumul.
+        * now eapply PC_pred_subst10.
+        * eapply PC_cmp_subst10; tea.
+    - have Xdef : Σ ;;; Γ ⊢ u ≡>1 map_term1 (fun _ => ρ) Γ t : T.
+      {
+        eapply context_closure_sym_map_term1 with (f := fun _ => ρ) in X; tc; try apply Pre; auto.
+        - eapply TCI_elim'; tea; tc.
+          by apply pred1_clos.
+        - constructor; intros. now eapply pred1_wf_local.
+        - by intros ?? ->.
+      }
+      induction X; cbn in Xdef |- *; try by apply Xdef.
+
+      + destruct t => //.
+        dependent induction Xt using pred1_elim.
+        1: by depelim X.
+        depelim X. subst na'.
+        dependent induction IXt using pred1_elim.
+        1: by depelim X.
+        depelim X.
+        apply PC_prod_injectivity in XT as (?&?&? & [= <- <- <-] & eqna & XTA & XTB).
+        apply PC_prod_injectivity in XT0 as (?&?&? & [= <- <- <-] & eqna' & XTA' & XTB').
+        apply typing_left in XA as XAt.
+        cbn.
+        eapply pred1_cumul.
+        2: by eapply TC_from_compare_subst10; eassumption.
+        apply pred1_pred0, pred0_beta; tas.
+        * by repeat (eexists; cbn; tea).
+        * eapply TCI_elim; tea.
+          1: now econstructor.
+        * eapply TCI_elim; tea.
+          1: now econstructor. *)
+  Abort.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  (*
+  Context {BDSubst : TypingSubstPrecondition TC RedW Σ}.
+
+  Lemma RightInferTOR_head_context1_closure P P' Γ t u T :
+    [(onP' Γ t u T H : P' Γ t u T H -> Σ ;;; Γ ⊢ u ◃? T)] ->
+    [(H : Σ ;;; Γ ⊢ t ~h1 u ▹ T with P)] ->
+    [(X : Σ ;;; Γ ⊢ t ~h1 u ▹ T on H with P')] ->
+    Σ ;;; Γ ⊢ u ◃? T.
+  Proof.
+    intros.
+    induction X.
+    - apply onP' in IXt.
+      apply infer_congr_to_TOR; tc.
+      econstructor; tea.
+      eapply infer_TOR_RedW; tea; tc.
+  Qed.
+
+  Instance RightInferTOR_head_context_clos' P : RightInferTOR P Σ -> RightInferTOR (head_context1_closure Σ P) Σ.
+  Proof.
+    constructor.
+    intros; unshelve eapply RightInferTOR_head_context1_closure; revgoals; tea; revgoals.
+    - intros; exact True.
+    - cbn; intros. by apply infer_opt_right in H.
+    - eauto with fmap.
+  Qed.
+
+  Lemma RightInferTOR_context_closure P P' Pα Ps Γ t u T :
+    [(onPs Γ s s' : wf_local_bd Σ Γ -> wf_sort Σ s -> wf_sort Σ s' -> Ps s s' -> Σ ;;; Γ ⊢ tSort (Sort.super s') ≤T? tSort (Sort.super s))] ->
+    [(onP' Γ t u T H : P' Γ t u T H -> Σ ;;; Γ ⊢ u ◃? T)] ->
+    [(H : Σ ;;; Γ ⊢ t ~ u ▹ T with P, Pα, Ps)] ->
+    [(X : Σ ;;; Γ ⊢ t ~ u ▹ T on H with P')] ->
+    Σ ;;; Γ ⊢ u ◃? T.
+  Proof.
+    intros.
+    induction X.
+    - econstructor. 2: constructor.
+      by constructor.
+    - apply infer_congr_to_TOR; tc. admit; econstructor.
+
+    - apply onP' in IXt.
+      apply infer_congr_to_TOR; tc.
+      econstructor; tea.
+      eapply infer_TOR_RedW; tea; tc.
+    -
+    - econstructor.
+      1: by constructor.
+      by eapply onPs; tas.
+  Qed.
+
+  Instance RightInferTOR_head_context_clos' P : RightInferTOR P Σ -> RightInferTOR (head_context1_closure Σ P) Σ.
+  Proof.
+    constructor.
+    intros; unshelve eapply RightInferTOR_head_context1_closure; revgoals; tea; revgoals.
+    - intros; exact True.
+    - cbn; intros. by apply infer_opt_right in H.
+    - eauto with fmap.
+  Qed.
+
+  Instance RightInferTOR_red0 : RightInferTOR (fun Γ t u T => Σ ;;; Γ ⊢ t ~>0 u ▹ T) Σ.
+  Proof.
+    constructor.
+    induction 1.
+    - eapply infer_subst with (Δ := [_]); tea.
+      repeat constructor.
+      rewrite subst_empty //.
+  Qed.
+
+  Instance RightInferTOR_hred1 : RightInferTOR (fun Γ t u T => Σ ;;; Γ ⊢ t ~>h u ▹ T) Σ.
+  Proof.
+    constructor.
+    induction 1.
+    - now eapply infer_opt_right.
+    - now apply RightInferTOR_head_context1_closure in Xtu.
+  Qed. *)
+
+
+
+
+
+  Definition stred_hred1 Γ t u v T T' : Σ ;;; Γ ⊢ t ~>h u ▹ T -> Σ ;;; Γ ⊢ u =>s v ▹ T' -> Σ ;;; Γ ⊢ t =>s v ▹ T.
+  Proof.
+    intros h [u' T'' h' X].
+    exists u' T''; tea.
+    now eapply hred_step.
+  Defined.
+
+  Definition stred_hred Γ t u v T T' : Σ ;;; Γ ⊢ t ~>h* u ▹ T -> Σ ;;; Γ ⊢ u =>s v ▹ T' -> Σ ;;; Γ ⊢ t =>s v ▹ T.
+  Proof.
+    induction 1.
+    - intro. apply infer_left in X as H'.
+      eapply infer_unique with (2 := Ht) in H' as <-. 2: tc.
+      assumption.
+    - intro. eapply stred_hred1; eauto.
+  Defined.
+
+  Definition stred_clos Γ t u T : Σ ;;; Γ ⊢ t ~e u ▹ T with standard_red Σ, eq, eq -> Σ ;;; Γ ⊢ t =>s u ▹ T.
+  Proof.
+    intro X.
+    exists t T; tas. apply hred_refl. by apply infer_left in X.
+  Defined.
+
+
+
+  Lemma red0_discriminate Γ t u T :
+    Σ ;;; Γ ⊢ t ~>0 u ▹ T ->
+    red0_discr t.
+  Proof.
+    induction 1 => //=.
+  Qed.
+
+  Lemma hred1_discriminate Γ t u T :
+    Σ ;;; Γ ⊢ t ~>h u ▹ T ->
+    hred1_discr t.
+  Proof.
+    intro H.
+    induction H. destruct X.
+    - induction X => //.
+    - induction IX => //=.
+      now destruct t.
+  Qed.
+
+  Lemma hred_discriminate Γ t u T :
+    Σ ;;; Γ ⊢ t ~>h* u ▹ T ->
+    ~~ hred1_discr t ->
+    t = u.
+  Proof.
+    induction 1 using hred_rect => //=.
+    apply hred1_discriminate in Xr as ->.
+    intro => //.
+  Qed.
+
+  Lemma head_context1_discriminate Γ t u T :
+    Σ ;;; Γ ⊢ t ~h1 u ▹ T with hred1 Σ Γ ->
+    head_context1_discr t.
+  Proof.
+    induction 1 => //=.
+    now eapply hred1_discriminate.
+  Qed.
+
+  Lemma red0_inj Γ t u T u' T' :
+    Σ ;;; Γ ⊢ t ~>0 u ▹ T ->
+    Σ ;;; Γ ⊢ t ~>0 u' ▹ T' ->
+    u = u'.
+  Proof.
+    induction 1 in u' => //=; eauto.
+    intro H.
+    depelim H; eauto.
+  Qed.
+
+  Lemma hred1_inj Γ t u T u' T' :
+    Σ ;;; Γ ⊢ t ~>h u ▹ T ->
+    Σ ;;; Γ ⊢ t ~>h u' ▹ T' ->
+    u = u'.
+  Proof.
+    intro H.
+    induction H in T', u'. destruct X.
+    - apply red0_discriminate in X as h.
+      destruct 1.
+      + now eapply red0_inj.
+      + exfalso; eapply head_red0_discr; tea.
+        by apply head_context1_discriminate in X0.
+    - apply head_context1_discriminate in X as H.
+      destruct 1.
+      + exfalso; eapply head_red0_discr; tea.
+        by apply red0_discriminate in X0.
+      + destruct IX; depelim X0.
+        f_equal.
+        eapply IXt; eassumption.
+  Qed.
+
+  Lemma hred_inj Γ t u T u' T' :
+    Σ ;;; Γ ⊢ t ~>h* u ▹ T ->
+    Σ ;;; Γ ⊢ t ~>h* u' ▹ T' ->
+    ~~ hred1_discr u -> ~~ hred1_discr u' ->
+    u = u'.
+  Proof.
+    intros X X' H H'.
+    induction X in u', T', H, X', H' using hred_rect.
+    - by apply hred_discriminate in X'.
+    - destruct X'.
+      + apply hred1_discriminate in Xr.
+        now rewrite Xr in H'.
+      + eapply IHX; tas.
+        eapply hred1_inj with (1 := Xr0) in Xr as ->; tea.
+  Qed.
+
+  Lemma stred_nhred_inv Γ t u T :
+    ~~ hred1_discr t ->
+    Σ ;;; Γ ⊢ t =>s u ▹ T ->
+    Σ ;;; Γ ⊢ t ~e u ▹ T with standard_red Σ, eq, eq.
+  Proof.
+    intros H [u' T' h X].
+    apply infer_left in h as Xt.
+    apply hred_discriminate in h as <-; tas.
+    apply infer_left in X as Xt'.
+    eapply infer_unique with (2 := Xt) in Xt' as <-; tc.
+    assumption.
+  Qed.
+
+  Variable (PreLift : TCLift TC RedW Σ) (PreLift' : RedWLift TC RedW Σ).
+
+  Lemma head_context_closure_lift P {PreInfer : LeftInfer P Σ} P' Γ Δ Γ' t u T :
+    [(onP' Γ' t u T H : P' (Γ ,,, Γ') t u T H ->
+      P (Γ ,,, Δ,,, lift_context #|Δ| 0 Γ') (lift #|Δ| #|Γ'| t) (lift #|Δ| #|Γ'| u) (lift #|Δ| #|Γ'| T))] ->
+    wf_local_bd_rel Σ Γ Δ ->
+    [(H : Σ ;;; Γ ,,, Γ' ⊢ t ~h1 u ▹ T with P)] ->
+    [(X : Σ ;;; Γ ,,, Γ' ⊢ t ~h1 u ▹ T on H with P')] ->
+    Σ ;;; Γ ,,, Δ ,,, lift_context #|Δ| 0 Γ' ⊢ lift #|Δ| #|Γ'| t ~h1 lift #|Δ| #|Γ'| u ▹ lift #|Δ| #|Γ'| T with P.
+  Proof.
+    intros ? wfΔ H X.
+    eapply (BDXΓ _ _ (global_infer_lift _ _ _ _ _)) in wfΔ as wfΔ'; trea.
+    2: now clear X; eapply infer_left, infering_wf_local_bd in H.
+    destruct X; cbn.
+    - rewrite distr_lift_subst /=.
+      econstructor; eauto.
+      + now eapply RedW_lift with (B := tProd _ _ _).
+      + now eapply check_lift.
+  Qed.
+
+  Lemma context_closure_lift P {PreInfer : LeftInfer P Σ} P' Pα Ps Γ Δ Γ' t u T :
+    [(onP' Γ' t u T H : P' (Γ ,,, Γ') t u T H ->
+      P (Γ ,,, Δ,,, lift_context #|Δ| 0 Γ') (lift #|Δ| #|Γ'| t) (lift #|Δ| #|Γ'| u) (lift #|Δ| #|Γ'| T))] ->
+    wf_local_bd_rel Σ Γ Δ ->
+    [(H : Σ ;;; Γ ,,, Γ' ⊢ t ~ u ▹ T with P, Pα, Ps)] ->
+    [(X : Σ ;;; Γ ,,, Γ' ⊢ t ~ u ▹ T on H with P')] ->
+    Σ ;;; Γ ,,, Δ ,,, lift_context #|Δ| 0 Γ' ⊢ lift #|Δ| #|Γ'| t ~ lift #|Δ| #|Γ'| u ▹ lift #|Δ| #|Γ'| T with P, Pα, Ps.
+  Proof.
+    intros ? wfΔ H X.
+    eapply (BDXΓ _ _ (global_infer_lift _ _ _ _ _)) in wfΔ as wfΔ'; trea.
+    2: now clear X; eapply infer_left, infering_wf_local_bd in H.
+    destruct X; cbn.
+    - relativize (lift _ _ _).
+      1: constructor; tas.
+      + rewrite -(lift_context_length #|Δ| 0 Γ') nth_error_insertion nth_error_app.
+        rewrite lift_context_length nth_error_lift_context_eq.
+        instantiate (1 := if #|Γ'| <=? n then _ else _).
+        rewrite nth_error_app in hnth.
+        destruct (leb_spec_Set #|Γ'| n); cbn; tea. rewrite hnth //=.
+      + destruct (leb_spec_Set #|Γ'| n); cbn.
+        * rewrite simpl_lift //=; lia_f_equal.
+        * rewrite permute_lift //=; lia_f_equal.
+    - econstructor; eauto.
+      + now eapply RedW_lift with (B := tSort _).
+      + eapply onP' with (Γ' := Γ' ,, _) in IXt.
+        rewrite lift_context_snoc //= Nat.add_0_r //= in IXt.
+    - rewrite distr_lift_subst /=.
+      econstructor; eauto.
+      + now eapply RedW_lift with (B := tProd _ _ _).
+      + now eapply TC_lift.
+    - econstructor; eauto.
+      + now eapply RedW_lift with (B := tSort _).
+      + eapply onP' with (Γ' := Γ' ,, _) in IXB.
+        rewrite lift_context_snoc //= Nat.add_0_r //= in IXB.
+        apply IXB.
+      + eapply RedW_lift with (Γ' := _ ,, _) (B := tSort _) in XT'; trea; revgoals.
+        * eapply (BDXΓ _ _ (global_infer_lift _ _ _ _ _)); trea.
+          now clear IXB; eapply infer_left, infering_wf_local_bd in XB.
+        * rewrite lift_context_snoc //= Nat.add_0_r //= in XT'.
+    - constructor; tas.
+  Qed.
+
+  Lemma red0_lift Γ Δ Γ' t u T :
+    wf_local_bd_rel Σ Γ Δ ->
+    Σ ;;; Γ ,,, Γ' ⊢ t ~>0 u ▹ T ->
+    Σ ;;; Γ ,,, Δ ,,, lift_context #|Δ| 0 Γ' ⊢ lift #|Δ| #|Γ'| t ~>0 lift #|Δ| #|Γ'| u ▹ lift #|Δ| #|Γ'| T.
+  Proof.
+    intros wfΔ H.
+    induction H; cbn.
+    - rewrite !distr_lift_subst /=.
+      constructor.
+      + eapply (BDXj _ _ (global_infer_lift _ _ _ _ _) _ (j_vass na A)); trea.
+        eapply (BDXΓ _ _ (global_infer_lift _ _ _ _ _)); trea.
+        now eapply checking_wf_local_bd.
+      + eapply infer_lift with (Γ' := _ ,, _) in Xt; trea.
+        rewrite /= lift_context_snoc //= Nat.add_0_r // in Xt.
+      + eapply check_lift in Xu; trea.
+  Qed.
+
+  Lemma hred1_lift Γ Δ Γ' t u T :
+    wf_local_bd_rel Σ Γ Δ ->
+    Σ ;;; Γ ,,, Γ' ⊢ t ~>h u ▹ T ->
+    Σ ;;; Γ ,,, Δ ,,, lift_context #|Δ| 0 Γ' ⊢ lift #|Δ| #|Γ'| t ~>h lift #|Δ| #|Γ'| u ▹ lift #|Δ| #|Γ'| T.
+  Proof.
+    intros wfΔ H. rename Γ into Γ₀.
+    remember (Γ₀ ,,, Γ') as Γ eqn:e.
+    induction H in Γ', e.
+    - constructor.
+      now eapply red0_lift.
+    - econstructor 2. subst Γ.
+      eapply head_context_closure_lift; tea; tc.
+      by eauto.
+  Qed.
+
+  Lemma hred_lift Γ Δ Γ' t u T :
+    wf_local_bd_rel Σ Γ Δ ->
+    Σ ;;; Γ ,,, Γ' ⊢ t ~>h* u ▹ T ->
+    Σ ;;; Γ ,,, Δ ,,, lift_context #|Δ| 0 Γ' ⊢ lift #|Δ| #|Γ'| t ~>h* lift #|Δ| #|Γ'| u ▹ lift #|Δ| #|Γ'| T.
+  Proof.
+    intros wfΔ H.
+    induction H.
+    - constructor.
+      eapply infer_lift; tas.
+    - econstructor 2.
+      2: by eauto.
+      now eapply hred1_lift.
+  Qed.
+
+  Lemma stred_lift Γ Δ Γ' t u T :
+    wf_local_bd_rel Σ Γ Δ ->
+    Σ ;;; Γ ,,, Γ' ⊢ t =>s u ▹ T ->
+    Σ ;;; Γ ,,, Δ ,,, lift_context #|Δ| 0 Γ' ⊢ lift #|Δ| #|Γ'| t =>s lift #|Δ| #|Γ'| u ▹ lift #|Δ| #|Γ'| T.
+  Proof.
+    intros wfΔ H. rename Γ into Γ₀.
+    remember (Γ₀ ,,, Γ') as ΓΓ' eqn:e.
+    induction H in Γ', e. subst Γ. destruct X.
+    econstructor.
+    - now eapply hred_lift.
+    - eapply context_closure_lift; tea; tc.
+      cbn.
+      intros ????? H. apply H. reflexivity.
+  Qed.
+
+  (*
+  Lemma stred_subst s s' k t u :
+    All2 (fun t u => t =>s u) s s' ->
+    t =>s u ->
+    subst s k t =>s subst s' k u.
+  Proof.
+    intro Hs.
+    induction 1 in k. destruct X0.
+    eapply stred_hred with (subst s k t').
+    - clear Htu Xtu.
+      induction h in k.
+      + by constructor.
+      + eapply hred_step; eauto.
+        clear h IHh.
+        induction H in k.
+        * eapply hred1_red0.
+          induction H in k.
+          --cbn. relativize (subst _ _ (_ {0 := _})).
+            1: constructor.
+            rewrite distr_subst //=.
+        * eapply hred1_clos.
+          destruct Xtu.
+          --cbn.
+            by constructor.
+    - destruct Xtu; repeat match goal with H : _ × _ |- _ => destruct H as [?H ?H] end.
+      all: try solve [ eexists (subst s k _); [by apply hred_refl|]; cbn; by constructor ].
+      * cbn.
+        rewrite -(All2_length Hs).
+        destruct (leb_spec_Set k n).
+        2: by eexists; [by apply hred_refl|]; cbn; by constructor.
+        destruct nth_error eqn:hnth.
+        2: { eapply All2_nth_error_None in Hs as ->; tea. by eexists; [by apply hred_refl|]; cbn; by constructor. }
+        eapply All2_nth_error_Some in Hs as (t' & -> & Ht); tea.
+        by eapply stred_lift.
+  Qed. *)
+
+
+  Lemma stred_step Γ t u v T T' : Σ ;;; Γ ⊢ t =>s u ▹ T -> Σ ;;; Γ ⊢ u ≡>1 v ▹ T' -> Σ ;;; Γ ⊢ t =>s v ▹ T.
+  Proof.
+    intros Xtu Xuv.
+    induction Xtu in v, T', Xuv. destruct X.
+    eapply stred_hred with (T' := T'0); tea. clear t T h; rename t' into t, T'0 into T.
+    destruct Xuv.
+    - destruct X0 as [na' A₀' A' t' t'' T' u' u'' Xj Xt' Xu' XTA'].
+      depelim IX.
+      specialize (IXu.1 _ _ ltac:(eassumption)). clear IXu Xu Xu'. intro Xu.
+      apply snd in IXt. rename t0 into t₀, T0 into T₀.
+      destruct IXt as [t T h Xt IXt].
+      apply stred_hred with (tApp t u) T.
+      1: {
+        have {} Xu : Σ ;;; Γ ⊢ u ◃ A
+          by econstructor; tea; eapply infer_left in Xu; [> eapply Xu|..]; tea.
+        clear -h XT Xu.
+        induction h in XT |- *.
+        - constructor. econstructor; tea. now econstructor.
+        - econstructor 2; eauto. constructor 2. by constructor. }
+      clear t0 h; rename t'0 into t.
+      depelim Xtu.
+      specialize (IXt.1 _ ltac:(eassumption)) as Xt'. clear IXA IXt Xt0 XA Xt.
+      eapply stred_hred1.
+      + econstructor. constructor.
+      + apply stred_subst; tea. repeat (constructor; tea).
+    - destruct Xtu; repeat match goal with H : _ × _ |- _ => destruct H as [?H ?H] end.
+      all: depelim X.
+      + apply stred_clos; constructor.
+      + apply stred_clos; constructor; eauto. congruence.
+      + apply stred_clos; constructor; eauto.
+      + apply stred_clos; constructor; eauto. congruence.
+      + apply stred_clos; constructor. congruence.
+  Qed.
+
+  Lemma stred_init TC Σ Γ t T : Σ ;;; Γ ⊢ t : T -> t =>s t.
+  Proof.
+    induction 1 using typing_rect with (PΓ := fun _ => True) (Pj := fun Γ => lift_wf_term (fun t => t =>s t)) => //.
+    - destruct X0 as (? & ? & ? & ?); cbn in *.
+      split; tas.
+    - apply stred_clos; constructor.
+    - apply stred_clos; constructor; eauto.
+    - apply stred_clos; constructor; eauto.
+      apply IHX.
+    - apply stred_clos; constructor; eauto.
+      apply IHX.
+    - apply stred_clos; constructor; eauto.
+  Qed.
+
+
+
+
+
+
+
+
+
+
+
+End Heterogenous.
 
 Section Closure.
 Local Set Elimination Schemes.
@@ -5767,926 +10095,6 @@ Hint Resolve context_closure_toεε context_closureεε_fmap cumul_addon_toεε 
 
 
 
-
-
-
-Module Export InferTypeTrial.
-
-Section Closure.
-Local Set Elimination Schemes.
-
-Context {TC RedW} Σ.
-Variable (R : forall (Γ : context) (t t' T : term), Type).
-Notation "Σ ;;; Γ ⊢ t ~R t' ▹ T " := (R Γ t t' T) (only parsing).
-Variable (R' : forall Γ t t' T, Σ ;;; Γ ⊢ t ~R t' ▹ T -> Type).
-Notation "Σ ;;; Γ ⊢ t ~R' t' ▹ T 'on' H" := (R' Γ t t' T H) (only parsing).
-
-Inductive red0 Γ : forall (t t' T : term), Type :=
-  | red0_beta na A t T u :
-      [(Xj : wf_judgment_bd Σ Γ (j_vass na A))] ->
-      [(Xt : Σ ;;; Γ ,, vass na A ⊢ t ▹ T)] ->
-      [(Xu : Σ ;;; Γ ⊢ u ◃ A)] ->
-      Σ ;;; Γ ⊢ tApp (tLambda na A t) u ~>0 t { 0 := u } ▹ T { 0 := u }
-where " Σ ;;; Γ ⊢ t ~>0 t' ▹ T " := (@red0 Γ t t' T) (only parsing).
-Derive Signature for red0.
-
-Inductive pred0 Γ : forall (t t' T : term), Type :=
-  | pred0_beta na A₀ A t t' T u u' :
-      [(Xj : wf_judgment_bd Σ Γ (j_vass na A))] ->
-      [(Xt : Σ ;;; Γ ,, vass na A ⊢ t ~R t' ▹ T)] ->
-      [(Xu : Σ ;;; Γ ⊢ u ~R u' ▹ A₀)] ->
-      [(XTA : Σ ;;; Γ ⊢ A₀ ≤T A)] ->
-      Σ ;;; Γ ⊢ tApp (tLambda na A t) u ≡>0 t' { 0 := u' } ▹ T { 0 := u }
-where " Σ ;;; Γ ⊢ t ≡>0 t' ▹ T " := (@pred0 Γ t t' T) (only parsing).
-Derive Signature for pred0.
-Locate pred0_beta.
-Inductive pred0ε Γ : forall (t t' T : term), Σ ;;; Γ ⊢ t ≡>0 t' ▹ T -> Type :=
-  | pred0ε_beta na A₀ A t t' T u u' :
-      [(Xj: wf_judgment_bd Σ Γ (j_vass na A))] ->
-      [(Xt : Σ ;;; Γ ,, vass na A ⊢ t ~R t' ▹ T)] ->
-      [(IXt : Σ ;;; Γ ,, vass na A ⊢ t ~R' t' ▹ T on Xt)] ->
-      [(Xu : Σ ;;; Γ ⊢ u ~R u' ▹ A₀)] ->
-      [(IXu : Σ ;;; Γ ⊢ u ~R' u' ▹ A₀ on Xu)] ->
-      [(XT : Σ ;;; Γ ⊢ A₀ ≤T A)] ->
-      Σ ;;; Γ ⊢ tApp (tLambda na A t) u ≡>0 t' { 0 := u' } ▹ T { 0 := u } on ⌈pred0_beta⌋ with R'
-where " Σ ;;; Γ ⊢ t ≡>0 t' ▹ T 'on' p 'with' R'" := (@pred0ε Γ t t' T p) (only parsing).
-Derive Signature for pred0ε.
-
-
-Inductive context_closure Rα Rs Γ : forall (t t' T : term), Type :=
-  | clos_rel n decl :
-      [(wfΓ : wf_local_bd Σ Γ)] ->
-      [(hnth : nth_error Γ n = Some decl)] ->
-      Σ ;;; Γ ⊢ tRel n ~ tRel n ▹ lift0 (S n) decl.(decl_type)
-
-  | clos_lambda na na' A A' t t' T S s :
-      [(Xα : Rα na na')] ->
-      [(XA : Σ ;;; Γ ⊢ A ~R A' ▹ S)] ->
-      [(XT : Σ ;;; Γ ⊢ S ~>□ s)] ->
-      [(Xs : isSortRel s na.(binder_relevance))] ->
-      [(Xt : Σ ;;; Γ ,, vass na A ⊢ t ~R t' ▹ T)] ->
-      Σ ;;; Γ ⊢ tLambda na A t ~ tLambda na' A' t' ▹ tProd na A T
-
-  | clos_app A₀ T na A B t t' u u' :
-      [(Xt : Σ ;;; Γ ⊢ t ~R t' ▹ T)] ->
-      [(XT : Σ ;;; Γ ⊢ T ~>Π(na : A), B)] ->
-      [(Xu : Σ ;;; Γ ⊢ u ~R u' ▹ A₀)] ->
-      [(XTA : Σ ;;; Γ ⊢ A₀ ≤T A)] ->
-      Σ ;;; Γ ⊢ tApp t u ~ tApp t' u' ▹ B { 0 := u }
-
-  | clos_prod na na' A A' B B' S s S' s' :
-      [(Xα : Rα na na')] ->
-      [(XA : Σ ;;; Γ ⊢ A ~R A' ▹ S)] ->
-      [(XT : Σ ;;; Γ ⊢ S ~>□ s)] ->
-      [(Xs : isSortRel s na.(binder_relevance))] ->
-      [(XB : Σ ;;; Γ ,, vass na A ⊢ B ~R B' ▹ S')] ->
-      [(XT' : Σ ;;; Γ ,, vass na A ⊢ S' ~>□ s')] ->
-      Σ ;;; Γ ⊢ tProd na A B ~ tProd na' A' B' ▹ tSort (Sort.sort_of_product s s')
-
-  | clos_sort s s' :
-      [(wfΓ : wf_local_bd Σ Γ)] ->
-      [(wfs : wf_sort Σ s)] ->
-      [(wfs': wf_sort Σ s')] ->
-      [(Xs : Rs s s')] ->
-      Σ ;;; Γ ⊢ tSort s ~ tSort s' ▹ tSort (Sort.super s)
-where " Σ ;;; Γ ⊢ t ~ t' ▹ T " := (context_closure _ _ Γ t t' T) (only parsing).
-Notation " Σ ;;; Γ ⊢ t ~ t' ▹ T 'with' R , R' , R'' " := (@context_closure R' R'' Γ t t' T) (only parsing).
-Derive Signature for context_closure.
-
-Inductive context_closureε Rα Rs Γ : forall (t t' T : term), Σ ;;; Γ ⊢ t ~ t' ▹ T with R, Rα, Rs -> Type :=
-  | closε_rel n decl :
-      [(wfΓ : wf_local_bd Σ Γ)] ->
-      [(hnth : nth_error Γ n = Some decl)] ->
-      Σ ;;; Γ ⊢ tRel n ~ tRel n ▹ lift0 (S n) decl.(decl_type) on ⌈clos_rel⌋ with R'
-
-  | closε_lambda na na' A A' t t' T S s :
-      [(Xα : Rα na na')] ->
-      [(XA : Σ ;;; Γ ⊢ A ~R A' ▹ S)] ->
-      [(IXA : Σ ;;; Γ ⊢ A ~R' A' ▹ S on XA)] ->
-      [(XT : Σ ;;; Γ ⊢ S ~>□ s)] ->
-      [(Xs : isSortRel s na.(binder_relevance))] ->
-      [(Xt : Σ ;;; Γ ,, vass na A ⊢ t ~R t' ▹ T)] ->
-      [(IXt : Σ ;;; Γ ,, vass na A ⊢ t ~R' t' ▹ T on Xt)] ->
-      Σ ;;; Γ ⊢ tLambda na A t ~ tLambda na' A' t' ▹ tProd na A T on ⌈clos_lambda⌋ with R'
-
-  | closε_app A₀ T na A B t t' u u' :
-      [(Xt : Σ ;;; Γ ⊢ t ~R t' ▹ T)] ->
-      [(IXt : Σ ;;; Γ ⊢ t ~R' t' ▹ T on Xt)] ->
-      [(XT : Σ ;;; Γ ⊢ T ~>Π(na : A), B)] ->
-      [(Xu : Σ ;;; Γ ⊢ u ~R u' ▹ A₀)] ->
-      [(IXu : Σ ;;; Γ ⊢ u ~R' u' ▹ A₀ on Xu)] ->
-      [(XTA : Σ ;;; Γ ⊢ A₀ ≤T A)] ->
-      Σ ;;; Γ ⊢ tApp t u ~ tApp t' u' ▹ B { 0 := u } on ⌈clos_app⌋ with R'
-
-  | closε_prod na na' A A' B B' S s S' s' :
-      [(Xα : Rα na na')] ->
-      [(Xα : Rα na na')] ->
-      [(XA : Σ ;;; Γ ⊢ A ~R A' ▹ S)] ->
-      [(IXA : Σ ;;; Γ ⊢ A ~R' A' ▹ S on XA)] ->
-      [(XT : Σ ;;; Γ ⊢ S ~>□ s)] ->
-      [(Xs : isSortRel s na.(binder_relevance))] ->
-      [(XB : Σ ;;; Γ ,, vass na A ⊢ B ~R B' ▹ S')] ->
-      [(IXB : Σ ;;; Γ ,, vass na A ⊢ B ~R' B' ▹ S' on XB)] ->
-      [(XT' : Σ ;;; Γ ,, vass na A ⊢ S' ~>□ s')] ->
-      Σ ;;; Γ ⊢ tProd na A B ~ tProd na' A' B' ▹ tSort (Sort.sort_of_product s s') on ⌈clos_prod⌋ with R'
-
-  | closε_sort s s' :
-      [(wfΓ : wf_local_bd Σ Γ)] ->
-      [(wfs : wf_sort Σ s)] ->
-      [(wfs': wf_sort Σ s')] ->
-      [(Xs : Rs s s')] ->
-      Σ ;;; Γ ⊢ tSort s ~ tSort s' ▹ tSort (Sort.super s) on ⌈clos_sort⌋ with R'
-where " Σ ;;; Γ ⊢ t ~ t' ▹ T 'on' p 'with' R'" := (context_closureε _ _ Γ t t' T p) (only parsing).
-Derive Signature for context_closureε.
-
-
-Inductive head_context1_closure Γ : forall (t t' T : term), Type :=
-  | hclos1_app T na A B t t' u :
-      [(Xt : Σ ;;; Γ ⊢ t ~R t' ▹ T)] ->
-      [(XT : Σ ;;; Γ ⊢ T ~>Π(na : A), B)] ->
-      [(Xu : Σ ;;; Γ ⊢ u ◃ A)] ->
-      Σ ;;; Γ ⊢ tApp t u ~h1 tApp t' u ▹ B { 0 := u }
-where " Σ ;;; Γ ⊢ t ~h1 t' ▹ T " := (head_context1_closure Γ t t' T) (only parsing).
-Derive Signature for head_context1_closure.
-
-Inductive head_context1_closureε Γ : forall (t t' T : term), Σ ;;; Γ ⊢ t ~h1 t' ▹ T -> Type :=
-  | hclos1ε_app T na A B t t' u :
-      [(Xt : Σ ;;; Γ ⊢ t ~R t' ▹ T)] ->
-      [(IXt : Σ ;;; Γ ⊢ t ~R' t' ▹ T on Xt)] ->
-      [(XT : Σ ;;; Γ ⊢ T ~>Π(na : A), B)] ->
-      [(Xu : Σ ;;; Γ ⊢ u ◃ A)] ->
-      Σ ;;; Γ ⊢ tApp t u ~h1 tApp t' u ▹ B { 0 := u } on ⌈hclos1_app⌋ with R'
-where " Σ ;;; Γ ⊢ t ~h1 t' ▹ T 'on' p 'with' R'" := (head_context1_closureε Γ t t' T p) (only parsing).
-End Closure.
-
-(* Begin Closure renotations *)
-  Notation " Σ ;;; Γ ⊢ t ~>0 t' ▹ T " := (red0 Σ Γ t t' T).
-  Notation " Σ ;;; Γ ⊢ t ≡>0 t' ▹ T " := (pred0 Σ _ Γ t t' T).
-  Notation " Σ ;;; Γ ⊢ t ≡>0 t' ▹ T 'on' p 'with' R'" := (pred0ε Σ _ R' Γ t t' T p).
-  Notation " Σ ;;; Γ ⊢ t ≡>0 t' ▹ T 'with' R " := (pred0 Σ R Γ t t' T) (only parsing).
-  Notation " Σ ;;; Γ ⊢ t ~ t' ▹ T " := (context_closure Σ _ _ _ Γ t t' T).
-  Notation " Σ ;;; Γ ⊢ t ~ t' ▹ T 'with' R , R' , R'' " := (context_closure Σ R R' R'' Γ t t' T) (only parsing).
-  Notation " Σ ;;; Γ ⊢ t ~ t' ▹ T 'on' p 'with' R'" := (context_closureε Σ _ R' _ _ Γ t t' T p).
-  Notation " Σ ;;; Γ ⊢ t ~h1 t' ▹ T " := (head_context1_closure Σ _ Γ t t' T).
-  Notation " Σ ;;; Γ ⊢ t ~h1 t' ▹ T 'with' R " := (head_context1_closure Σ R Γ t t' T) (only parsing).
-  Notation " Σ ;;; Γ ⊢ t ~h1 t' ▹ T 'on' p 'with' R'" := (head_context1_closureε Σ _ R' Γ t t' T p).
-(* End Closure notations *)
-
-Section InferClasses.
-Context {TC RedW} Σ.
-
-Lemma pred0_toε R R' Γ t t' T :
-  [(p : Σ ;;; Γ ⊢ t ≡>0 t' ▹ T with R)] ->
-  [(X Γ t t' T : [(H : R Γ t t' T)] -> R' Γ t t' T H)] ->
-  Σ ;;; Γ ⊢ t ≡>0 t' ▹ T on p with R'.
-Proof.
-  intros H X.
-  induction H.
-  all: try now econstructor.
-Defined.
-
-Lemma pred0_ofε R R' Γ t t' T :
-  [(p : Σ ;;; Γ ⊢ t ≡>0 t' ▹ T with R)] ->
-  [(X : Σ ;;; Γ ⊢ t ≡>0 t' ▹ T on p with (fun Γ t t' T _ => R' Γ t t' T))] ->
-  Σ ;;; Γ ⊢ t ≡>0 t' ▹ T with R'.
-Proof.
-  intros.
-  induction X.
-  all: now econstructor.
-Defined.
-
-Lemma pred0ε_fmap R R' R'' Γ t t' T :
-  [(p : Σ ;;; Γ ⊢ t ≡>0 t' ▹ T with R)] ->
-  [(H : Σ ;;; Γ ⊢ t ≡>0 t' ▹ T on p with R')] ->
-  [(X Γ t t' T H : R' Γ t t' T H -> R'' Γ t t' T H)] ->
-  Σ ;;; Γ ⊢ t ≡>0 t' ▹ T on p with R''.
-Proof.
-  intros p H X.
-  induction H.
-  all: try now econstructor.
-Defined.
-
-Lemma context_closure_toε R R' Rα Rs Γ t t' T :
-  [(p : Σ ;;; Γ ⊢ t ~ t' ▹ T with R, Rα, Rs)] ->
-  [(X Γ t t' T : [(H : R Γ t t' T)] -> R' Γ t t' T H)] ->
-  Σ ;;; Γ ⊢ t ~ t' ▹ T on p with R'.
-Proof.
-  intros H X.
-  induction H.
-  all: try now econstructor.
-Defined.
-
-Lemma context_closure_ofε R R' Rα Rs Γ t t' T :
-  [(p : Σ ;;; Γ ⊢ t ~ t' ▹ T with R, Rα, Rs)] ->
-  [(X : Σ ;;; Γ ⊢ t ~ t' ▹ T on p with (fun Γ t t' T _ => R' Γ t t' T))] ->
-  Σ ;;; Γ ⊢ t ~ t' ▹ T with R', Rα, Rs.
-Proof.
-  intros.
-  induction X.
-  all: try now econstructor.
-Defined.
-
-Lemma context_closureε_fmap R R' R'' Rα Rs Γ t t' T :
-  [(p : Σ ;;; Γ ⊢ t ~ t' ▹ T with R, Rα, Rs)] ->
-  [(H : Σ ;;; Γ ⊢ t ~ t' ▹ T on p with R')] ->
-  [(X Γ t t' T H : R' Γ t t' T H -> R'' Γ t t' T H)] ->
-  Σ ;;; Γ ⊢ t ~ t' ▹ T on p with R''.
-Proof.
-  intros p H X.
-  induction H.
-  all: try now econstructor.
-Defined.
-
-Lemma context_closure_fmap R R' Rα Rs Rα' Rs' Γ t t' T :
-  [(H : Σ ;;; Γ ⊢ t ~ t' ▹ T with R, Rα, Rs)] ->
-  [(X Γ t t' T : R Γ t t' T -> R' Γ t t' T)] ->
-  [(Xα na na' : Rα na na' -> Rα' na na')] ->
-  [(Xs s s' : Rs s s' -> Rs' s s')] ->
-  Σ ;;; Γ ⊢ t ~ t' ▹ T with R', Rα', Rs'.
-Proof.
-  intros H X Xα Xs.
-  induction H.
-  all: try now econstructor.
-Defined.
-
-Lemma head_context1_closure_toε R R' Γ t t' T :
-  [(p : Σ ;;; Γ ⊢ t ~h1 t' ▹ T with R)] ->
-  [(X Γ t t' T : [(H : R Γ t t' T)] -> R' Γ t t' T H)] ->
-  Σ ;;; Γ ⊢ t ~h1 t' ▹ T on p with R'.
-Proof.
-  intros H X.
-  induction H.
-  all: try now econstructor.
-Defined.
-
-Lemma head_context1_closure_ofε R R' Γ t t' T :
-  [(p : Σ ;;; Γ ⊢ t ~h1 t' ▹ T with R)] ->
-  [(X : Σ ;;; Γ ⊢ t ~h1 t' ▹ T on p with fun Γ t t' T _ => R' Γ t t' T)] ->
-  Σ ;;; Γ ⊢ t ~h1 t' ▹ T with R'.
-Proof.
-  intros.
-  induction X.
-  all: try now econstructor.
-Defined.
-
-Lemma head_context1_closureε_fmap R R' R'' Γ t t' T :
-  [(p : Σ ;;; Γ ⊢ t ~h1 t' ▹ T with R)] ->
-  [(H : Σ ;;; Γ ⊢ t ~h1 t' ▹ T on p with R')] ->
-  [(X Γ t t' T H : R' Γ t t' T H -> R'' Γ t t' T H)] ->
-  Σ ;;; Γ ⊢ t ~h1 t' ▹ T on p with R''.
-Proof.
-  intros p H X.
-  induction H.
-  all: try now econstructor.
-Defined.
-End InferClasses.
-
-Hint Resolve pred0_toε pred0_ofε pred0ε_fmap
-  context_closure_toε context_closure_ofε context_closureε_fmap
-  head_context1_closure_toε head_context1_closure_ofε head_context1_closureε_fmap
-  : fmap.
-
-
-Inductive hred1 {TC RedW} Σ Γ t u T :=
-  | hred1_red0 :
-      [(X : Σ ;;; Γ ⊢ t ~>0 u ▹ T)] ->
-      Σ ;;; Γ ⊢ t ~>h u ▹ T
-
-  | hred1_clos1 :
-      [(X : Σ ;;; Γ ⊢ t ~h1 u ▹ T with hred1 Σ)] ->
-      Σ ;;; Γ ⊢ t ~>h u ▹ T
-where "Σ ;;; Γ ⊢ t ~>h t' ▹ T" := (hred1 Σ Γ t t' T).
-Derive Signature for hred1.
-
-Definition hred1_rect TC RedW Σ P :
-  [(XRed0 Γ t u T : [(H : Σ ;;; Γ ⊢ t ~>0 u ▹ T)] -> P Γ t u T ⌈hred1_red0⌋)] ->
-  [(XClosure Γ t u T :
-      [(Htu : Σ ;;; Γ ⊢ t ~h1 u ▹ T with hred1 Σ)] ->
-      [(Xtu : Σ ;;; Γ ⊢ t ~h1 u ▹ T on Htu with P)] ->
-      P Γ t u T ⌈hred1_clos1⌋)] ->
-
-  forall Γ t u T, [(X : Σ ;;; Γ ⊢ t ~>h u ▹ T)] -> P Γ t u T X.
-Proof.
-  intros.
-  revert Γ t u T X.
-  fix Xrec 5.
-  intros Γ t u T X; destruct X.
-  - apply XRed0; eauto.
-  - unshelve eapply XClosure; eauto with fmap.
-Defined.
-Definition hred1_ind := hred1_rect.
-
-Inductive hred {TC RedW} Σ Γ : forall (t t' T : term), Type :=
-  | hred_refl t T :
-      [(Xt : Σ ;;; Γ ⊢ t ▹ T)] ->
-      Σ ;;; Γ ⊢ t ~>h* t ▹ T
-
-  | hred_step t u v T T' :
-      [(Xt : Σ ;;; Γ ⊢ t ~>h u ▹ T)] ->
-      [(Xu : Σ ;;; Γ ⊢ u ~>h* v ▹ T')] ->
-      Σ ;;; Γ ⊢ t ~>h* v ▹ T
-where " Σ ;;; Γ ⊢ t ~>h* t' ▹ T " := (hred Σ Γ t t' T).
-
-Derive Signature for hred.
-
-Definition hred_rect TC RedW Σ Γ P :
-  [(XRefl t T :
-      [(Xt : Σ ;;; Γ ⊢ t ▹ T)] ->
-      P t t T ⌈hred_refl⌋)] ->
-  [(XStep t u v T T' :
-      [(Xt : Σ ;;; Γ ⊢ t ~>h u ▹ T)] ->
-      [(Xu : Σ ;;; Γ ⊢ u ~>h* v ▹ T')] ->
-      P u v T' Xu ->
-      P t v T ⌈hred_step⌋)] ->
-  forall t u T, [(X : Σ ;;; Γ ⊢ t ~>h* u ▹ T)] -> P t u T X.
-Proof.
-  intros.
-  revert t u T X.
-  fix Xrec 4.
-  intros t u T X; destruct X.
-  - apply XRefl; eauto with fmap.
-  - eapply XStep; eauto.
-Defined.
-
-
-Inductive pred1 {TC RedW} Σ Γ t u T : Type :=
-  | pred1_pred0 :
-      [(X : Σ ;;; Γ ⊢ t ≡>0 u ▹ T with pred1 Σ)] ->
-      Σ ;;; Γ ⊢ t ≡>1 u ▹ T
-
-  | pred1_clos :
-      [(X : Σ ;;; Γ ⊢ t ~ u ▹ T with pred1 Σ, eq, eq)] ->
-      Σ ;;; Γ ⊢ t ≡>1 u ▹ T
-where " Σ ;;; Γ ⊢ t ≡>1 t' ▹ T " := (pred1 Σ Γ t t' T).
-Derive Signature for pred1.
-
-Definition pred1_rect TC RedW Σ P :
-  [(XPred0 Γ t u T :
-      [(H : Σ ;;; Γ ⊢ t ≡>0 u ▹ T with pred1 Σ)] ->
-      [(X : Σ ;;; Γ ⊢ t ≡>0 u ▹ T on H with P)] ->
-      P Γ t u T ⌈pred1_pred0⌋)] ->
-  [(XClosure Γ t u T :
-      [(H : Σ ;;; Γ ⊢ t ~ u ▹ T with pred1 Σ, eq, eq)] ->
-      [(X : Σ ;;; Γ ⊢ t ~ u ▹ T on H with P)] ->
-      P Γ t u T ⌈pred1_clos⌋)] ->
-
-  forall Γ t u T, [(X : Σ ;;; Γ ⊢ t ≡>1 u ▹ T)] -> P Γ t u T X.
-Proof.
-  intros.
-  revert Γ t u T X.
-  fix Xrec 5.
-  intros Γ t u T X; destruct X.
-  - unshelve eapply XPred0; eauto with fmap.
-  - unshelve eapply XClosure; tea. now eauto with fmap.
-Defined.
-
-
-Inductive standard_red {TC RedW} Σ Γ t u T :=
-  | stredc t' T' :
-    [(h : Σ ;;; Γ ⊢ t ~>h* t' ▹ T)] ->
-    [(X : Σ ;;; Γ ⊢ t' ~ u ▹ T' with standard_red Σ, eq, eq)] ->
-    Σ ;;; Γ ⊢ t =>s u ▹ T
-where "Σ  ;;; Γ ⊢ t =>s t' ▹ T" := (standard_red Σ Γ t t' T).
-Derive Signature for standard_red.
-
-
-Inductive standard_redε {TC RedW} Σ (R : forall Γ t t' T, Σ  ;;; Γ ⊢ t =>s t' ▹ T -> Type) Γ t u T : Σ ;;; Γ ⊢ t =>s u ▹ T -> Type :=
-  | stredcε t' T' :
-    [(h : Σ ;;; Γ ⊢ t ~>h* t' ▹ T)] ->
-    [(X : Σ ;;; Γ ⊢ t' ~ u ▹ T' with standard_red Σ, eq, eq)] ->
-    [(IX : Σ ;;; Γ ⊢ t' ~ u ▹ T' on X with (fun Γ t t' T H => R Γ t t' T H × standard_redε Σ R Γ t t' T H))] ->
-    Σ ;;; Γ ⊢ t =>s u ▹ T on ⌈stredc⌋ with R
-
-where "Σ  ;;; Γ ⊢ t =>s t' ▹ T 'on' H 'with' R" := (standard_redε Σ R Γ t t' T H).
-Derive Signature for standard_redε.
-
-
-Definition standard_red_rect TC RedW Σ P :
-  [(X Γ t u T H : [(X : Σ ;;; Γ ⊢ t =>s u ▹ T on H with P)] -> P Γ t u T H)] ->
-  forall Γ t u T, [(H : Σ ;;; Γ ⊢ t =>s u ▹ T)] -> P Γ t u T H.
-Proof.
-  intros ? Γ t u T H.
-  apply X.
-  revert Γ t u T H.
-  fix Xrec 5.
-  intros Γ t u T H. destruct H.
-  constructor.
-  eapply context_closure_toε; intros; split; eauto.
-Defined.
-Definition standard_red_ind := standard_red_rect.
-
-Class RedW_reflexive RedW Σ := {
-  RedW_refl_prod Γ na A B : Σ ;;; Γ ⊢ tProd na A B ~>Π(na : A), B;
-  RedW_refl_sort Γ s : Σ ;;; Γ ⊢ tSort s ~>□ s;
-  }.
-
-Section InferClasses.
-Context {TC RedW} Σ.
-
-Context {RedW_refl : RedW_reflexive RedW Σ}.
-Context {RedW_inj : BidirUniquePrecondition RedW Σ}.
-
-Instance LeftInfer_red0 : LeftInfer (red0 Σ) Σ.
-Proof.
-  constructor. induction 1.
-  - econstructor; tea.
-    econstructor; tea.
-    + econstructor; tea.
-    + apply RedW_refl_prod.
-Qed.
-
-Lemma LeftInfer_headcontext1 P P' Γ t u T :
-  [(onP' Γ t u T H : P' Γ t u T H -> Σ ;;; Γ ⊢ t ▹ T)] ->
-  [(H : Σ ;;; Γ ⊢ t ~h1 u ▹ T with P)] ->
-  Σ ;;; Γ ⊢ t ~h1 u ▹ T on H with P' ->
-  Σ ;;; Γ ⊢ t ▹ T.
-Proof.
-  destruct 2.
-  - apply onP' in IXt.
-    econstructor; tea. econstructor; tea.
-Qed.
-
-Instance LeftInfer_head_context_clos' P : LeftInfer P Σ -> LeftInfer (head_context1_closure Σ P) Σ.
-Proof.
-  constructor.
-  intros; unshelve eapply LeftInfer_headcontext1; revgoals; tea; revgoals.
-  - intros; exact True.
-  - cbn; intros. by apply infer_left in H.
-  - eauto with fmap.
-Qed.
-
-Instance LeftInfer_hred1 : LeftInfer (hred1 Σ) Σ.
-Proof.
-  constructor. induction 1.
-  - by eapply infer_left in H.
-  - eapply LeftInfer_headcontext1; tea.
-    auto.
-Qed.
-
-Instance LeftInfer_hred : LeftInfer (hred Σ) Σ.
-Proof.
-  constructor. induction 1.
-  - assumption.
-  - by eapply infer_left in Xt.
-Qed.
-
-Lemma LeftInfer_pred0 P P' Γ t u T :
-  [(onP' Γ t u T H : P' Γ t u T H -> Σ ;;; Γ ⊢ t ▹ T)] ->
-  [(H : Σ ;;; Γ ⊢ t ≡>0 u ▹ T with P)] ->
-  Σ ;;; Γ ⊢ t ≡>0 u ▹ T on H with P' ->
-  Σ ;;; Γ ⊢ t ▹ T.
-Proof.
-  destruct 2.
-  - apply onP' in IXt, IXu.
-    econstructor; tea.
-    + econstructor; tea.
-      * econstructor; tea.
-      * apply RedW_refl_prod.
-    + econstructor; tea.
-Qed.
-
-Lemma LeftInfer_clos P P' Pα Ps Γ t u T :
-  [(onP' Γ t u T H : P' Γ t u T H -> Σ ;;; Γ ⊢ t ▹ T)] ->
-  [(H : Σ ;;; Γ ⊢ t ~ u ▹ T with P, Pα, Ps)] ->
-  Σ ;;; Γ ⊢ t ~ u ▹ T on H with P' ->
-  Σ ;;; Γ ⊢ t ▹ T.
-Proof.
-  destruct 2.
-  - by constructor.
-  - apply onP' in IXA, IXt.
-    econstructor; tea.
-    repeat (eexists; cbn; tea).
-  - apply onP' in IXt, IXu.
-    repeat (econstructor; tea).
-  - apply onP' in IXA, IXB.
-    repeat (econstructor; tea).
-  - constructor; tas.
-Qed.
-
-Instance LeftInfer_clos' P Pα Ps : LeftInfer P Σ -> LeftInfer (context_closure Σ P Pα Ps) Σ.
-Proof.
-  constructor.
-  intros; unshelve eapply LeftInfer_clos; revgoals; tea; revgoals.
-  - intros; exact True.
-  - cbn; intros. by apply infer_left in H.
-  - eauto with fmap.
-Qed.
-
-Instance LeftInfer_pred1 : LeftInfer (pred1 Σ) Σ.
-Proof.
-  constructor. induction 1.
-  - eapply LeftInfer_pred0; tea. auto.
-  - eapply LeftInfer_clos; tea. auto.
-Qed.
-
-Instance LeftInfer_standard_red : LeftInfer (standard_red Σ) Σ.
-Proof.
-  constructor. destruct 1.
-  by apply infer_left in h.
-Qed.
-
-Context {BDSubst : TypingSubstPrecondition TC RedW Σ}.
-
-Lemma RightInferOpt_head_context1_closure P P' Γ t u T :
-  [(onP' Γ t u T H : P' Γ t u T H -> Σ ;;; Γ ⊢ u ◃? T)] ->
-  [(H : Σ ;;; Γ ⊢ t ~h1 u ▹ T with P)] ->
-  [(X : Σ ;;; Γ ⊢ t ~h1 u ▹ T on H with P')] ->
-  Σ ;;; Γ ⊢ u ◃? T.
-Proof.
-  intros.
-  induction X.
-  - apply onP' in IXt.
-    apply infer_congr_to_opt; tc.
-    econstructor; tea.
-    eapply check_opt_check_red_opt; tea; tc.
-Qed.
-
-Instance RightInferOpt_head_context_clos' P : RightInferOpt P Σ -> RightInferOpt (head_context1_closure Σ P) Σ.
-Proof.
-  constructor.
-  intros; unshelve eapply RightInferOpt_head_context1_closure; revgoals; tea; revgoals.
-  - intros; exact True.
-  - cbn; intros. by apply infer_opt_right in H.
-  - eauto with fmap.
-Qed.
-
-Lemma RightInferOpt_context_closure P P' Pα Ps Γ t u T :
-  [(onPs Γ s s' : wf_local_bd Σ Γ -> wf_sort Σ s -> wf_sort Σ s' -> Ps s s' -> Σ ;;; Γ ⊢ tSort (Sort.super s') ≤T? tSort (Sort.super s))] ->
-  [(onP' Γ t u T H : P' Γ t u T H -> Σ ;;; Γ ⊢ u ◃? T)] ->
-  [(H : Σ ;;; Γ ⊢ t ~ u ▹ T with P, Pα, Ps)] ->
-  [(X : Σ ;;; Γ ⊢ t ~ u ▹ T on H with P')] ->
-  Σ ;;; Γ ⊢ u ◃? T.
-Proof.
-  intros.
-  induction X.
-  - econstructor. 2: constructor.
-    by constructor.
-  - apply infer_congr_to_opt; tc. admit; econstructor.
-
-  - apply onP' in IXt.
-    apply infer_congr_to_opt; tc.
-    econstructor; tea.
-    eapply check_opt_check_red_opt; tea; tc.
-  -
-  - econstructor.
-    1: by constructor.
-    by eapply onPs; tas.
-Qed.
-
-Instance RightInferOpt_head_context_clos' P : RightInferOpt P Σ -> RightInferOpt (head_context1_closure Σ P) Σ.
-Proof.
-  constructor.
-  intros; unshelve eapply RightInferOpt_head_context1_closure; revgoals; tea; revgoals.
-  - intros; exact True.
-  - cbn; intros. by apply infer_opt_right in H.
-  - eauto with fmap.
-Qed.
-
-Instance RightInferOpt_red0 : RightInferOpt (fun Γ t u T => Σ ;;; Γ ⊢ t ~>0 u ▹ T) Σ.
-Proof.
-  constructor.
-  induction 1.
-  - eapply infer_subst with (Δ := [_]); tea.
-    repeat constructor.
-    rewrite subst_empty //.
-Qed.
-
-Instance RightInferOpt_hred1 : RightInferOpt (fun Γ t u T => Σ ;;; Γ ⊢ t ~>h u ▹ T) Σ.
-Proof.
-  constructor.
-  induction 1.
-  - now eapply infer_opt_right.
-  - now apply RightInferOpt_head_context1_closure in Xtu.
-Qed.
-
-
-
-
-
-Definition stred_hred1 Γ t u v T T' : Σ ;;; Γ ⊢ t ~>h u ▹ T -> Σ ;;; Γ ⊢ u =>s v ▹ T' -> Σ ;;; Γ ⊢ t =>s v ▹ T.
-Proof.
-  intros h [u' T'' h' X].
-  exists u' T''; tea.
-  now eapply hred_step.
-Defined.
-
-Definition stred_hred Γ t u v T T' : Σ ;;; Γ ⊢ t ~>h* u ▹ T -> Σ ;;; Γ ⊢ u =>s v ▹ T' -> Σ ;;; Γ ⊢ t =>s v ▹ T.
-Proof.
-  induction 1.
-  - intro. apply infer_left in X as H'.
-    eapply infer_unique with (2 := Xt) in H' as <-. 2: tc.
-    assumption.
-  - intro. eapply stred_hred1; eauto.
-Defined.
-
-Definition stred_clos Γ t u T : Σ ;;; Γ ⊢ t ~ u ▹ T with standard_red Σ, eq, eq -> Σ ;;; Γ ⊢ t =>s u ▹ T.
-Proof.
-  intro X.
-  exists t T; tas. apply hred_refl. by apply infer_left in X.
-Defined.
-
-
-
-Lemma red0_discriminate Γ t u T :
-  Σ ;;; Γ ⊢ t ~>0 u ▹ T ->
-  red0_discr t.
-Proof.
-  induction 1 => //=.
-Qed.
-Lemma hred1_discriminate Γ t u T :
-  Σ ;;; Γ ⊢ t ~>h u ▹ T ->
-  hred1_discr t.
-Proof.
-  induction 1 => //=.
-  - induction H => //.
-  - induction Xtu => //=.
-    now destruct t.
-Qed.
-Lemma hred_discriminate Γ t u T :
-  Σ ;;; Γ ⊢ t ~>h* u ▹ T ->
-  ~~ hred1_discr t ->
-  t = u.
-Proof.
-  induction 1 using hred_rect => //=.
-  apply hred1_discriminate in Xt as ->.
-  intro => //.
-Qed.
-
-Lemma head_context1_discriminate Γ t u T :
-  Σ ;;; Γ ⊢ t ~h1 u ▹ T with hred1 Σ ->
-  head_context1_discr t.
-Proof.
-  induction 1 => //=.
-  now eapply hred1_discriminate.
-Qed.
-
-Lemma red0_inj Γ t u T u' T' :
-  Σ ;;; Γ ⊢ t ~>0 u ▹ T ->
-  Σ ;;; Γ ⊢ t ~>0 u' ▹ T' ->
-  u = u'.
-Proof.
-  induction 1 in u' => //=; eauto.
-  intro H.
-  depelim H; eauto.
-Qed.
-
-Lemma hred1_inj Γ t u T u' T' :
-  Σ ;;; Γ ⊢ t ~>h u ▹ T ->
-  Σ ;;; Γ ⊢ t ~>h u' ▹ T' ->
-  u = u'.
-Proof.
-  induction 1 in T', u' => //=; eauto.
-  - apply red0_discriminate in H as h.
-    induction 1 => //=; eauto.
-    + now eapply red0_inj.
-    + apply head_context1_discriminate in Htu as H'.
-      destruct t => //. destruct t1 => //.
-  - apply head_context1_discriminate in Htu as H.
-    destruct Xtu.
-    intro X'.
-    depelim X' => //=; eauto.
-    + apply red0_discriminate in X as H'.
-      destruct t => //.
-    + depelim X.
-      f_equal. now eapply IXt.
-Qed.
-
-Lemma hred_inj Γ t u T u' T' :
-  Σ ;;; Γ ⊢ t ~>h* u ▹ T ->
-  Σ ;;; Γ ⊢ t ~>h* u' ▹ T' ->
-  ~~ hred1_discr u -> ~~ hred1_discr u' ->
-  u = u'.
-Proof.
-  intros X X' H H'.
-  induction X in u', T', H, X', H' using hred_rect.
-  - by apply hred_discriminate in X'.
-  - destruct X'.
-    + apply hred1_discriminate in Xt.
-      now rewrite Xt in H'.
-    + eapply IHX; tas.
-      eapply hred1_inj with (1 := Xt0) in Xt as ->; tea.
-Qed.
-
-Lemma stred_nhred_inv Γ t u T :
-  ~~ hred1_discr t ->
-  Σ ;;; Γ ⊢ t =>s u ▹ T ->
-  Σ ;;; Γ ⊢ t ~ u ▹ T with standard_red Σ, eq, eq.
-Proof.
-  intros H [u' T' h X].
-  apply infer_left in h as Xt.
-  apply hred_discriminate in h as <-; tas.
-  apply infer_left in X as Xt'.
-  eapply infer_unique with (2 := Xt) in Xt' as <-; tc.
-  assumption.
-Qed.
-
-Variable (PreLift : TCLift TC RedW Σ) (PreLift' : RedWLift TC RedW Σ).
-
-Lemma head_context_closure_lift P {PreInfer : LeftInfer P Σ} P' Γ Δ Γ' t u T :
-  [(onP' Γ' t u T H : P' (Γ ,,, Γ') t u T H ->
-    P (Γ ,,, Δ,,, lift_context #|Δ| 0 Γ') (lift #|Δ| #|Γ'| t) (lift #|Δ| #|Γ'| u) (lift #|Δ| #|Γ'| T))] ->
-  wf_local_bd_rel Σ Γ Δ ->
-  [(H : Σ ;;; Γ ,,, Γ' ⊢ t ~h1 u ▹ T with P)] ->
-  [(X : Σ ;;; Γ ,,, Γ' ⊢ t ~h1 u ▹ T on H with P')] ->
-  Σ ;;; Γ ,,, Δ ,,, lift_context #|Δ| 0 Γ' ⊢ lift #|Δ| #|Γ'| t ~h1 lift #|Δ| #|Γ'| u ▹ lift #|Δ| #|Γ'| T with P.
-Proof.
-  intros ? wfΔ H X.
-  eapply (BDXΓ _ _ (global_infer_lift _ _ _ _ _)) in wfΔ as wfΔ'; trea.
-  2: now clear X; eapply infer_left, infering_wf_local_bd in H.
-  destruct X; cbn.
-  - rewrite distr_lift_subst /=.
-    econstructor; eauto.
-    + now eapply RedW_lift with (B := tProd _ _ _).
-    + now eapply check_lift.
-Qed.
-
-Lemma context_closure_lift P {PreInfer : LeftInfer P Σ} P' Pα Ps Γ Δ Γ' t u T :
-  [(onP' Γ' t u T H : P' (Γ ,,, Γ') t u T H ->
-    P (Γ ,,, Δ,,, lift_context #|Δ| 0 Γ') (lift #|Δ| #|Γ'| t) (lift #|Δ| #|Γ'| u) (lift #|Δ| #|Γ'| T))] ->
-  wf_local_bd_rel Σ Γ Δ ->
-  [(H : Σ ;;; Γ ,,, Γ' ⊢ t ~ u ▹ T with P, Pα, Ps)] ->
-  [(X : Σ ;;; Γ ,,, Γ' ⊢ t ~ u ▹ T on H with P')] ->
-  Σ ;;; Γ ,,, Δ ,,, lift_context #|Δ| 0 Γ' ⊢ lift #|Δ| #|Γ'| t ~ lift #|Δ| #|Γ'| u ▹ lift #|Δ| #|Γ'| T with P, Pα, Ps.
-Proof.
-  intros ? wfΔ H X.
-  eapply (BDXΓ _ _ (global_infer_lift _ _ _ _ _)) in wfΔ as wfΔ'; trea.
-  2: now clear X; eapply infer_left, infering_wf_local_bd in H.
-  destruct X; cbn.
-  - relativize (lift _ _ _).
-    1: constructor; tas.
-    + rewrite -(lift_context_length #|Δ| 0 Γ') nth_error_insertion nth_error_app.
-      rewrite lift_context_length nth_error_lift_context_eq.
-      instantiate (1 := if #|Γ'| <=? n then _ else _).
-      rewrite nth_error_app in hnth.
-      destruct (leb_spec_Set #|Γ'| n); cbn; tea. rewrite hnth //=.
-    + destruct (leb_spec_Set #|Γ'| n); cbn.
-      * rewrite simpl_lift //=; lia_f_equal.
-      * rewrite permute_lift //=; lia_f_equal.
-  - econstructor; eauto.
-    + now eapply RedW_lift with (B := tSort _).
-    + eapply onP' with (Γ' := Γ' ,, _) in IXt.
-      rewrite lift_context_snoc //= Nat.add_0_r //= in IXt.
-  - rewrite distr_lift_subst /=.
-    econstructor; eauto.
-    + now eapply RedW_lift with (B := tProd _ _ _).
-    + now eapply TC_lift.
-  - econstructor; eauto.
-    + now eapply RedW_lift with (B := tSort _).
-    + eapply onP' with (Γ' := Γ' ,, _) in IXB.
-      rewrite lift_context_snoc //= Nat.add_0_r //= in IXB.
-      apply IXB.
-    + eapply RedW_lift with (Γ' := _ ,, _) (B := tSort _) in XT'; trea; revgoals.
-      * eapply (BDXΓ _ _ (global_infer_lift _ _ _ _ _)); trea.
-        now clear IXB; eapply infer_left, infering_wf_local_bd in XB.
-      * rewrite lift_context_snoc //= Nat.add_0_r //= in XT'.
-  - constructor; tas.
-Qed.
-
-Lemma red0_lift Γ Δ Γ' t u T :
-  wf_local_bd_rel Σ Γ Δ ->
-  Σ ;;; Γ ,,, Γ' ⊢ t ~>0 u ▹ T ->
-  Σ ;;; Γ ,,, Δ ,,, lift_context #|Δ| 0 Γ' ⊢ lift #|Δ| #|Γ'| t ~>0 lift #|Δ| #|Γ'| u ▹ lift #|Δ| #|Γ'| T.
-Proof.
-  intros wfΔ H.
-  induction H; cbn.
-  - rewrite !distr_lift_subst /=.
-    constructor.
-    + eapply (BDXj _ _ (global_infer_lift _ _ _ _ _) _ (j_vass na A)); trea.
-      eapply (BDXΓ _ _ (global_infer_lift _ _ _ _ _)); trea.
-      now eapply checking_wf_local_bd.
-    + eapply infer_lift with (Γ' := _ ,, _) in Xt; trea.
-      rewrite /= lift_context_snoc //= Nat.add_0_r // in Xt.
-    + eapply check_lift in Xu; trea.
-Qed.
-
-Lemma hred1_lift Γ Δ Γ' t u T :
-  wf_local_bd_rel Σ Γ Δ ->
-  Σ ;;; Γ ,,, Γ' ⊢ t ~>h u ▹ T ->
-  Σ ;;; Γ ,,, Δ ,,, lift_context #|Δ| 0 Γ' ⊢ lift #|Δ| #|Γ'| t ~>h lift #|Δ| #|Γ'| u ▹ lift #|Δ| #|Γ'| T.
-Proof.
-  intros wfΔ H. rename Γ into Γ₀.
-  remember (Γ₀ ,,, Γ') as Γ eqn:e.
-  induction H in Γ', e.
-  - constructor.
-    now eapply red0_lift.
-  - econstructor 2. subst Γ.
-    eapply head_context_closure_lift; tea; tc.
-    by eauto.
-Qed.
-
-Lemma hred_lift Γ Δ Γ' t u T :
-  wf_local_bd_rel Σ Γ Δ ->
-  Σ ;;; Γ ,,, Γ' ⊢ t ~>h* u ▹ T ->
-  Σ ;;; Γ ,,, Δ ,,, lift_context #|Δ| 0 Γ' ⊢ lift #|Δ| #|Γ'| t ~>h* lift #|Δ| #|Γ'| u ▹ lift #|Δ| #|Γ'| T.
-Proof.
-  intros wfΔ H.
-  induction H.
-  - constructor.
-    eapply infer_lift; tas.
-  - econstructor 2.
-    2: by eauto.
-    now eapply hred1_lift.
-Qed.
-
-Lemma stred_lift Γ Δ Γ' t u T :
-  wf_local_bd_rel Σ Γ Δ ->
-  Σ ;;; Γ ,,, Γ' ⊢ t =>s u ▹ T ->
-  Σ ;;; Γ ,,, Δ ,,, lift_context #|Δ| 0 Γ' ⊢ lift #|Δ| #|Γ'| t =>s lift #|Δ| #|Γ'| u ▹ lift #|Δ| #|Γ'| T.
-Proof.
-  intros wfΔ H. rename Γ into Γ₀.
-  remember (Γ₀ ,,, Γ') as ΓΓ' eqn:e.
-  induction H in Γ', e. subst Γ. destruct X.
-  econstructor.
-  - now eapply hred_lift.
-  - eapply context_closure_lift; tea; tc.
-    cbn.
-    intros ????? H. apply H. reflexivity.
-Qed.
-
-(*
-Lemma stred_subst s s' k t u :
-  All2 (fun t u => t =>s u) s s' ->
-  t =>s u ->
-  subst s k t =>s subst s' k u.
-Proof.
-  intro Hs.
-  induction 1 in k. destruct X0.
-  eapply stred_hred with (subst s k t').
-  - clear Htu Xtu.
-    induction h in k.
-    + by constructor.
-    + eapply hred_step; eauto.
-      clear h IHh.
-      induction H in k.
-      * eapply hred1_red0.
-        induction H in k.
-        --cbn. relativize (subst _ _ (_ {0 := _})).
-          1: constructor.
-          rewrite distr_subst //=.
-      * eapply hred1_clos.
-        destruct Xtu.
-        --cbn.
-          by constructor.
-  - destruct Xtu; repeat match goal with H : _ × _ |- _ => destruct H as [?H ?H] end.
-    all: try solve [ eexists (subst s k _); [by apply hred_refl|]; cbn; by constructor ].
-    * cbn.
-      rewrite -(All2_length Hs).
-      destruct (leb_spec_Set k n).
-      2: by eexists; [by apply hred_refl|]; cbn; by constructor.
-      destruct nth_error eqn:hnth.
-      2: { eapply All2_nth_error_None in Hs as ->; tea. by eexists; [by apply hred_refl|]; cbn; by constructor. }
-      eapply All2_nth_error_Some in Hs as (t' & -> & Ht); tea.
-      by eapply stred_lift.
-Qed. *)
-
-
-Lemma stred_step Γ t u v T T' : Σ ;;; Γ ⊢ t =>s u ▹ T -> Σ ;;; Γ ⊢ u ≡>1 v ▹ T' -> Σ ;;; Γ ⊢ t =>s v ▹ T.
-Proof.
-  intros Xtu Xuv.
-  induction Xtu in v, T', Xuv. destruct X.
-  eapply stred_hred with (T' := T'0); tea. clear t T h; rename t' into t, T'0 into T.
-  destruct Xuv.
-  - destruct X0 as [na' A₀' A' t' t'' T' u' u'' Xj Xt' Xu' XTA'].
-    depelim IX.
-    specialize (IXu.1 _ _ ltac:(eassumption)). clear IXu Xu Xu'. intro Xu.
-    apply snd in IXt. rename t0 into t₀, T0 into T₀.
-    destruct IXt as [t T h Xt IXt].
-    apply stred_hred with (tApp t u) T.
-    1: {
-      have {} Xu : Σ ;;; Γ ⊢ u ◃ A
-        by econstructor; tea; eapply infer_left in Xu; [> eapply Xu|..]; tea.
-      clear -h XT Xu.
-      induction h in XT |- *.
-      - constructor. econstructor; tea. now econstructor.
-      - econstructor 2; eauto. constructor 2. by constructor. }
-    clear t0 h; rename t'0 into t.
-    depelim Xtu.
-    specialize (IXt.1 _ ltac:(eassumption)) as Xt'. clear IXA IXt Xt0 XA Xt.
-    eapply stred_hred1.
-    + econstructor. constructor.
-    + apply stred_subst; tea. repeat (constructor; tea).
-  - destruct Xtu; repeat match goal with H : _ × _ |- _ => destruct H as [?H ?H] end.
-    all: depelim X.
-    + apply stred_clos; constructor.
-    + apply stred_clos; constructor; eauto. congruence.
-    + apply stred_clos; constructor; eauto.
-    + apply stred_clos; constructor; eauto. congruence.
-    + apply stred_clos; constructor. congruence.
-Qed.
-
-Lemma stred_init TC Σ Γ t T : Σ ;;; Γ ⊢ t : T -> t =>s t.
-Proof.
-  induction 1 using typing_rect with (PΓ := fun _ => True) (Pj := fun Γ => lift_wf_term (fun t => t =>s t)) => //.
-  - destruct X0 as (? & ? & ? & ?); cbn in *.
-    split; tas.
-  - apply stred_clos; constructor.
-  - apply stred_clos; constructor; eauto.
-  - apply stred_clos; constructor; eauto.
-    apply IHX.
-  - apply stred_clos; constructor; eauto.
-    apply IHX.
-  - apply stred_clos; constructor; eauto.
-Qed.
 
 
 
@@ -14406,3 +17814,357 @@ where "Σ ;;; Ξ ⊢ t <=[ pb ] u <=[ pb' ] v" := (@equality_pb_trans _ Σ Ξ pb
 
 Derive Signature for equality_trans equality_pb_trans.
 
+
+Module Export ContextConversion.
+
+  Inductive rel_option {A B} (R : A -> B -> Type) : option A -> option B -> Type :=
+  | rel_some a b : R a b -> rel_option R (Some a) (Some b)
+  | rel_none : rel_option R None None.
+
+  Derive Signature NoConfusion for rel_option.
+
+  Definition convertible_decls R R' (decl decl' : context_decl) :=
+    eq_binder_annot decl.(decl_name) decl'.(decl_name) ×
+    rel_option (fun t u => R t u decl.(decl_type)) decl.(decl_body) decl'.(decl_body) ×
+    R' decl.(decl_type) decl'.(decl_type).
+
+  Definition convertible_contexts R R' : crelation context := All2_fold (fun Γ _ => convertible_decls (R Γ) (R' Γ)).
+  Definition convertible_contexts_rel R R' Γ : crelation context := All2_fold (fun Δ _ => convertible_decls (R (Γ ,,, Δ)) (R' (Γ ,,, Δ))).
+
+  Class ContextComparator := {
+    cmp_term Σ Γ (t t' T : term) : Type;
+    cmp_type Σ Γ (T T' : term) : Type;
+  }.
+  Implicit Types (CC : ContextComparator).
+
+  Notation "Σ  ;;; Γ ⊢ Δ ≤Γ Δ'" := (convertible_contexts_rel (@cmp_term _ Σ) (@cmp_type _ Σ) Γ Δ Δ') (at level 50, Γ, Δ, Δ' at next level).
+  Notation "Σ  ;;; Γ ⊢ Δ ≤Γ Δ' 'with' CC" := (convertible_contexts_rel (@cmp_term CC Σ) (@cmp_type CC Σ) Γ Δ Δ') (at level 50, Γ, Δ, Δ', CC at next level, only parsing).
+  Notation "Σ  ;;; Γ ⊢ d ≤d d'" := (convertible_decls (cmp_term Σ Γ) (cmp_type Σ Γ) d d') (at level 50, Γ, d, d' at next level).
+  Notation "Σ  ;;; Γ ⊢ d ≤d d' 'with' CC" := (convertible_decls (@cmp_term CC Σ Γ) (@cmp_type CC Σ Γ) d d') (at level 50, Γ, d, d', CC at next level, only parsing).
+  Notation "Σ ⊢ Δ ≤Γ Δ'" := (convertible_contexts (cmp_term Σ) (cmp_type Σ) Δ Δ') (at level 50, Δ, Δ' at next level).
+  Notation "Σ ⊢ Δ ≤Γ Δ' 'with' CC" := (convertible_contexts (@cmp_term CC Σ) (@cmp_type CC Σ) Δ Δ') (at level 50, Δ, Δ', CC at next level, only parsing).
+
+  Lemma nth_error_convertible_context0 {CC} Σ Γ Δ n decl :
+    Σ ⊢ Γ ≤Γ Δ ->
+    nth_error Δ n = Some decl ->
+    ∑ decl', nth_error Γ n = Some decl' ×
+    Σ ;;; skipn (S n) Γ ⊢ decl' ≤d decl.
+  Proof.
+    intros.
+    induction X in n, H.
+    - rewrite nth_error_nil // in H.
+    - destruct n; cbn in *.
+      + eexists; split; trea.
+        injection H as [= <-].
+        assumption.
+      + by apply IHX.
+  Qed.
+
+  Class CmpContextLiftable {TC CC} Σ := {
+    cmp_ctx_lift Γ Δ decl decl' : wf_local Σ (Γ ,,, Δ) ->
+      Σ ;;; Γ ⊢ decl ≤d decl' ->
+      Σ ;;; Γ ,,, Δ ⊢ map_decl (lift0 #|Δ|) decl ≤d map_decl (lift0 #|Δ|) decl'
+  }.
+
+  Lemma nth_error_convertible_context {TC CC} Σ (Pre : CmpContextLiftable Σ) Γ Δ n decl :
+    Σ ⊢ Γ ≤Γ Δ ->
+    wf_local Σ Γ ->
+    nth_error Δ n = Some decl ->
+    ∑ decl', nth_error Γ n = Some decl' ×
+    Σ ;;; Γ ⊢ map_decl (lift0 (S n)) decl' ≤d map_decl (lift0 (S n)) decl.
+  Proof.
+    intros XΓ wfΓ hnth.
+    eapply nth_error_convertible_context0 in hnth as (decl' & hnth & X); tea.
+    exists decl'; split; tas.
+    rewrite -(firstn_skipn (S n) Γ) in wfΓ |- *.
+    eapply cmp_ctx_lift with (Δ := firstn (S n) Γ) in X.
+    2: apply wfΓ.
+    rewrite firstn_length_le // in X.
+    apply nth_error_Some_length in hnth. lia.
+  Qed.
+
+
+  Class TCIsCmpType {TC CC} Σ := {
+    to_cmp_type Γ T T' : Σ ;;; Γ ⊢ T ≤T T' -> cmp_type Σ Γ T T';
+    rto_tci Γ T T' : cmp_type Σ Γ T T' -> Σ ;;; Γ ⊢ T ≤* T';
+  }.
+
+  Lemma nth_error_convertible_context_TC {TC CC} Σ (Pre : CmpContextLiftable Σ) (Pre' : TCIsCmpType Σ) Γ Δ n decl :
+    Σ ⊢ Γ ≤Γ Δ ->
+    wf_local Σ Γ ->
+    nth_error Δ n = Some decl ->
+    ∑ decl', nth_error Γ n = Some decl' ×
+    Σ ;;; Γ ⊢ lift0 (S n) decl'.(decl_type) ≤* lift0 (S n) decl.(decl_type).
+  Proof.
+    intros XΓ wfΓ hnth.
+    eapply nth_error_convertible_context in hnth as (decl' & hnth & X); tea.
+    exists decl'; split; tas.
+    apply rto_tci. apply X.
+  Qed.
+
+
+  Class CmpWFLocal {TC CC} Σ := {
+    cmp_wf_local Γ Δ : Σ ⊢ Γ ≤Γ Δ -> wf_local Σ Δ -> wf_local Σ Γ
+  }.
+
+  Class ContextChangeable {CC} P Σ := {
+    change_context : forall Γ Δ (t T : term),
+      P Δ t T ->
+      Σ ⊢ Γ ≤Γ Δ ->
+      P Γ t T
+  }.
+
+  Class ContextChangeable2 {CC} P Σ := {
+    change_context2 : forall Γ Δ (t u T : term),
+      P Δ t u T ->
+      Σ ⊢ Γ ≤Γ Δ ->
+      P Γ t u T
+  }.
+
+  Class ContextChangeable2Pb {CC} P Σ (pb : conv_pb) := {
+    change_context2pb : forall Γ Δ (t u T : term),
+      P Δ pb t u T ->
+      Σ ⊢ Γ ≤Γ Δ ->
+      P Γ pb t u T
+  }.
+
+  Lemma convertible_contexts_snoc {CC} Σ Γ Δ d d' :
+    Σ ⊢ Γ ≤Γ Δ ->
+    Σ ;;; Γ ⊢ d ≤d d' ->
+    Σ ⊢ Γ ,, d ≤Γ Δ ,, d'.
+  Proof.
+    intros.
+    constructor; tas.
+  Qed.
+
+  Lemma convertible_contexts_rel_snoc {CC} Σ Γ Δ Δ' d d' :
+    Σ ;;; Γ ⊢ Δ ≤Γ Δ' ->
+    Σ ;;; Γ ,,, Δ ⊢ d ≤d d' ->
+    Σ ;;; Γ ⊢ Δ ,, d ≤Γ Δ' ,, d'.
+  Proof.
+    intros.
+    constructor; tas.
+  Qed.
+
+  Lemma convertible_contexts_app {CC} Σ Γ Γ' Δ Δ' :
+    Σ ⊢ Γ ≤Γ Γ' ->
+    Σ ;;; Γ ⊢ Δ ≤Γ Δ' ->
+    Σ ⊢ Γ ,,, Δ ≤Γ Γ' ,,, Δ'.
+  Proof.
+    induction 2; tas.
+    constructor; auto.
+  Qed.
+
+  Lemma convertible_contexts_rel_app {CC} Σ Ξ Γ Γ' Δ Δ' :
+    Σ ;;; Ξ ⊢ Γ ≤Γ Γ' ->
+    Σ ;;; Ξ ,,, Γ ⊢ Δ ≤Γ Δ' ->
+    Σ ;;; Ξ ⊢ Γ ,,, Δ ≤Γ Γ' ,,, Δ'.
+  Proof.
+    induction 2; tas.
+    cbn; constructor; cbn; auto.
+    rewrite app_context_assoc //.
+  Qed.
+
+
+  Class CCTypedRefl CC TC Σ := {
+    cmp_term_refl Γ t T : Σ ;;; Γ ⊢ t : T -> cmp_term Σ Γ t t T;
+    cmp_type_refl Γ T s : Σ ;;; Γ ⊢ T : tSort s -> cmp_type Σ Γ T T;
+  }.
+
+
+  Lemma convertible_contexts_refl {CC TC} Σ Γ :
+    CCTypedRefl CC TC Σ ->
+    wf_local Σ Γ -> Σ ⊢ Γ ≤Γ Γ.
+  Proof.
+    intro.
+    induction 1; try apply convertible_contexts_snoc; auto.
+    1: constructor.
+    all: destruct t0 as (Hb & s & HT & Hs).
+    all: repeat split; cbn; eauto.
+    all: try constructor.
+    1,3: eapply cmp_type_refl; tea.
+    eapply cmp_term_refl; tea.
+  Qed.
+
+  Lemma convertible_contexts_rel_refl {CC TC} Σ Γ Δ :
+    CCTypedRefl CC TC Σ ->
+    wf_local_rel Σ Γ Δ -> Σ ;;; Γ ⊢ Δ ≤Γ Δ.
+  Proof.
+    intro.
+    induction 1; try apply convertible_contexts_rel_snoc; auto.
+    1: constructor.
+    all: destruct t0 as (Hb & s & HT & Hs).
+    all: repeat split; cbn; eauto.
+    all: try constructor.
+    1,3: eapply cmp_type_refl; tea.
+    eapply cmp_term_refl; tea.
+  Qed.
+
+  Lemma convertible_contexts_snoc_refl {CC TC} Σ Γ Γ' d :
+    CCTypedRefl CC TC Σ ->
+    Σ ⊢ Γ ≤Γ Γ' ->
+    lift_typing typing Σ Γ (j_decl d) ->
+    Σ ⊢ Γ ,, d ≤Γ Γ' ,, d.
+  Proof.
+    intros ?Pre H X.
+    apply convertible_contexts_snoc; tas.
+    destruct X as (Xb & s & Xt & Xs); cbn in *.
+    repeat split; cbn; eauto.
+    - destruct decl_body; constructor.
+      apply cmp_term_refl, Xb.
+    - eapply cmp_type_refl, Xt.
+  Qed.
+
+  Lemma convertible_contexts_app_refl {CC TC} Σ Γ Γ' Δ :
+    CCTypedRefl CC TC Σ ->
+    Σ ⊢ Γ ≤Γ Γ' ->
+    wf_local_rel Σ Γ Δ ->
+    Σ ⊢ Γ ,,, Δ ≤Γ Γ' ,,, Δ.
+  Proof.
+    intros.
+    apply convertible_contexts_app; tas.
+    by apply convertible_contexts_rel_refl.
+  Qed.
+
+
+  Lemma convertible_contexts_of_rel {CC TC} Σ Γ Δ Δ' :
+    CCTypedRefl CC TC Σ ->
+    wf_local Σ Γ -> Σ ;;; Γ ⊢ Δ ≤Γ Δ' ->
+    Σ ⊢ Γ ,,, Δ ≤Γ Γ ,,, Δ'.
+  Proof.
+    intros.
+    apply convertible_contexts_app; tas.
+    by apply convertible_contexts_refl.
+  Qed.
+
+End ContextConversion.
+Implicit Types (CC : ContextComparator).
+
+
+Section infer_check_opt_congr.
+  Context {TC RedW} Σ.
+
+  Disable Notation "Σ ;;; Γ ⊢ t ▹ T".
+  Set Elimination Schemes.
+  Inductive infer_check_opt_congr Γ : term -> term -> Type :=
+    | infer_congr_Prod na A B s1 s2 :
+      [(XA : lift_sorting (fun t T => Σ ;;; Γ ⊢ t ◃ T) (fun T s => Σ ;;; Γ ⊢ T ◃↘? tSort s) (j_vass_s na A s1))] ->
+      [(XB : Σ ;;; Γ ,, vass na A ⊢ B ◃↘? tSort s2)] ->
+      Σ ;;; Γ ⊢ tProd na A B ▹ tSort (Sort.sort_of_product s1 s2)
+
+    | infer_congr_Lambda na A t B :
+      [(XA : lift_sorting (fun t T => Σ ;;; Γ ⊢ t ◃ T) (fun T s => Σ ;;; Γ ⊢ T ◃↘? tSort s) (j_vass na A))] ->
+      [(Xt : Σ ;;; Γ ,, vass na A ⊢ t ◃? B)] ->
+      Σ ;;; Γ ⊢ tLambda na A t ▹ tProd na A B
+
+    | infer_congr_App t na A B u :
+      [(Xt : Σ ;;; Γ ⊢ t ◃↘? tProd na A B)] ->
+      [(Xu : Σ ;;; Γ ⊢ u ◃ A)] ->
+      Σ ;;; Γ ⊢ tApp t u ▹ B {0 := u}
+
+  where "Σ ;;; Γ ⊢ t ▹ T" := (infer_check_opt_congr Γ t T) (only parsing).
+  Unset Elimination Schemes.
+End infer_check_opt_congr.
+
+Lemma infer_TOR_TOR {TC RedW} Σ (Pre : BidirCongrPrecondition TC RedW Σ) Γ t T T' :
+  Σ ;;; Γ ⊢ t ◃? T ->
+  Σ ;;; Γ ⊢ T ≤T? T' ->
+  Σ ;;; Γ ⊢ t ◃? T'.
+Proof.
+  intros Xt XT'.
+  destruct Xt.
+  econstructor; tea.
+  etransitivity; eassumption.
+Qed.
+
+Lemma infer_TOR_RedW {TC RedW} Σ (Pre : BidirCongrPrecondition TC RedW Σ) Γ t T T' :
+  Σ ;;; Γ ⊢ t ◃? T ->
+  Σ ;;; Γ ⊢ T ↘ T' ->
+  Σ ;;; Γ ⊢ t ◃↘? T'.
+Proof.
+  intros Xt XT'.
+  destruct Xt.
+  depelim XT.
+  - constructor. now econstructor.
+  - constructor 2. econstructor; tea.
+    now eapply TC_RedW_add_right.
+Qed.
+
+
+Lemma infer_TOR_sort_inv {TC RedW} Σ (Pre : BidirCongrPrecondition TC RedW Σ) Γ T s :
+  Σ ;;; Γ ⊢ T ◃↘? tSort s ->
+  ∑ s₀, Σ ;;; Γ ⊢ T ▹□ s₀ × Σ ;;; Γ ⊢ tSort s₀ ≤T? tSort s.
+Proof.
+  intros [|[S₀ X XT]].
+  - eexists. split. 1: eassumption. reflexivity.
+  - apply TC_sort_invert in XT as (s₀ & Xred & XT).
+    exists s₀; split.
+    2: by apply TCOpt_one.
+    econstructor; tea.
+Qed.
+
+Lemma infer_TOR_prod_inv {TC RedW} Σ (Pre : BidirCongrPrecondition TC RedW Σ) Γ T na A B :
+  Σ ;;; Γ ⊢ T ◃↘? tProd na A B ->
+  ∑ na₀ A₀ B₀, Σ ;;; Γ ⊢ T ▹Π (na₀ : A₀), B₀ × Σ ;;; Γ ⊢ A ≤T? A₀ × Σ ;;; Γ ,, vass na₀ A₀ ⊢ B₀ ≤T? B.
+Proof.
+  intros [|[P₀ X XT]].
+  - eexists _, _, _. split. 1: eassumption. split; reflexivity.
+  - apply TC_prod_invert in XT as (na₀ & A₀ & B₀ & Xred & XTA & XTB).
+    exists na₀, A₀, B₀; split.
+    2: split; by apply TCOpt_one.
+    econstructor; tea.
+Qed.
+
+
+Lemma infer_congr_to_TOR {TC RedW} Σ (Pre : BidirCongrPrecondition TC RedW Σ) Γ t T :
+  infer_check_opt_congr Σ Γ t T ->
+  Σ ;;; Γ ⊢ t ◃? T.
+Proof.
+  destruct 1.
+  - destruct XA as (_ & ? & XA & <- & Hrel); cbn in *.
+    apply infer_TOR_sort_inv in XA as (s₁ & XT & Xs); tea.
+    apply infer_TOR_sort_inv in XB as (s₂ & XT2 & Xs2); tea.
+    econstructor. 1: econstructor.
+    + repeat (eexists; cbn; tea).
+      rewrite -Hrel.
+      now eapply TC_sort_relevance.
+    + eassumption.
+    + now eapply TC_sort_of_product.
+  - destruct XA as (_ & s & XA & _ & Hrel); cbn in *.
+    apply infer_TOR_sort_inv in XA as (s₁ & XT & Xs); tea.
+    destruct Xt as [T₀ Xt XB].
+    enough (wfj : wf_judgment_bd Σ Γ (j_vass na A)).
+    1: econstructor. 1: econstructor; tas.
+    + eassumption.
+    + depelim XB; trea. apply TCOpt_one.
+      eapply TC_prod_construct; tea.
+    + repeat (eexists; cbn; tea).
+      rewrite -Hrel.
+      now eapply TC_sort_relevance.
+  - apply infer_TOR_prod_inv in Xt as (na₀ & A₀ & B₀ & XRed & HTA & HTB); tas.
+    have {HTA Xu} XA : Σ ;;; Γ ⊢ u ◃ A₀.
+    2:econstructor. 2: econstructor; tea.
+    + destruct Xu as [Aᵤ Xu XAᵤ].
+      econstructor; tea.
+      depelim HTA; tas.
+      eapply TC_trans; tea.
+    + depelim HTB; trea. apply TCOpt_one.
+      cbn. eapply TC_subst with (Γ' := []) (Δ := [_]); tea; cbn.
+      1: constructor.
+      constructor. 1: constructor.
+      rewrite subst_empty. assumption.
+Qed.
+
+Lemma lift_infer_congr {TC RedW} Σ (Pre : BidirCongrPrecondition TC RedW Σ) Γ j :
+  j_univ j = None ->
+  lift_sorting (fun t T => Σ ;;; Γ ⊢ t ◃ T) (fun T s => Σ ;;; Γ ⊢ T ◃↘? tSort s) j ->
+  wf_judgment_bd Σ Γ j.
+Proof.
+  intros e X.
+  split. 1: apply X.
+  destruct X as (_ & s' & X & _ & Hs').
+  apply infer_TOR_sort_inv in X as (s₀ & XT & Xs); tea.
+  exists s₀; repeat (eexists; tea).
+  - rewrite e //.
+  - erewrite TC_sort_relevance; tea.
+Qed.

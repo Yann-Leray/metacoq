@@ -60,6 +60,7 @@ Fixpoint depth t : nat :=
   | tFix mfix idx => S (mfixpoint_depth_gen depth mfix)
   | tCoFix mfix idx => S (mfixpoint_depth_gen depth mfix)
   | tPrim p => S (prim_depth_gen depth p)
+  | tCast c ty => S (max (depth c) (depth ty))
   | _ => 1
   end.
 
@@ -202,6 +203,7 @@ Proof.
   - destruct p as [? []]; cbn in X; cbn; eauto; try lia.
     destruct X as [? []]. specialize (l k); specialize (l0 k).
     eapply (All_depth k) in a0. lia.
+  - specialize (IHt1 k); specialize (IHt2 k); lia.
 Qed.
 
 Lemma depth_subst_instance u t : depth (subst_instance u t) = depth t.
@@ -352,9 +354,10 @@ Lemma term_forall_ctx_list_ind :
         All_local_env (PCUICInduction.on_local_decl (fun Γ' t => P (Γ ,,, Γ') t)) (fix_context m) ->
         tFixProp (P Γ) (P (Γ ,,, fix_context m)) m -> P Γ (tCoFix m n)) ->
     (forall Γ p, tPrimProp (P Γ) p -> P Γ (tPrim p)) ->
+    (forall Γ c ty, P Γ c -> P Γ ty -> P Γ (tCast c ty)) ->
     forall Γ (t : term), P Γ t.
 Proof.
-  intros ????????????????? Γ t.
+  intros ?????????????????? Γ t.
   revert Γ t. set(foo:=CoreTactics.the_end_of_the_section). intros.
   Subterm.rec_wf_rel aux t (MR lt depth); unfold MR in *; simpl. clear H1.
   assert (auxl : forall Γ {A} (l : list A) (f : A -> term),
@@ -478,9 +481,10 @@ Lemma term_ind_depth_app :
         onctx P (fix_context m) ->
         tFixProp P P m -> P (tCoFix m n)) ->
     (forall p, tPrimProp P p -> P (tPrim p)) ->
+    (forall c ty, P c -> P ty -> P (tCast c ty)) ->
     forall (t : term), P t.
 Proof.
-  intros ????????????????? t.
+  intros ?????????????????? t.
   revert t. set(foo:=CoreTactics.the_end_of_the_section). intros.
   Subterm.rec_wf_rel aux t (MR lt depth); unfold MR in *; simpl. clear H0.
   assert (auxl : forall {A} (l : list A) (f : A -> term),

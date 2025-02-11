@@ -999,10 +999,16 @@ P Γ (array_type arr) ty ->
 P Γ (tPrim (primArray; primArrayModel arr))
   (tPrim (primArray; primArrayModel (set_array_type arr ty)))) ->
 
+(forall (Γ : context) (c c' ty : term), closed_red1 Σ Γ c c' -> P Γ c c' ->
+  P Γ (tCast c ty) (tCast c' ty)) ->
+
+(forall (Γ : context) (c ty ty' : term), closed_red1 Σ Γ ty ty' -> P Γ ty ty' ->
+  P Γ (tCast c ty) (tCast c ty')) ->
+
   forall (Γ : context) (t t0 : term), closed_red1 Σ Γ t t0 -> P0 Γ t t0.
 Proof.
   intros.
-  destruct X30 as [clΓ clt r].
+  destruct X32 as [clΓ clt r].
   move: clΓ clt.
   Ltac t :=
     eauto; try split; eauto;
@@ -1017,7 +1023,7 @@ Proof.
   - eapply X13. 2-3:t.
     inv_on_free_vars.
     eapply forallb_All in p0.
-    eapply OnOne2_All_mix_left in X30; tea.
+    eapply OnOne2_All_mix_left in X32; tea.
     eapply OnOne2_impl; tea; repeat (intuition auto; t).
   - forward_keep IHr.
     { rewrite on_free_vars_ctx_app clΓ.
@@ -1029,7 +1035,7 @@ Proof.
   - eapply X16 => //.
     inv_on_free_vars.
     eapply forallb_All in p4.
-    eapply OnOne2_All_mix_left in X30; tea. cbn in X30.
+    eapply OnOne2_All_mix_left in X32; tea. cbn in X32.
     eapply OnOne2_impl; tea; cbn; intros ?? [[[]] ?].
     forward_keep p5.
     { rewrite on_free_vars_ctx_app clΓ /=.
@@ -1040,15 +1046,15 @@ Proof.
     intuition auto. split; auto.
   - eapply X22 => //.
     cbn in clt. eapply forallb_All in clt.
-    eapply OnOne2_All_mix_left in X30; tea.
+    eapply OnOne2_All_mix_left in X32; tea.
     eapply OnOne2_impl; tea; cbn; intuition auto; t.
   - eapply X23 => //.
     cbn in clt. eapply forallb_All in clt.
-    eapply OnOne2_All_mix_left in X30; tea.
+    eapply OnOne2_All_mix_left in X32; tea.
     eapply OnOne2_impl; tea; cbn; intuition auto; t.
   - eapply X24 => //.
     cbn in clt. eapply forallb_All in clt.
-    eapply OnOne2_All_mix_left in X30; tea.
+    eapply OnOne2_All_mix_left in X32; tea.
     eapply OnOne2_impl; tea; cbn; intros ?? [[[]] ?].
     forward_keep p.
     { rewrite on_free_vars_ctx_app clΓ /=.
@@ -1059,11 +1065,11 @@ Proof.
     intuition auto. split; auto.
   - eapply X25 => //.
     cbn in clt. eapply forallb_All in clt.
-    eapply OnOne2_All_mix_left in X30; tea.
+    eapply OnOne2_All_mix_left in X32; tea.
     eapply OnOne2_impl; tea; cbn; intuition auto; t.
   - eapply X26 => //.
     cbn in clt. eapply forallb_All in clt.
-    eapply OnOne2_All_mix_left in X30; tea.
+    eapply OnOne2_All_mix_left in X32; tea.
     eapply OnOne2_impl; tea; cbn; intros ?? [[[]] ?].
     forward_keep p.
     { rewrite on_free_vars_ctx_app clΓ /=.
@@ -1074,7 +1080,7 @@ Proof.
     intuition auto. split; auto.
   - eapply X27 => //.
     cbn in clt; rtoProp. eapply forallb_All in H.
-    eapply OnOne2_All_mix_left in X30; tea.
+    eapply OnOne2_All_mix_left in X32; tea.
     eapply OnOne2_impl; tea; cbn; intros ?? [[]]. split; eauto.
     split; eauto.
 Qed.

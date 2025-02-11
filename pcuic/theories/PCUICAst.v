@@ -208,7 +208,8 @@ Inductive term :=
 | tProj (p : projection) (c : term)
 | tFix (mfix : mfixpoint term) (idx : nat)
 | tCoFix (mfix : mfixpoint term) (idx : nat)
-| tPrim (prim : prim_val term).
+| tPrim (prim : prim_val term)
+| tCast (c ty : term).
 
 Derive NoConfusion for term.
 
@@ -262,6 +263,7 @@ Fixpoint lift n k t : term :=
     let mfix' := List.map (map_def (lift n k) (lift n k')) mfix in
     tCoFix mfix' idx
   | tPrim p => tPrim (map_prim (lift n k) p)
+  | tCast c ty => tCast (lift n k c) (lift n k ty)
   | x => x
   end.
 
@@ -298,6 +300,7 @@ Fixpoint subst s k u :=
     let mfix' := List.map (map_def (subst s k) (subst s k')) mfix in
     tCoFix mfix' idx
   | tPrim p => tPrim (map_prim (subst s k) p)
+  | tCast c ty => tCast (subst s k c) (subst s k ty)
   | x => x
   end.
 
@@ -326,6 +329,7 @@ Fixpoint closedn k (t : term) : bool :=
     let k' := List.length mfix + k in
     List.forallb (test_def (closedn k) (closedn k')) mfix
   | tPrim p => test_prim (closedn k) p
+  | tCast c ty => closedn k c && closedn k ty
   | _ => true
   end.
 
@@ -364,6 +368,7 @@ Fixpoint nlict (t : term) : bool :=
   | tCoFix mfix idx =>
     List.forallb (test_def nlict nlict) mfix
   | tPrim p => test_prim nlict p
+  | tCast c ty => nlict c && nlict ty
   | _ => true
   end.
 
@@ -391,6 +396,7 @@ Fixpoint noccur_between k n (t : term) : bool :=
     let k' := List.length mfix + k in
     List.forallb (test_def (noccur_between k n) (noccur_between k' n)) mfix
   | tPrim p => test_prim (noccur_between k n) p
+  | tCast c ty => noccur_between k n c && noccur_between k n ty
   | _ => true
   end.
 
@@ -426,6 +432,7 @@ Instance subst_instance_constr : UnivSubst term :=
     let mfix' := List.map (map_def (subst_instance_constr u) (subst_instance_constr u)) mfix in
     tCoFix mfix' idx
   | tPrim p => tPrim (mapu_prim (subst_instance_level u) (subst_instance_constr u) p)
+  | tCast c ty => tCast (subst_instance_constr u c) (subst_instance_constr u ty)
   end.
 
 (** Tests that the term is closed over [k] universe variables *)
@@ -450,6 +457,7 @@ Fixpoint closedu (k : nat) (t : term) : bool :=
   | tCoFix mfix idx =>
     forallb (test_def (closedu k) (closedu k)) mfix
   | tPrim p => test_primu (closedu_level k) (closedu k) p
+  | tCast c ty => closedu k c && closedu k ty
   | _ => true
   end.
 

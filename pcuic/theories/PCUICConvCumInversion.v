@@ -274,12 +274,12 @@ Section fixed.
     - apply whnf_red_isIndConstructApp in w as ?.
       destruct hd.
       all: cbn.
-      1-9, 12-16: apply conv_cum_alt; eauto.
-      1-13: constructor.
-      1-13: exists x1, x.
-      1-13: split; eauto with pcuic.
-      1-13: (eapply eq_term_upto_univ_napp_nonind; [exact e|try exact H1]).
-      1-13: cbn in *; congruence.
+      1-9, 12-17: apply conv_cum_alt; eauto.
+      1-13,15: constructor.
+      1-14: exists x1, x.
+      1-14: split; eauto with pcuic.
+      1-14: (eapply eq_term_upto_univ_napp_nonind; [exact e|try exact H1]).
+      1-14: cbn in *; congruence.
       1-3: depelim w; subst; depelim e; depelim w0; subst;
        apply All2_length in a;
        try (constructor; constructor; rewrite a; auto).

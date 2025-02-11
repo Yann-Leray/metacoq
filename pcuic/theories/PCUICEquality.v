@@ -474,6 +474,11 @@ Inductive eq_term_upto_univ_napp Σ
 | eq_Prim i i' :
     onPrims (fun t t' => Σ ⊢ t <==[ Conv , 0 ] t') (cmp_universe Conv) i i' ->
     Σ ⊢ tPrim i <==[ pb , napp ] tPrim i'
+
+| eq_Cast c c' ty ty' :
+    Σ ⊢ c <==[ pb , 0 ] c' ->
+    Σ ⊢ ty <==[ Conv , 0 ] ty' ->
+    Σ ⊢ tCast c ty <==[ pb , napp ] tCast c' ty'
 where " Σ ⊢ t <==[ pb , napp ] u " := (eq_term_upto_univ_napp Σ _ _ pb napp t u) : type_scope.
 
 Notation eq_term_upto_univ Σ cmp_universe cmp_sort pb := (eq_term_upto_univ_napp Σ cmp_universe cmp_sort pb 0) (only parsing).

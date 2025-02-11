@@ -1553,6 +1553,8 @@ Proof.
 
   * cbn. destruct p as [? []]; cbn => //=.
     eapply red_primArray_congr; cbn in *; intuition eauto. solve_all.
+
+  * cbn. eapply red_cast; eauto.
 - specialize (X (Γ ,,, Δ)  (Some t) wf). simpl in X.
   apply X. reflexivity.
 Qed.

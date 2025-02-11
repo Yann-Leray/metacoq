@@ -348,6 +348,7 @@ Section Principality.
       intros B hB.
       apply inversion_Prim in hB as [prim_ty' [cdecl' []]] => //; pcuic.
       econstructor; tea; fvs.
+    - apply inversion_Cast in hA. destruct hA.
   Qed.
 
   (** A weaker version that is often convenient to use. *)

@@ -327,6 +327,7 @@ Proof.
          rewrite fix_context_length.
          rewrite (All2_length X). eauto.
    - cbn. eapply cumul_Prim. depelim X; cbn in HfreeA, HfreeB; rtoProp; constructor; cbn; eauto. solve_all.
+   - eapply cumul_Cast; try apply IHe1; try apply IHe2; eauto.
    - cbn. repeat rewrite inst_mkApps. eapply cumul_Ind.
      * repeat rewrite map_length; eauto.
      * repeat toAll.

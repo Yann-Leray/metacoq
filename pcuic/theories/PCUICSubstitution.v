@@ -1577,6 +1577,7 @@ Qed.
         eapply All_All2; tea; simpl; solve_all. eapply b1; tea; solve_all.
       * cbn in X, X0. intuition eauto.
       * cbn in X, X0; intuition eauto.
+    - apply red_cast; eauto.
   Qed.
 
   Lemma untyped_substitution_red {Γ Δ Γ' s M N} :

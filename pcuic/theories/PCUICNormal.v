@@ -60,6 +60,9 @@ Section Normal.
   | whne_evar n l :
       whne Γ (tEvar n l)
 
+  | whne_cast c ty :
+      whne Γ (tCast c ty)
+
   | whne_letin_nozeta na B b t :
       RedFlags.zeta flags = false ->
       whne Γ (tLetIn na B b t)
@@ -654,6 +657,12 @@ Lemma whne_red1_ind {cf:checker_flags} {wfΣ : wf Σ}
       (Hevar : forall n l l',
           OnOne2 (red1 Σ Γ) l l' ->
           P (tEvar n l) (tEvar n l'))
+      (Hcast_tm : forall c c' ty,
+          red1 Σ Γ c c' ->
+          P (tCast c ty) (tCast c' ty))
+      (Hcast_ty : forall c ty ty',
+          red1 Σ Γ ty ty' ->
+          P (tCast c ty) (tCast c ty'))
       (Hletin_nozeta_1 :
          forall t' na B b t,
            RedFlags.zeta flags = false ->
@@ -774,6 +783,7 @@ Proof using Type.
   - depelim r; [|solve_discr]; eauto.
   - depelim r; solve_discr; eauto.
   - depelim r; solve_discr.
+  - depelim r; solve_discr; eauto.
   - depelim r; solve_discr; eauto.
   - eauto.
   - depelim r; solve_discr.
@@ -954,6 +964,10 @@ Inductive whnf_red Σ Γ : term -> term -> Type :=
 | whnf_red_tEvar n l l' :
     All2 (red Σ Γ) l l' ->
     whnf_red Σ Γ (tEvar n l) (tEvar n l')
+| whnf_red_tCast c c' ty ty' :
+    red Σ Γ c c' ->
+    red Σ Γ ty ty' ->
+    whnf_red Σ Γ (tCast c ty) (tCast c' ty')
 | whnf_red_tConst kn u decl :
     lookup_env Σ kn = Some (ConstantDecl decl) ->
     cst_body decl = None ->
@@ -1029,6 +1043,7 @@ Proof.
   intros wh.
   induction wh; eauto with pcuic.
   - apply red_evar; auto.
+  - apply red_cast; auto.
   - apply red_app; auto.
   - apply red_fix_congr.
     eapply All2_impl; eauto.
@@ -1281,6 +1296,8 @@ Proof.
   - constructor.
     eapply All2_trans; eauto.
     typeclasses eauto.
+  - constructor.
+    all: try etransitivity; eauto.
   - constructor; eauto.
     all: try etransitivity; eauto.
   - constructor.

@@ -151,6 +151,14 @@ Inductive red1 (Σ : global_env) (Γ : context) : term -> term -> Type :=
     Σ ;;; Γ |- tPrim (primArray; primArrayModel arr) ⇝
           tPrim (primArray; primArrayModel (set_array_type arr ty))
 
+| cast_red_term c c' ty :
+    Σ ;;; Γ |- c ⇝ c' ->
+    Σ ;;; Γ |- tCast c ty ⇝ tCast c' ty
+
+| cast_red_ty c ty ty' :
+    Σ ;;; Γ |- ty ⇝ ty' ->
+    Σ ;;; Γ |- tCast c ty ⇝ tCast c ty'
+
 where " Σ ;;; Γ |- t ⇝ u " := (red1 Σ Γ t u).
 
 Derive Signature for red1.
@@ -296,9 +304,15 @@ Lemma red1_ind_all :
         P Γ (tPrim (primArray; primArrayModel arr))
           (tPrim (primArray; primArrayModel (set_array_type arr ty)))) ->
 
+       (forall (Γ : context) (c c' ty : term),  Σ;;; Γ |- c ⇝ c' -> P Γ c c' ->
+          P Γ (tCast c ty) (tCast c' ty)) ->
+
+       (forall (Γ : context) (c ty ty' : term),  Σ;;; Γ |- ty ⇝ ty' -> P Γ ty ty' ->
+          P Γ (tCast c ty) (tCast c ty')) ->
+
        forall (Γ : context) (t t0 : term), red1 Σ Γ t t0 -> P Γ t t0.
 Proof.
-  intros. rename X30 into Xlast. revert Γ t t0 Xlast.
+  intros. rename X32 into Xlast. revert Γ t t0 Xlast.
   fix aux 4. intros Γ t T.
   move aux at top.
   destruct 1; match goal with
@@ -491,6 +505,8 @@ Section ReductionCongruence.
   | tCtxProj      : projection -> term_context -> term_context
   (* | tCtxFix       : mfixpoint_context -> nat -> term_context harder because types of fixpoints are necessary *)
   (* | tCtxCoFix     : mfixpoint_context -> nat -> term_context *)
+  | tCtxCast_tm   : term_context -> term -> term_context
+  | tCtxCast_ty   : term -> term_context -> term_context
 
   with list_context :=
    | tCtxHead : term_context -> list term -> list_context
@@ -541,7 +557,9 @@ Section ReductionCongruence.
                   preturn := fill_context p |} c brs ;
     | tCtxCase_discr ci p c brs => tCase ci p (fill_context c) brs;
     | tCtxCase_branch ci p c brs => tCase ci p c (fill_branch_context brs);
-    | tCtxProj p c => tProj p (fill_context c) }
+    | tCtxProj p c => tProj p (fill_context c)
+    | tCtxCast_tm c ty => tCast (fill_context c) ty
+    | tCtxCast_ty c ty => tCast c (fill_context ty) }
     (* | tCtxFix mfix n => tFix (fill_mfix_context mfix) n; *)
     (* | tCtxCoFix mfix n => tCoFix (fill_mfix_context mfix) n } *)
 
@@ -580,7 +598,9 @@ Section ReductionCongruence.
       hole_context pret (Γ ,,, inst_case_context params puinst pctx);
     | tCtxCase_discr ci p c brs | Γ => hole_context c Γ;
     | tCtxCase_branch ci p c brs | Γ => hole_branch_context p brs Γ;
-    | tCtxProj p c | Γ => hole_context c Γ }
+    | tCtxProj p c | Γ => hole_context c Γ
+    | tCtxCast_tm c ty | Γ => hole_context c Γ
+    | tCtxCast_ty c ty | Γ => hole_context ty Γ }
     (* | tCtxFix mfix n | Γ => hole_mfix_context mfix Γ ; *)
     (* | tCtxCoFix mfix n | Γ => hole_mfix_context mfix Γ } *)
 
@@ -1117,6 +1137,16 @@ Section ReductionCongruence.
       intros; transitivity (tApp M1 N0).
       - now apply (red_ctx_congr (tCtxApp_l tCtxHole _)).
       - now eapply (red_ctx_congr (tCtxApp_r _ tCtxHole)).
+    Qed.
+
+    Lemma red_cast M0 M1 N0 N1 :
+      red Σ Γ M0 M1 ->
+      red Σ Γ N0 N1 ->
+      red Σ Γ (tCast M0 N0) (tCast M1 N1).
+    Proof using Type.
+      intros; transitivity (tCast M1 N0).
+      - now apply (red_ctx_congr (tCtxCast_tm tCtxHole _)).
+      - now eapply (red_ctx_congr (tCtxCast_ty _ tCtxHole)).
     Qed.
 
     Fixpoint mkApps_context l :=

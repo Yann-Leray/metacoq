@@ -131,6 +131,13 @@ Section Inversion.
     intros Γ n l T h. dependent induction h. assumption.
   Qed.
 
+  Lemma inversion_Cast :
+    forall {Γ c ty T},
+      Σ ;;; Γ |- tCast c ty : T -> False.
+  Proof using Type.
+    intros Γ c ty T h. dependent induction h. assumption.
+  Qed.
+
   Lemma inversion_Sort :
     forall {Γ s T},
       Σ ;;; Γ |- tSort s : T ->

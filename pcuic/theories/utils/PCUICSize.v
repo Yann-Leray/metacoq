@@ -44,6 +44,7 @@ Fixpoint size t : nat :=
   | tFix mfix idx => S (mfixpoint_size size mfix)
   | tCoFix mfix idx => S (mfixpoint_size size mfix)
   | tPrim p => S (prim_size size p)
+  | tCast c ty => S (size c + size ty)
   | _ => 1
   end.
 

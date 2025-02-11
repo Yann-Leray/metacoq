@@ -642,6 +642,9 @@ Section classification.
   Lemma typing_evar {Γ n l ty} : Σ ;;; Γ |- (tEvar n l) : ty -> False.
   Proof. intros Hty; depind Hty; eauto. Qed.
 
+  Lemma typing_cast {Γ c ty T} : Σ ;;; Γ |- tCast c ty : T -> False.
+  Proof. intros Hty; depind Hty; eauto. Qed.
+
   Lemma typing_cofix_coind {Γ mfix idx args ind u indargs} :
     Σ ;;; Γ |- mkApps (tCoFix mfix idx) args : mkApps (tInd ind u) indargs ->
     check_recursivity_kind (lookup_env Σ) (inductive_mind ind) CoFinite.
@@ -757,6 +760,7 @@ Section classification.
       rewrite nth_error_nil in e0; discriminate.
     - now eapply typing_var in typed.
     - now eapply typing_evar in typed.
+    - now eapply typing_cast in typed.
     - apply inversion_Const in typed as [decl' [wfd [declc [cu cum]]]]; eauto.
       unshelve eapply declared_constant_to_gen in declc; eauto.
       red in declc. rewrite declc in e, axfree.

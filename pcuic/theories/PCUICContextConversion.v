@@ -308,6 +308,12 @@ Section ContextReduction.
     - eexists; split.
       + eapply red_primArray_type; tea.
       + now eapply (red_primArray_type (set_array_type arr ty) x).
+    - eexists; split.
+      + eapply red_cast; tea; trea.
+      + eapply red_cast; trea.
+    - eexists; split.
+      + eapply red_cast; tea; trea.
+      + eapply red_cast; trea.
   Qed.
 
   Hint Resolve red_ctx_on_free_vars : fvs.

@@ -1687,6 +1687,40 @@ Section Inversions.
     - eapply red1_mkApps_f, r.
   Qed.
 
+  Lemma ws_cumul_pb_Cast_tm {pb Γ c c' ty} :
+    Σ ;;; Γ ⊢ c ≤[pb] c' ->
+    is_open_term Γ ty ->
+    Σ ;;; Γ ⊢ tCast c ty ≤[pb] tCast c' ty.
+  Proof using wfΣ.
+    intros h onu.
+    induction h.
+    - constructor; cbn; eauto with fvs. cbn in c.
+      destruct pb; constructor; eauto with fvs; try reflexivity.
+    - eapply red_ws_cumul_pb_left; tea.
+      econstructor; tea; cbn; eauto with fvs.
+      eapply red1_red. constructor; auto.
+    - eapply red_ws_cumul_pb_right; tea.
+      econstructor; tea; cbn; eauto with fvs.
+      eapply red1_red. constructor; auto.
+  Qed.
+
+  Lemma ws_cumul_pb_Cast_ty {pb Γ c ty ty'} :
+    is_open_term Γ c ->
+    Σ ;;; Γ ⊢ ty = ty' ->
+    Σ ;;; Γ ⊢ tCast c ty ≤[pb] tCast c ty'.
+  Proof using wfΣ.
+    intros onf h.
+    induction h.
+    - constructor; cbn; eauto with fvs. cbn in c.
+      destruct pb; constructor; eauto with fvs; reflexivity.
+    - eapply red_ws_cumul_pb_left; tea.
+      econstructor; tea; cbn; eauto with fvs.
+      eapply red1_red. constructor; auto.
+    - eapply red_ws_cumul_pb_right; tea.
+      econstructor; tea; cbn; eauto with fvs.
+      eapply red1_red. constructor; auto.
+  Qed.
+
   (* TODO Rename to ws_cumul_pb_Prod_Ind_inv *)
 
   Lemma invert_cumul_prod_ind {Γ na dom codom ind u args} :
@@ -1919,6 +1953,17 @@ Section ConvRedConv.
     intros. etransitivity.
     - eapply ws_cumul_pb_App_l; tea; eauto with fvs.
     - apply ws_cumul_pb_App_r; tea. eauto with fvs.
+  Qed.
+
+  Lemma ws_cumul_pb_Cast :
+    forall Γ c1 c2 ty1 ty2 pb,
+      Σ ;;; Γ ⊢ c1 ≤[pb] c2 ->
+      Σ ;;; Γ ⊢ ty1 = ty2 ->
+      Σ ;;; Γ ⊢ tCast c1 ty1 ≤[pb] tCast c2 ty2.
+  Proof using wfΣ.
+    intros. etransitivity.
+    - eapply ws_cumul_pb_Cast_tm; tea; eauto with fvs.
+    - apply ws_cumul_pb_Cast_ty; tea. eauto with fvs.
   Qed.
 
   #[global]
@@ -3804,6 +3849,7 @@ Proof using Type.
     enough (#|m| + i - #|m| = i) as ->; tas; lia.
   - destruct p as [? []]; cbn in X; cbn; trea.
     eapply red_primArray_congr; cbn; intuition eauto; solve_all.
+  - eapply red_cast; eauto.
 Qed.
 
 Lemma closed_red_rel_all {Γ i body t} :
@@ -4036,6 +4082,7 @@ Proof.
     eapply ws_cumul_pb_Prim; eauto.
     depelim h; constructor; cbn in *; rtoProp; intuition eauto.
     repeat toAll. solve_all.
+  - intros Γ c c' ty ty' Hc Xc Hty Xty; cbn => H0 /andP[] H1 H2 /andP[] H3 H4. eapply ws_cumul_pb_Cast; eauto.
   - intros Γ i u u' args args' H X X_dep H0 H1 H2. eapply ws_cumul_pb_Ind; eauto. split; eauto.
     rewrite on_free_vars_mkApps in H1. rewrite on_free_vars_mkApps in H2.
     repeat toProp; destruct_head'_and.

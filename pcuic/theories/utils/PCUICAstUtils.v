@@ -42,6 +42,7 @@ Fixpoint string_of_term (t : term) :=
   | tFix l n => "Fix(" ^ (string_of_list (string_of_def string_of_term) l) ^ "," ^ string_of_nat n ^ ")"
   | tCoFix l n => "CoFix(" ^ (string_of_list (string_of_def string_of_term) l) ^ "," ^ string_of_nat n ^ ")"
   | tPrim i => "Int(" ^ string_of_prim string_of_term i ^ ")"
+  | tCast c ty => "Cast" ^ string_of_term c ^ "," ^ string_of_term ty ^ ")"
   end.
 
 Ltac change_Sk :=

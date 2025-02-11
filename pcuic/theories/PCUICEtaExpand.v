@@ -101,7 +101,8 @@ Inductive expanded (Γ : list nat) : term -> Prop :=
     #|args| >= (ind_npars mind + context_assumptions (cstr_args cdecl)) ->
     Forall (expanded Γ) args ->
     expanded Γ (mkApps (tConstruct ind c u) args)
-| expanded_tPrim p : onPrim (expanded Γ) p -> expanded Γ (tPrim p).
+| expanded_tPrim p : onPrim (expanded Γ) p -> expanded Γ (tPrim p)
+| expanded_tCast (c ty : term) : expanded Γ c -> expanded Γ (tCast c ty).
 
 End expanded.
 Derive Signature for expanded.
@@ -175,9 +176,10 @@ Lemma expanded_ind :
   #|args| >= ind_npars mind + context_assumptions (cstr_args cdecl) ->
   Forall (expanded Σ Γ) args -> Forall (P Γ) args -> P Γ (mkApps (tConstruct ind c u) args)) ->
   (forall Γ p, onPrim (expanded Σ Γ) p -> onPrim (P Γ) p -> P Γ (tPrim p)) ->
+  (forall Γ c ty, expanded Σ Γ c -> P Γ c -> P Γ (tCast c ty)) ->
   forall (Γ : list nat) (t : term), expanded Σ Γ t -> P Γ t.
 Proof.
-  intros Σ P HRel HVar HEvar HSort HProd HLamdba HLetIn HApp HConst HInd HCase HProj HFix HCoFix HConstruct HPrim.
+  intros Σ P HRel HVar HEvar HSort HProd HLamdba HLetIn HApp HConst HInd HCase HProj HFix HCoFix HConstruct HPrim HCast.
   fix f 3.
   intros Γ t Hexp.  destruct Hexp; eauto.
   - eapply HRel; eauto. clear - f H0. induction H0; econstructor; eauto.
@@ -318,6 +320,7 @@ Proof.
     eapply expanded_tConstruct_app; tea. now len.
     solve_all.
   - cbn; constructor. depelim H0; constructor; cbn; eauto. solve_all.
+  - cbn. constructor. eauto.
 Qed.
 
 Lemma expanded_subst Σ a k b Γ Δ :
@@ -387,6 +390,7 @@ Proof.
     solve_all.
   - cbn; constructor; eauto.
     depelim H1; constructor; cbn; eauto; solve_all.
+  - cbn. constructor. eauto.
 Qed.
 
 Lemma expanded_let_expansion Σ (Δ : context) Γ t :
@@ -527,6 +531,13 @@ Qed.
 Lemma expanded_tEvar_inv Σ Γ ev l:
   expanded Σ Γ (tEvar ev l) ->
   Forall (expanded Σ Γ) l.
+Proof.
+  intros exp; depind exp; solve_discr => //; eauto.
+Qed.
+
+Lemma expanded_tCast_inv Σ Γ c ty :
+  expanded Σ Γ (tCast c ty) ->
+  expanded Σ Γ c.
 Proof.
   intros exp; depind exp; solve_discr => //; eauto.
 Qed.
@@ -703,6 +714,9 @@ Module Red1Apps.
       Σ ;;; Γ |- tPrim (primArray; primArrayModel arr) ⇝
             tPrim (primArray; primArrayModel (set_array_type arr ty))
 
+  | cast_red_tm c c' ty : Σ ;;; Γ |- c ⇝ c' -> Σ ;;; Γ |- tCast c ty ⇝ tCast c' ty
+  | cast_red_ty c ty ty' : Σ ;;; Γ |- ty ⇝ ty' -> Σ ;;; Γ |- tCast c ty ⇝ tCast c ty'
+
   where " Σ ;;; Γ |- t ⇝ u " := (red1 Σ Γ t u).
 
   Derive Signature for red1.
@@ -848,10 +862,15 @@ Module Red1Apps.
         P Γ (tPrim (primArray; primArrayModel arr))
           (tPrim (primArray; primArrayModel (set_array_type arr ty)))) ->
 
+       (forall (Γ : context) (c c' ty : term),  Σ;;; Γ |- c ⇝ c' -> P Γ c c' ->
+          P Γ (tCast c ty) (tCast c' ty)) ->
+
+       (forall (Γ : context) (c ty ty' : term),  Σ;;; Γ |- ty ⇝ ty' -> P Γ ty ty' ->
+          P Γ (tCast c ty) (tCast c ty')) ->
 
        forall (Γ : context) (t t0 : term), red1 Σ Γ t t0 -> P Γ t t0.
   Proof.
-    intros. rename X32 into Xlast. revert Γ t t0 Xlast.
+    intros. rename X34 into Xlast. revert Γ t t0 Xlast.
     fix aux 4. intros Γ t T.
     move aux at top.
     destruct 1; match goal with
@@ -1120,6 +1139,7 @@ Proof.
     solve_all.
   - cbn; econstructor; eauto.
     depelim H0; constructor; cbn; eauto; solve_all.
+  - cbn. constructor. eauto.
 Qed.
 
 Lemma expanded_unfold_fix Σ Γ' mfix idx narg fn :
@@ -1432,6 +1452,8 @@ Proof.
     depelim exp; eauto. constructor; cbn; eauto.
   - constructor. eapply expanded_tPrim_inv in exp.
     depelim exp; eauto. constructor; cbn; eauto.
+  - constructor. eapply expanded_tCast_inv in exp. eauto.
+  - constructor. eapply expanded_tCast_inv in exp. eauto.
 Qed.
 
 Lemma expanded_red {cf : checker_flags} {Σ : global_env_ext} Γ Γ' t v : wf Σ ->

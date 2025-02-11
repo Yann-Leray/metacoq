@@ -421,6 +421,8 @@ Proof.
            eapply urename_on_free_vars_shift; eauto.
            rewrite fix_context_length; eauto.
   - eapply cumul_Prim. depelim X; cbn; cbn in HfreeB, HΓ; rtoProp; constructor; cbn; eauto. solve_all.
+  - cbn in *. rtoProp.
+    eapply cumul_Cast; try apply X0; try apply X2; eauto.
   - repeat rewrite rename_mkApps. eapply cumul_Ind.
     * repeat rewrite map_length; eauto.
     * inv_on_free_vars.

@@ -1231,7 +1231,7 @@ Proof.
   intros Hs t Ht. revert P s s' Hs Ht.
   elim t using term_forall_list_ind; cbn in |- *; intros; try easy.
   8-9: rewrite /test_def in Ht.
-  1-5,7-9,10:
+  1-5,7-9,10,11:
     try rewrite H; try rewrite H0 ; try rewrite H1 ; try easy ;
     solve [f_equal; solve_all; eauto using up_ext_cond].
 
@@ -1867,6 +1867,8 @@ Proof.
     eapply red_primArray_default; cbn; eauto.
   - cbn. rewrite map_array_model_set_type.
     eapply red_primArray_type; cbn; eauto.
+  - simpl. now eapply red_cast.
+  - simpl. now eapply red_cast.
 Defined.
 
 Lemma eq_term_upto_univ_inst Σ cmp_universe cmp_sort pb napp u v σ :

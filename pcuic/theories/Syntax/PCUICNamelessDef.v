@@ -58,6 +58,7 @@ Fixpoint nameless (t : term) : bool :=
     forallb (fun d => banon d.(dname)) mfix &&
     forallb (test_def nameless nameless) mfix
   | tPrim p => test_prim nameless p
+  | tCast c ty => nameless c && nameless ty
   end.
 
 Notation nameless_ctx := (forallb (nameless_decl nameless)).
@@ -106,6 +107,7 @@ Fixpoint nl (t : term) : term :=
   | tFix mfix idx => tFix (map (map_def_anon nl nl) mfix) idx
   | tCoFix mfix idx => tCoFix (map (map_def_anon nl nl) mfix) idx
   | tPrim p => tPrim (map_prim nl p)
+  | tCast c ty => tCast (nl c) (nl ty)
   end.
 
 Definition nlctx (Γ : context) : context :=

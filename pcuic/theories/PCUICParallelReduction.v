@@ -403,6 +403,11 @@ Section ParallelReduction.
     pred1_ctx Γ Γ' ->
     onPrims (pred1 Γ Γ') eq p p' -> pred1 Γ Γ' (tPrim p) (tPrim p')
 
+  | cast_pred c c' ty ty' :
+    pred1 Γ Γ' c c' ->
+    pred1 Γ Γ' ty ty' ->
+    pred1 Γ Γ' (tCast c ty) (tCast c' ty')
+
   | pred_atom_refl t :
     pred1_ctx Γ Γ' ->
     pred_atom t ->
@@ -619,6 +624,10 @@ Section ParallelReduction.
           onPrims (P Γ Γ') eq p p' ->
           P Γ Γ' (tPrim p) (tPrim p')) ->
 
+      (forall (Γ Γ' : context) (c c' ty ty' : term),
+          pred1 Γ Γ' c c' -> P Γ Γ' c c' -> pred1 Γ Γ' ty ty' ->
+          P Γ Γ' ty ty' -> P Γ Γ' (tCast c ty) (tCast c' ty')) ->
+
       (forall (Γ Γ' : context) (t : term),
           pred1_ctx Γ Γ' ->
           Pctx Γ Γ' ->
@@ -629,7 +638,7 @@ Section ParallelReduction.
     intros P Pctx Pctxover P' Hctx Hctxover. intros.
     assert (forall (Γ Γ' : context) (t t0 : term), pred1 Γ Γ' t t0 -> P Γ Γ' t t0).
     intros.
-    rename X21 into pr. revert Γ Γ' t t0 pr.
+    rename X22 into pr. revert Γ Γ' t t0 pr.
     fix aux 5. intros Γ Γ' t t'.
     move aux at top.
     destruct 1; match goal with
@@ -649,8 +658,8 @@ Section ParallelReduction.
       apply (on_contexts_impl a). intros. eapply X1.
       apply (on_contexts_impl a). intros. eapply (aux _ _ _ _ X1).
     - simpl. apply X2; auto.
-      apply Hctx, (on_contexts_impl a). exact a. intros. apply (aux _ _ _ _ X21).
-    - apply Hctx, (on_contexts_impl a). exact a. intros. apply (aux _ _ _ _ X21).
+      apply Hctx, (on_contexts_impl a). exact a. intros. apply (aux _ _ _ _ X22).
+    - apply Hctx, (on_contexts_impl a). exact a. intros. apply (aux _ _ _ _ X22).
     - eapply (All2_All2_prop (P:=pred1) (Q:=P') a0 ((extendP aux) Γ Γ')).
     - eapply (All2_All2_prop a1 (extendP aux Γ Γ')).
     - eapply (All2_branch_prop
@@ -717,7 +726,7 @@ Section ParallelReduction.
     - eapply X8; eauto.
       apply (Hctx _ _ a), (on_contexts_impl a aux).
     - apply (Hctx _ _ a), (on_contexts_impl a aux).
-    - eapply (All2_All2_prop (P:=pred1) (Q:=P) a0). intros. apply (aux _ _ _ _ X21).
+    - eapply (All2_All2_prop (P:=pred1) (Q:=P) a0). intros. apply (aux _ _ _ _ X22).
     - apply (Hctx _ _ a), (on_contexts_impl a aux).
     - apply (All2_All2_prop (P:=pred1) (Q:=P') a0 (extendP aux _ _)).
     - apply (Hctxover _ _ _ _ a (on_contexts_impl a aux)
@@ -758,10 +767,10 @@ Section ParallelReduction.
     - split => //.
       intros.
       eapply Hctxover; eauto.
-      { eapply (on_contexts_impl X22 X21). }
+      { eapply (on_contexts_impl X23 X22). }
       eapply Hctx; eauto.
-      { eapply (on_contexts_impl X22 X21). }
-      eapply (on_contexts_impl X23 (extend_over X21 Γ Γ')).
+      { eapply (on_contexts_impl X23 X22). }
+      eapply (on_contexts_impl X24 (extend_over X22 Γ Γ')).
   Defined.
 
   Lemma pred1_pred1_ctx {Γ Δ t u} : pred1 Γ Δ t u -> pred1_ctx Γ Δ.
@@ -769,7 +778,7 @@ Section ParallelReduction.
     intros H; revert Γ Δ t u H.
     refine (fst (pred1_ind_all_ctx _ (fun Γ Γ' => pred1_ctx Γ Γ')
       (fun Γ Γ' Δ Δ' => True)
-      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _)); intros *.
+      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _)); intros *.
     all:try intros **; rename_all_hyps;
       try solve [specialize (forall_Γ _ X3); eauto]; eauto;
         try solve [eexists; split; constructor; eauto].
@@ -1094,7 +1103,7 @@ Qed.
   Proof using cf.
     set (Pctx := fun (Γ Γ' : context) => pred1_ctx Σ Γ Γ').
 
-    refine (pred1_ind_all_ctx Σ _ Pctx _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _); intros *; intros;
+    refine (pred1_ind_all_ctx Σ _ Pctx _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _); intros *; intros;
       subst Pctx;
     rename_all_hyps; try subst Γ Γ';
     lazymatch goal with
@@ -2012,7 +2021,7 @@ Section ParallelSubstitution.
   Proof.
     intros Pover.
     refine (pred1_ind_all_ctx Σ _ (fun Γ Γ' => pred1_ctx Σ Γ Γ')
-       _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _); subst Pover;
+       _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _); subst Pover;
       try (intros until Δ; intros Δ' σ τ ons onis Hrel); trivial; repeat inv_on_free_vars.
 
     (* induction redst using ; sigma; intros Δ Δ' σ τ Hσ Hτ Hrel. *)
@@ -2474,6 +2483,7 @@ Section ParallelSubstitution.
       (* Primitive *)
     - cbn in ons, onis. depelim X1; cbn; depelim X2; cbn in *; constructor;
       eauto; try eapply Hrel; constructor; rtoProp; cbn; intuition eauto. solve_all.
+    - sigma; pcuic.
     - rewrite !pred_atom_inst; auto. eapply pred1_refl_gen; auto with pcuic.
   Qed.
 

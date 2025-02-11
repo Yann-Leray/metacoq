@@ -153,6 +153,11 @@ Inductive cumulSpec0 {cf : checker_flags} (Σ : global_env_ext) Γ (pb : conv_pb
   onPrims (fun x y => Σ ;;; Γ ⊢ x ≤s[Conv] y) (compare_universe Σ Conv) p p' ->
   Σ ;;; Γ ⊢ tPrim p ≤s[pb] tPrim p'
 
+| cumul_Cast c c' ty ty' :
+    Σ ;;; Γ ⊢ c ≤s[pb] c' ->
+    Σ ;;; Γ ⊢ ty ≤s[Conv] ty' ->
+    Σ ;;; Γ ⊢ tCast c ty ≤s[pb] tCast c' ty'
+
 (** Reductions *)
 
 (** Beta red *)
@@ -430,6 +435,12 @@ Lemma cumulSpec0_rect :
       onPrims_dep (cumulSpec0 Σ Γ Conv) (eq_universe Σ) (P cf Σ Γ Conv) (fun _ _ _ => True) p p' e ->
       P cf Σ Γ pb (tPrim p) (tPrim p') (cumul_Prim _ _ _ _ _ e)) ->
 
+    (forall (Γ : context) (pb : conv_pb) (c c' ty ty' : term)
+            (Hc : cumulSpec0 Σ Γ pb c c') (_ : P cf Σ Γ pb c c' Hc)
+            (Hty : cumulSpec0 Σ Γ Conv ty ty') (_ : P cf Σ Γ Conv ty ty' Hty),
+        P cf Σ Γ pb (tCast c ty) (tCast c' ty')
+          (cumul_Cast _ _ _ _ _ _ _ Hc Hty)) ->
+
     (* cumulativity rules *)
 
     (forall (Γ : context) (pb : conv_pb) (i : inductive) (u u' : list Level.t)
@@ -468,14 +479,14 @@ Proof.
   - eapply X8; eauto.
   - eapply X9; eauto.
   - eapply X10; eauto.
-  - eapply X21; eauto. clear -a aux.
-    revert args args' a.
-    fix aux' 3; destruct a; constructor; auto.
   - eapply X22; eauto. clear -a aux.
     revert args args' a.
     fix aux' 3; destruct a; constructor; auto.
-  - eapply X23; eauto.
+  - eapply X23; eauto. clear -a aux.
+    revert args args' a.
+    fix aux' 3; destruct a; constructor; auto.
   - eapply X24; eauto.
+  - eapply X25; eauto.
   - eapply X11; eauto.
     revert args args' a.
     fix aux' 3; destruct a; constructor; auto.
@@ -513,6 +524,7 @@ Proof.
     induction o; constructor; auto.
     clear -a0 aux. revert a0.
     induction a0; constructor; auto.
+  - eapply X21; eauto.
   - eapply X; eauto.
   - eapply X0; eauto.
   - eapply X1; eauto.
@@ -692,6 +704,13 @@ Lemma convSpec0_ind_all :
         onPrims_dep (cumulSpec0 Σ Γ Conv) (eq_universe Σ) (P cf Σ Γ Conv) (fun _ _ _ => True) p p' e ->
         P cf Σ Γ Conv (tPrim p) (tPrim p') (cumul_Prim _ _ _ _ _ e)) ->
 
+
+    (forall (Γ : context) (c c' ty ty' : term)
+            (Hc : cumulSpec0 Σ Γ Conv c c') (_ : P cf Σ Γ Conv c c' Hc)
+            (Hty : cumulSpec0 Σ Γ Conv ty ty') (_ : P cf Σ Γ Conv ty ty' Hty),
+        P cf Σ Γ Conv (tCast c ty) (tCast c' ty')
+          (cumul_Cast _ _ _ _ _ _ _ Hc Hty)) ->
+
       (* cumulativity rules *)
 
       (forall (Γ : context) (i : inductive) (u u' : list Level.t)
@@ -726,7 +745,7 @@ Proof.
   remember Conv as pb eqn:Hpb in Ht |- *.
   induction Ht; eauto; subst.
   all: exactly_once (idtac; multimatch goal with H : _ |- _ => eapply H end; eauto).
-  6:{ destruct X25; constructor; auto. eapply All2_dep_impl; tea; intuition auto. }
+  6:{ destruct X26; constructor; auto. eapply All2_dep_impl; tea; intuition auto. }
   all: cbv [cumul_predicate_dep] in *.
   all: repeat destruct ?; subst.
   all: destruct_head'_prod.

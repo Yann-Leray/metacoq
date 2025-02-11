@@ -72,6 +72,7 @@ Proof.
     1: auto.
     by rewrite map_length ebod shiftnP_shiftn.
   - solve_all.
+  - by rewrite IHt1 IHt2.
 Qed.
 
 Lemma Alli_impl_le {A P Q} {l : list A} {n} :

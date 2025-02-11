@@ -868,6 +868,7 @@ Lemma term_closedn_list_ind :
     (forall k (m : mfixpoint term) (n : nat), tFixProp (P k) (P (#|fix_context m| + k)) m -> P k (tFix m n)) ->
     (forall k (m : mfixpoint term) (n : nat), tFixProp (P k) (P (#|fix_context m| + k)) m -> P k (tCoFix m n)) ->
     (forall k p, tPrimProp (P k) p -> P k (tPrim p)) ->
+    (forall k c ty, P k c -> P k ty -> P k (tCast c ty)) ->
     forall k (t : term), closedn k t -> P k t.
 Proof.
   intros until t. revert k t.
@@ -986,6 +987,7 @@ Lemma term_noccur_between_list_ind :
     (forall k n (m : mfixpoint term) (i : nat), tFixProp (P k n) (P (#|fix_context m| + k) n) m -> P k n (tFix m i)) ->
     (forall k n (m : mfixpoint term) (i : nat), tFixProp (P k n) (P (#|fix_context m| + k) n) m -> P k n (tCoFix m i)) ->
     (forall k n p, tPrimProp (P k n) p -> P k n (tPrim p)) ->
+    (forall k n c ty, P k n c -> P k n ty -> P k n (tCast c ty)) ->
     forall k n (t : term), noccur_between k n t -> P k n t.
 Proof.
   intros until t. revert k n t.

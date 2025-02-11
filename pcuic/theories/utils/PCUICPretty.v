@@ -268,6 +268,7 @@ Module PrintTermTree.
       parens top ("let cofix " ^ print_defs print_term Γ l ^ nl ^
                                 " in " ^ List.nth_default (string_of_nat n) (map (string_of_aname ∘ dname) l) n)
     | tPrim i => parens top (print_prim (print_term Γ true false) i)
+    | tCast c ty => parens true (print_term Γ true false c ^ ":" ^ print_term Γ true false ty)
     end.
   End env.
 

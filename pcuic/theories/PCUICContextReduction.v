@@ -184,6 +184,8 @@ Section CtxReduction.
     - eapply red_primArray_one_value. toAll. eapply OnOne2_All_mix_left in X; tea. solve_all.
     - eapply red_primArray_default; eauto.
     - eapply red_primArray_type; eauto.
+    - eapply red_cast; eauto.
+    - eapply red_cast; eauto.
   Qed.
 
   Lemma red_red_ctx P Γ Δ t u :

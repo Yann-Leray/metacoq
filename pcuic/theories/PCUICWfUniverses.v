@@ -301,6 +301,7 @@ Section CheckerFlags.
     Fixpoint on_universes fu fc t :=
       match t with
       | tSort s => Sort.on_sort fu true s
+      | tCast t u
       | tApp t u
       | tProd _ t u
       | tLambda _ t u => on_universes fu fc t && on_universes fu fc u

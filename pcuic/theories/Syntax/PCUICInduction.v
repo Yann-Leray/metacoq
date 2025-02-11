@@ -42,6 +42,7 @@ Lemma term_forall_list_ind :
     (forall (m : mfixpoint term) (n : nat), tFixProp P P m -> P (tFix m n)) ->
     (forall (m : mfixpoint term) (n : nat), tFixProp P P m -> P (tCoFix m n)) ->
     (forall p, tPrimProp P p -> P (tPrim p)) ->
+    (forall c ty, P c -> P ty -> P (tCast c ty)) ->
     forall t : term, P t.
 Proof.
   intros until t. revert t.
@@ -266,6 +267,7 @@ Lemma term_forall_mkApps_ind :
     (forall (m : mfixpoint term) (n : nat), tFixProp P P m -> P (tFix m n)) ->
     (forall (m : mfixpoint term) (n : nat), tFixProp P P m -> P (tCoFix m n)) ->
     (forall p, tPrimProp P p -> P (tPrim p)) ->
+    (forall c ty, P c -> P ty -> P (tCast c ty)) ->
     forall t : term, P t.
 Proof.
   intros until t.
@@ -498,9 +500,10 @@ Lemma term_forall_ctx_list_ind :
         All_local_env (on_local_decl (fun Γ' t => P (Γ ,,, Γ') t)) (fix_context m) ->
         tFixProp (P Γ) (P (Γ ,,, fix_context m)) m -> P Γ (tCoFix m n)) ->
     (forall Γ p, tPrimProp (P Γ) p -> P Γ (tPrim p)) ->
+    (forall Γ c ty, P Γ c -> P Γ ty -> P Γ (tCast c ty)) ->
     forall Γ (t : term), P Γ t.
 Proof.
-  intros ????????????????? Γ t.
+  intros ?????????????????? Γ t.
   revert Γ t. set(foo:=CoreTactics.the_end_of_the_section). intros.
   Subterm.rec_wf_rel aux t (MR lt size); unfold MR in *; simpl. clear H1.
   assert (auxl : forall Γ {A} (l : list A) (f : A -> term),
@@ -611,6 +614,7 @@ Lemma term_ind_size_app :
     (forall (m : mfixpoint term) (n : nat),
         tFixProp (P) P m -> P (tCoFix m n)) ->
     (forall p, tPrimProp P p -> P (tPrim p)) ->
+    (forall c ty, P c -> P ty -> P (tCast c ty)) ->
     forall (t : term), P t.
 Proof.
   intros.

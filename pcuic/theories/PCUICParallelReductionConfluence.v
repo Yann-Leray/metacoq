@@ -662,6 +662,7 @@ Section Rho.
     let mfixctx := fold_fix_context_wf mfix (fun Γ x Hx => rho Γ x) Γ [] in
     tCoFix (map_fix_rho (t:=tCoFix mfix idx) rho Γ mfixctx mfix _) idx;
   rho Γ (tPrim p) => tPrim (map_prim_wf p rho Γ);
+  rho Γ (tCast c ty) => tCast (rho Γ c) (rho Γ ty);
   rho Γ x => x.
   Proof.
     all:try abstract lia.
@@ -1558,7 +1559,7 @@ Section Rho.
     rename r (rho Γ t) = rho Δ (rename r t).
   Proof using cf Σ wfΣ.
     revert t Γ Δ r P.
-    refine (PCUICDepth.term_ind_depth_app _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _);
+    refine (PCUICDepth.term_ind_depth_app _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _);
       intros until Γ; intros Δ r P Hr ont; try subst Γ; try rename Γ0 into Γ; repeat inv_on_free_vars.
     all:auto 2.
 
@@ -1935,6 +1936,8 @@ Section Rho.
 
     - (* Prim *)
       simpl; simp rho. cbn. f_equal. cbn in ont. solve_all.
+
+    - simpl; simp rho. simpl. f_equal; eauto.
   Qed.
 
   Lemma rho_lift0 Γ Δ P t :
@@ -3308,7 +3311,7 @@ Section Rho.
     set Pctx := fun (Γ Δ : context) =>
       on_ctx_free_vars xpredT Γ ->
       pred1_ctx Σ Δ (rho_ctx Γ).
-    refine (pred1_ind_all_ctx Σ _ Pctx _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _);
+    refine (pred1_ind_all_ctx Σ _ Pctx _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _);
       subst Pctx; intros *.
     all:try intros **; rename_all_hyps;
       try solve [specialize (forall_Γ _ X3); eauto]; eauto;
@@ -4100,6 +4103,7 @@ Section Rho.
     - cbn in *. simp rho. constructor; eauto.
       depelim X2; constructor; cbn in *; rtoProp; intuition eauto. solve_all.
       eapply All2_sym. solve_all.
+    - simpl; simp rho; simpl. eapply cast_pred; eauto with fvs.
     - destruct t; noconf H; simpl; constructor; eauto.
   Qed.
 

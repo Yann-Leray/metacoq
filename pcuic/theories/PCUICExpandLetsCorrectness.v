@@ -448,6 +448,7 @@ Proof.
     unfold map_def; cbn. f_equal. rewrite a //. solve_all.
     rewrite b //. solve_all. now len.
   - f_equal. solve_all. eapply b. solve_all.
+  - rewrite H // H0 //.
 Qed.
 
 Lemma trans_subst_ctx (Γ : context) xs k t :
@@ -931,6 +932,7 @@ Section wtsub.
     | tFix mfix idx | tCoFix mfix idx =>
       All (fun d => wt Γ d.(dtype) × wt (Γ ,,, fix_context mfix) d.(dbody)) mfix
     | tEvar _ l => False
+    | tCast _ _ => False
     | tRel i => wf_local Σ Γ
     | tPrim p => primitive_typing_hyps (fun Σ Γ t T => wt Γ t) Σ Γ p
     | _ => unit
@@ -1013,6 +1015,7 @@ Section wtsub.
       eapply (All_impl a0). intros ? (h & _); cbn in h; eexists; tea.
     - eapply inversion_Prim in h as (?&?&[]).
       depelim p0; constructor; eauto. 1-2:now eexists. solve_all. now eexists. eauto.
+    - by apply inversion_Cast in h.
   Qed.
 End wtsub.
 

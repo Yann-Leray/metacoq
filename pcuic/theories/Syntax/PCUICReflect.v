@@ -116,6 +116,7 @@ Fixpoint eqb_term (u v : term) : bool :=
       eqb x.(dname) y.(dname)) mfix mfix'
 
   | tPrim p, tPrim p' => @eqb_prim_val _ eqb eqb_term p p'
+  | tCast c ty, tCast c' ty' => eqb_term c c' && eqb_term ty ty'
   | _, _ => false
   end.
 

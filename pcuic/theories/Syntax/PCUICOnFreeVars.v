@@ -89,6 +89,7 @@ Fixpoint on_free_vars (p : nat -> bool) (t : term) : bool :=
     List.forallb (test_def (on_free_vars p) (on_free_vars (shiftnP #|mfix| p))) mfix
   | tVar _ | tSort _ | tConst _ _ | tInd _ _ | tConstruct _ _ _ => true
   | tPrim pr => test_prim (on_free_vars p) pr
+  | tCast c ty => on_free_vars p c && on_free_vars p ty
   end.
 
 Lemma on_free_vars_ext (p q : nat -> bool) t :
@@ -116,6 +117,7 @@ Proof.
   - simpl; intuition auto. f_equal; eauto 2.
     eapply b; rewrite H //.
   - solve_all.
+  - rewrite (IHt1 p q) // (IHt2 p q) //.
 Qed.
 
 #[global]
@@ -363,7 +365,7 @@ Proof.
   intros. revert t n k p.
   induction t using PCUICInduction.term_forall_list_ind; simpl => //; intros;
     rewrite ?forallb_map; try eapply All_forallb_eq_forallb; tea; simpl.
-  2-6:try now rewrite ?shiftnP_strengthenP ?IHt1 ?IHt2 ?IHt3.
+  2-6,11:try now rewrite ?shiftnP_strengthenP ?IHt1 ?IHt2 ?IHt3.
   - rename n0 into i. rewrite /strengthenP.
     repeat nat_compare_specs => //.
     lia_f_equal.
@@ -1385,6 +1387,7 @@ Lemma term_on_free_vars_ind :
       tFixProp (on_free_vars p) (on_free_vars (shiftnP #|fix_context m| p)) m ->
       tFixProp (P p) (P (shiftnP #|fix_context m| p)) m -> P p (tCoFix m i)) ->
     (forall p pr, tPrimProp (on_free_vars p) pr -> tPrimProp (P p) pr -> P p (tPrim pr)) ->
+    (forall p c ty, P p c -> P p ty -> P p (tCast c ty)) ->
     forall p (t : term), on_free_vars p t -> P p t.
 Proof.
   intros until t. revert p t.

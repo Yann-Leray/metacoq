@@ -1359,6 +1359,13 @@ Section Univ.
     apply eq0_leq0_universe.
   Qed.
 
+  Lemma eq_universe_sup_mon φ u1 u1' u2 u2' : eq_universe φ u1 u1' -> eq_universe φ u2 u2' ->
+    eq_universe φ (Universe.sup u1 u2) (Universe.sup u1' u2').
+  Proof using Type.
+    intros H1 H2; unfold_univ_rel.
+    rewrite !val_sup. lia.
+  Qed.
+
   Lemma leq_universe_sup_l φ u1 u2 : leq_universe φ u1 (Universe.sup u1 u2).
   Proof using Type. unfold_univ_rel. rewrite val_sup; lia. Qed.
 
@@ -2290,6 +2297,12 @@ Tactic Notation "unfold_univ_rel" "eqn" ":"ident(H) :=
 
 Ltac cong := intuition congruence.
 
+Lemma eq_relevance_eq {cf φ} {s s'} :
+  eq_sort φ s s' -> relevance_of_sort s = relevance_of_sort s'.
+Proof.
+  now destruct s, s'.
+Qed.
+
 Lemma leq_relevance_eq {cf φ} {s s'} :
   leq_sort φ s s' -> relevance_of_sort s = relevance_of_sort s'.
 Proof.
@@ -2298,6 +2311,12 @@ Qed.
 
 Lemma leq_relevance_opt {cf φ} {s s' rel} :
   leq_sort φ s s' -> isSortRelOpt s rel -> isSortRelOpt s' rel.
+Proof.
+  now destruct s, s'.
+Qed.
+
+Lemma eq_relevance {cf φ} {s s' rel} :
+  eq_sort φ s s' -> isSortRel s rel -> isSortRel s' rel.
 Proof.
   now destruct s, s'.
 Qed.
@@ -2317,6 +2336,16 @@ Qed.
 Lemma relevance_super s : relevance_of_sort (Sort.super s) = rel_of_Type.
 Proof using Type.
   now destruct s.
+Qed.
+
+Lemma eq_sort_product_mon {cf} ϕ s1 s1' s2 s2' :
+  eq_sort ϕ s1 s1' ->
+  eq_sort ϕ s2 s2' ->
+  eq_sort ϕ (Sort.sort_of_product s1 s2) (Sort.sort_of_product s1' s2').
+Proof.
+  destruct s2 as [| | u2], s2' as [| | u2']; cbnr; try absurd;
+  destruct s1 as [| | u1], s1' as [| | u1']; cbnr; try absurd; trivial.
+  apply eq_universe_sup_mon.
 Qed.
 
 Lemma leq_sort_product_mon {cf} ϕ s1 s1' s2 s2' :

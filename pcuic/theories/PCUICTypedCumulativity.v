@@ -476,9 +476,9 @@ Create HintDb fmap.
   Reserved Notation "Σ  ;;; Γ ⊢ t ≡> t' ▹ T 'on' H 'with' P" (at level 50, Γ, t, t', T, H, P at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ≡> t' ▹| T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T'" (at level 50, Γ, Γ', t, t', T, T' at next level).
-  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T' 'on' H 'with' P" (at level 50, Γ, Γ', t, t', T, T', H, P at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T' 'with' P" (at level 50, Γ, Γ', t, t', T, T', P at next level).
   Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ≡> t' : T | T'" (at level 50, Γ, Γ', t, t', T, T' at next level).
-  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ≡> t' : T | T' 'on' H 'with' P" (at level 50, Γ, Γ', t, t', T, T', H, P at next level).
+  Reserved Notation "Σ  ;;; Γ | Γ' ⊢ t ≡> t' : T | T' 'with' P" (at level 50, Γ, Γ', t, t', T, T', P at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~> t' : T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~> t' ▷ T" (at level 50, Γ, t, t', T at next level).
   Reserved Notation "Σ  ;;; Γ ⊢ t ~> t' ▹ T" (at level 50, Γ, t, t', T at next level).
@@ -4176,7 +4176,7 @@ Class TCProdInjectivity TC Σ :=
 
 Class TCHyps TC Σ := {
   TC_Refl_Ty :: TCReflOnTypes Σ;
-  TC_Refl_Sorts :: TCReflOnSorts Σ;
+  (* TC_Refl_Sorts :: TCReflOnSorts Σ; *)
   TC_Trans :: TCTrans TC Σ;
   TC_Lift :: TCLift TC Σ;
   TC_Subst :: TCSubst TC Σ;
@@ -4458,7 +4458,7 @@ End ContextConversion.
 
 
 Class TypingCCPrecondition {TC tc} Σ := {
-    TypinCCIT :: InferTyping Σ;
+    (* TypinCCIT :: InferTyping Σ; *)
     TypingCCRefl :: CCTypedRefl Σ;
     TypingCCLift :: CmpContextLiftable Σ;
     TypingCCOnTC :: ContextChangeable (TC Σ) Σ;
@@ -4497,14 +4497,14 @@ Theorem struct_typing_CC_pre TC tc Σ {Pre : TypingCCPrecondition TC tc Σ} P P'
   [(wfΔ : wf_local Σ Δ)] ->
   [(H : Σ ;;; Γ ⊢ t ▹ T with P)] ->
   [(X : Σ ;;; Γ ⊢ t ▹ T on H with P')] ->
-  Σ ;;; Δ ⊢ t : T.
+  Σ ;;; Δ ⊢ t ▹ T.
 Proof.
   intros.
   destruct X; cbn.
-  all: [> | apply to_typ; tas; tc..].
   - eapply nth_error_convertible_context_type in hnth as (decl' & hnth & XT); tea; tc.
-    constructor; eexists; tea.
-    by constructor.
+    todo "annots".
+    (* constructor; eexists; tea.
+    by constructor. *)
   - constructor; tas.
   - have {}IXj : wf_judgment Σ Δ (j_vass_s na A s1).
     + eapply wf_judgment_CC_pre with (j := j_vass_s _ _ _); tea; eauto.
@@ -4534,21 +4534,20 @@ Theorem struct_typing_CCR_pre TC tc Σ {Pre : TypingCCPrecondition TC tc Σ} P P
   [(wfΔ : wf_local Σ (Γ ,,, Δ'))] ->
   [(H : Σ ;;; Γ ,,, Δ ⊢ t ▹ T with P)] ->
   [(X : Σ ;;; Γ ,,, Δ ⊢ t ▹ T on H with P')] ->
-  Σ ;;; Γ ,,, Δ' ⊢ t : T.
+  Σ ;;; Γ ,,, Δ' ⊢ t ▹ T.
 Proof.
   intros.
   destruct X; cbn.
-  all: [> | apply to_typ; tas; tc; [> idtac]..].
   - apply All2_fold_length in HΓ as hen.
     rewrite nth_error_app in hnth.
     destruct (Nat.leb_spec0 #|Δ| n).
-    + apply to_typ; tas; tc.
-      constructor.
+    + constructor.
       rewrite nth_error_app_ge //. 1: lia. congruence.
     + eapply nth_error_convertible_context_rel_type in hnth as (decl' & hnth & XT); tea; tc.
-      constructor; eexists; tea.
-      constructor.
-      rewrite nth_error_app_lt //. lia.
+      todo "annots".
+      (* constructor; eexists; tea. *)
+      (* constructor. *)
+      (* rewrite nth_error_app_lt //. lia. *)
   - constructor; tas.
   - have {}IXj : wf_judgment Σ (Γ ,,, Δ') (j_vass_s na A s1).
     + eapply wf_judgment_CCR_pre with (j := j_vass_s _ _ _); tea; tc. eauto.
@@ -4574,7 +4573,7 @@ Qed.
 
 
 Theorem checking_CC_pre TC tc Σ {Pre : TypingCCPrecondition TC tc Σ} P P' Γ Δ t T :
-  [(onP' T H : P' T H -> Σ ;;; Δ ⊢ t : T)] ->
+  [(onP' T H : P' T H -> Σ ;;; Δ ⊢ t ▹ T)] ->
   [(HΓ : Σ ⊢ Δ ≤Γ Γ)] ->
   [(wfΔ : wf_local Σ Δ)] ->
   [(H : checking Σ P Γ T)] ->
@@ -4583,7 +4582,8 @@ Theorem checking_CC_pre TC tc Σ {Pre : TypingCCPrecondition TC tc Σ} P P' Γ �
 Proof.
   intros.
   destruct X.
-  eapply cumul; tc; eauto.
+  constructor.
+  econstructor; tc; eauto.
   now eapply change_context.
 Qed.
 
@@ -6314,31 +6314,66 @@ Proof.
     eapply context_closureε_wf; eauto with fmap.
 Defined.
 
+Notation conj6 P Q := (fun Γ Γ' t t' T T' => P Γ Γ' t t' T T' × Q Γ Γ' t t' T T').
 Notation conj7 P Q := (fun Γ Γ' t t' T T' H => P Γ Γ' t t' T T' H × Q Γ Γ' t t' T T' H).
 
-Inductive pred1ε {TC} Σ (P : forall Γ Γ' t t' T T', Σ ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T' -> Type) Γ Γ' t t' T T' : Σ ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T' -> Type :=
+Inductive pred1ε {TC} Σ (P : forall Γ Γ' t t' T T', Type) Γ Γ' t t' T T' :=
   | pred1ε_pred0 :
-      [(X : Σ ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T' with checking2₂ Σ (pred1 Σ), typing_sort3 (checking2₂ Σ (pred1 Σ)), eq, eq)] ->
-      [(IX : Σ ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T' on X with checking2ε₂ Σ (pred1 Σ) (conj7 P (pred1ε Σ P)), typing_sort3 (checking2ε₂ Σ (pred1 Σ) (conj7 P (pred1ε Σ P))))] ->
-      Σ ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T' on ⌈pred1_pred0⌋ with P
+      [(X : Σ ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T' with checking2₂ Σ (conj6 P (pred1ε Σ P)), typing_sort3 (checking2₂ Σ (conj6 P (pred1ε Σ P))), eq, eq)] ->
+      Σ ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T' with P
 
   | pred1ε_clos :
-      [(X : Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' with checking2₂ Σ (pred1 Σ), eq, eq)] ->
-      [(IX : Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' on X with checking2ε₂ Σ (pred1 Σ) (conj7 P (pred1ε Σ P)))] ->
-      Σ ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T' on ⌈pred1_clos⌋ with P
-where "Σ ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T' 'on' H 'with' P" := (pred1ε Σ P Γ Γ' t t' T T' H).
-Derive Signature for pred1ε.
+      [(X : Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' with checking2₂ Σ (conj6 P (pred1ε Σ P)), eq, eq)] ->
+      Σ ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T' with P
+where "Σ ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T' 'with' P" := (pred1ε Σ P Γ Γ' t t' T T').
 
-
-Definition pred1_strong_rect TC Σ P :
-  [(X Γ Γ' t t' T T' H : [(X : Σ ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T' on H with P)] -> P Γ Γ' t t' T T' H)] ->
-  forall Γ Γ' t t' T T', [(H : Σ ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T')] -> P Γ Γ' t t' T T' H.
+Lemma pred1_toε TC Σ P :
+  [(X Γ Γ' t t' T T' : [(H : Σ ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T')] -> P Γ Γ' t t' T T')] ->
+  forall Γ Γ' t t' T T', [(H : Σ ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T')] -> Σ ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T' with P.
 Proof.
-  intros X ???????.
-  apply X. revert Γ Γ' t t' T T' H.
+  intros X.
   fix Xrec 7.
   intros Γ Γ' t t' T T' H; destruct H.
-  all: constructor; eauto 8 with fmap.
+  - constructor.
+    eapply pred0_fmap; tea; cbn.
+    + eauto 7 with fmap.
+    + eauto 7 with fmap.
+  - apply pred1ε_clos.
+    eauto 7 with fmap.
+Defined.
+
+Hint Resolve pred1_toε : fmap.
+
+Definition pred1ε_rect TC Σ P₀ P :
+  [(X Γ Γ' t t' T T' : [(X : Σ ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T' with P)] -> P Γ Γ' t t' T T')] ->
+  forall Γ Γ' t t' T T', [(H : Σ ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T' with P₀)] -> P Γ Γ' t t' T T'.
+Proof.
+  intros X.
+  intros. apply X.
+  revert Γ Γ' t t' T T' H.
+  fix Xrec 7.
+  intros. destruct H.
+  - constructor.
+    eapply pred0_fmap; tea; cbn.
+    + intros; eapply checking2_fmap; tea.
+      intros ??[]. eauto.
+    + intros; eapply checking2_fmap; tea.
+      intros ??[]. eauto.
+  - apply pred1ε_clos.
+    eapply context_closure_fmap; tea; auto.
+    intros; eapply checking2_fmap; tea.
+    intros ??[]. eauto.
+Defined.
+
+Definition pred1_strong_rect TC Σ P :
+  [(X Γ Γ' t t' T T' : [(X : Σ ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T' with P)] -> P Γ Γ' t t' T T')] ->
+  forall Γ Γ' t t' T T', [(H : Σ ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T')] -> P Γ Γ' t t' T T'.
+Proof.
+  intros X.
+  fix Xrec 7.
+  intros. apply X.
+  eapply pred1_toε, H.
+  apply Xrec.
 Defined.
 
 Definition pred1_elim TC Σ P :
@@ -6409,13 +6444,13 @@ with equality_check {TC} Σ Γ Γ' t t' T T' :=
       [(X : checking2₂ Σ (@equality_infer TC Σ) Γ Γ' t t' T T')] ->
       Σ ;;; Γ | Γ' ⊢ t =s t' : T | T'
 
-  | eq_cast :
+  (* | eq_cast :
       [(X : Σ ;;; Γ | Γ' ⊢ t ~c t' : T | T' with @equality_check TC Σ)] ->
-      Σ ;;; Γ | Γ' ⊢ t =s t' : T | T'
+      Σ ;;; Γ | Γ' ⊢ t =s t' : T | T' *)
 
-  | eq_sprop :
+  (* | eq_sprop :
       [(X : Σ ;;; Γ | Γ' ⊢ T =s T' : tSort sSProp | tSort sSProp)] ->
-      Σ ;;; Γ | Γ' ⊢ t =s t' : T | T'
+      Σ ;;; Γ | Γ' ⊢ t =s t' : T | T' *)
 
 where "Σ ;;; Γ | Γ' ⊢ t =s t' : T | T'" := (@equality_check _ Σ Γ Γ' t t' T T')
 and "Σ ;;; Γ | Γ' ⊢ t =s t' ▹ T | T'" := (@equality_infer _ Σ Γ Γ' t t' T T').
@@ -6429,27 +6464,27 @@ Definition equality_check_rect TC Σ P :
     [(IX : Σ ;;; Γ | Γ' ⊢ t ~a t' : T | T' on X with P, ⊤₇)] ->
     P Γ Γ' t t' T T' (eq_check (checking2₂_fmap _ _ _ _ _ _ _ _ _ X (fun _ _ X => eq_clos X))))] ->
 
-  [(XCast Γ Γ' t t' T T' :
+  (* [(XCast Γ Γ' t t' T T' :
     [(X : Σ ;;; Γ | Γ' ⊢ t ~c t' : T | T' with equality_check Σ)] ->
     [(IX : Σ ;;; Γ | Γ' ⊢ t ~c t' : T | T' on X with P)] ->
-    P Γ Γ' t t' T T' ⌈@eq_cast⌋)] ->
+    P Γ Γ' t t' T T' ⌈@eq_cast⌋)] -> *)
 
-  [(XSProp Γ Γ' t t' T T' :
+  (* [(XSProp Γ Γ' t t' T T' :
     [(X : Σ ;;; Γ | Γ' ⊢ T =s T' : tSort sSProp | tSort sSProp)] ->
     [(IX : P _ _ _ _ _ _ X)] ->
-    P Γ Γ' t t' T T' ⌈@eq_sprop⌋)] ->
+    P Γ Γ' t t' T T' ⌈@eq_sprop⌋)] -> *)
 
   forall Γ Γ' t t' T T', [(H : Σ ;;; Γ | Γ' ⊢ t =s t' : T | T')] -> P Γ Γ' t t' T T' H.
 Proof.
-  intros ???.
+  intros ?.
   fix Xrec 7.
   intros Γ Γ' t t' T T' H; destruct H.
   - destruct X, X.
     specialize (XClos _ _ _ _ _ _ (check_Cumul2 _ _ _ _ _ _ _ _ X XT XT')).
     cbn in XClos. apply: XClos.
     eauto with fmap.
-  - eapply XCast; eauto with fmap.
-  - eapply XSProp; eauto with fmap.
+  (* - eapply XCast; eauto with fmap. *)
+  (* - eapply XSProp; eauto with fmap. *)
 Defined.
 
 Definition equality_check_ind := equality_check_rect.
@@ -7274,21 +7309,20 @@ Qed.
 Lemma context_closure_CC TC tc Σ Rα Rs P P' Γ Γ' Δ Δ' t t' T T' :
   [(PreL : LeftTyping2 P Σ)] -> [(PreR : WfRightTyping2 P Σ)] ->
   [(Pre : CmpContextLiftable Σ)] -> [(Pre : CCTypedRefl Σ)] ->
-  [(Pre : InferCheck2 P (context_closure Σ P Rα Rs) Rα Rs Σ)] ->
   [(onP' Γ Γ' Δ Δ' t t' T T' H : wf_local2 Σ Δ Δ' with P, Rα, Rs -> Σ ⊢ Δ ≤Γ Γ -> Σ ⊢ Δ' ≤Γ Γ' -> P' Γ Γ' t t' T T' H -> P Δ Δ' t t' T T')] ->
   [(X : Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' with P, Rα, Rs)] ->
   [(IX : Σ ;;; Γ | Γ' ⊢ t ~ t' ▹ T | T' on X with P')] ->
   [(HΓ : Σ ⊢ Δ ≤Γ Γ)] -> [(HΓ' : Σ ⊢ Δ' ≤Γ Γ')] ->
   [(wfΔ : wf_local2 Σ Δ Δ' with P, Rα, Rs)] ->
-  Σ ;;; Δ | Δ' ⊢ t ~ t' : T | T' with P, Rα, Rs.
+  Σ ;;; Δ | Δ' ⊢ t ~ t' ▹ T | T' with P, Rα, Rs.
 Proof.
   intros.
   destruct IX.
-  all: [> | apply to_check2; tas; tc..].
   - eapply nth_error_convertible_context_type in hnth as (decl₀ & hnth & XT); tea; tc.
     eapply nth_error_convertible_context_type in hnth' as (decl₀' & hnth' & XT'); tea; tc.
-    eexists; tea.
-    by constructor.
+    todo "annots".
+    (* eexists; tea. *)
+    (* by constructor. *)
   - constructor; tas.
   - econstructor; eauto.
   - have {}IXj : wf_judgment2 Σ Δ Δ' (j_vass na A) (j_vass na' A') with P, Rs by eauto with fmap.
@@ -7374,22 +7408,19 @@ Lemma pred0_CC TC tc Σ P P' PT PT' Rα Rs Γ Γ' Δ Δ' t t' T T' :
   [(PreL : LeftTyping2 P Σ)] -> [(PreR : WfRightTyping2 P Σ)] ->
   [(PreTL : ToLeft PT (typing_sort1 (typing Σ)))] -> [(PreTR : WfToRight Σ (typing Σ) PT (typing_sort1 (typing Σ)))] ->
   [(Pre : CCTypedRefl Σ)] -> [(Pre : ContextChangeable (TC Σ) Σ)] ->
-  [(Pre : InferCheck2 P (pred0 Σ P PT Rα Rs) Rα Rs Σ)] ->
   [(onP' Γ Γ' Δ Δ' t t' T T' H : wf_local2_mixed Σ Δ Δ' with P, PT, Rα, Rs -> Σ ⊢ Δ ≤Γ Γ -> Σ ⊢ Δ' ≤Γ Γ' -> P' Γ Γ' t t' T T' H -> P Δ Δ' t t' T T')] ->
   [(onPT' Γ Γ' Δ Δ' T T' s s' H : wf_local2_mixed Σ Δ Δ' with P, PT, Rα, Rs -> Σ ⊢ Δ ≤Γ Γ -> Σ ⊢ Δ' ≤Γ Γ' -> PT' Γ Γ' T T' s s' H -> PT Δ Δ' T T' s s')] ->
   [(X : Σ ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T' with P, PT, Rα, Rs)] ->
   [(IX : Σ ;;; Γ | Γ' ⊢ t ≡>0 t' ▹ T | T' on X with P', PT')] ->
   [(wfΔ : wf_local2_mixed Σ Δ Δ' with P, PT, Rα, Rs)] ->
   [(HΓ : Σ ⊢ Δ ≤Γ Γ)] -> [(HΓ' : Σ ⊢ Δ' ≤Γ Γ')] ->
-  Σ ;;; Δ | Δ' ⊢ t ≡>0 t' : T | T' with P, PT, Rα, Rs.
+  Σ ;;; Δ | Δ' ⊢ t ≡>0 t' ▹ T | T' with P, PT, Rα, Rs.
 Proof.
   intros.
   destruct IX.
-  all: apply to_check2; tas; tc.
-  - admit.
-  - eapply on_beta_redex_CC in IX; tea; tc; eauto.
-    now econstructor.
-Admitted.
+  eapply on_beta_redex_CC in IX; tea; tc; eauto.
+  now econstructor.
+Qed.
 
 
 
@@ -7449,6 +7480,14 @@ Proof.
   - now eapply wf_local2_wf_right.
 Qed.
 
+Instance checking2_CC' TC tc Σ P₀ P P' Rα Rs : LeftTyping2 P₀ Σ -> WfRightTyping2 P₀ Σ -> ContextChangeable (TC Σ) Σ -> ContextChangeable2 P₀ Rα Rs P P' Σ -> ContextChangeable2 P₀ Rα Rs (checking2₂ Σ P) (checking2₂ Σ P') Σ.
+Proof.
+  intros ?W?W?W?W ?* [T₀ T₀' X] **.
+  econstructor; eauto.
+  all: eapply change_context; tea.
+  - now eapply wf_local2_left.
+  - now eapply wf_local2_wf_right.
+Qed.
 
 Instance pred1_left TC Σ : LeftStruct2 (pred1 Σ) Σ.
 Proof.
@@ -7524,22 +7563,22 @@ Proof.
 Qed.
 
 
-Instance pred1_CC TC Σ {TCH : TCHyps TC Σ} {tcH : tc_wHyps TC Σ} : ContextChangeable2 (checking2₂ Σ (pred1 Σ)) eq eq (pred1 Σ) (checking2₂ Σ (pred1 Σ)) Σ.
+Instance pred1_CC TC Σ {TCH : TCHyps TC Σ} {tcH : tc_wHyps TC Σ} : ContextChangeable2 (checking2₂ Σ (pred1 Σ)) eq eq (pred1 Σ) (pred1 Σ) Σ.
 Proof.
   eenough (Xfinal : _). 2: shelve.
   intros Δ Δ' Γ Γ'* X HΔ HΔ' wfΔ.
   induction X in Δ, Δ', HΔ, HΔ', wfΔ.
-  - eapply checking2₂_fmap. 2: apply pred1_pred0.
+  - apply pred1_pred0.
     eapply pred0_CC; cbn; tas; tc.
     all: try solve [clear Xfinal; tea].
     + apply Xfinal.
     + intros *; by apply Xfinal.
-  - eapply checking2₂_fmap. 2: apply pred1_clos.
+  - apply pred1_clos.
     eapply context_closure_CC; cbn; tas; tc; tea.
 
   Unshelve.
     intros ????????? wfΔ ?? [].
-    eapply cumul2; eauto.
+    econstructor; eauto.
     all: eapply change_context; tea.
     + eapply wf_local2_left in wfΔ; tea; tc.
     + eapply wf_local2_wf_right in wfΔ; tea; tc.
@@ -7603,7 +7642,7 @@ Proof.
     + intros * Xp. apply pred1_clos, Xp.
   - eapply context_closure_types; tea; tc.
     + intros * Xp. apply pred1_clos, Xp.
-    + intros * ? Xp. eapply to_check2; tea.
+    + (* intros * ? Xp. eapply to_check2; tea. *)
     + now intros ?? <-.
     + now intros ?? <-.
     + now intros ?? <-.
@@ -7684,19 +7723,16 @@ Record OneOutput := {
 }.
 
 Record OneInput := {
-  OIC : OneOutput;
-  Riε : forall Γ Γ' t t' T T', Ri OIC Γ Γ' t t' T T' -> Type;
-  IRi : forall Γ Γ' t t' T T', Ri OIC Γ Γ' t t' T T' -> Type;
-  IRc : forall Γ Γ' t t' T T', Rc OIC Γ Γ' t t' T T' -> Type;
-  Rcε : forall Γ Γ' t t' T T', Rc OIC Γ Γ' t t' T T' -> Type;
-  IRT : forall Γ Γ' T T' s s', RT OIC Γ Γ' T T' s s' -> Type;
+  IRi : context -> context -> term -> term -> term -> term -> Type;
+  Riε : context -> context -> term -> term -> term -> term -> Type;
+  IRc : context -> context -> term -> term -> term -> term -> Type;
+  Rcε : context -> context -> term -> term -> term -> term -> Type;
+  IRT : context -> context -> term -> term -> sort -> sort -> Type;
   Rai : context -> context -> term -> term -> term -> term -> Type;
-  IRai : forall Γ Γ' t t' T T', Rai Γ Γ' t t' T T' -> Type;
   Rac : context -> context -> term -> term -> term -> term -> Type;
-  IRac : forall Γ Γ' t t' T T', Rac Γ Γ' t t' T T' -> Type;
+  IRα : aname -> aname -> Type;
+  IRs : sort -> sort -> Type;
 }.
-
-Coercion OIC : OneInput >-> OneOutput.
 
 Class is_parallel_relationC {TC} (O : OneOutput) Σ := {
   prel_clos Γ Γ' t t' T T' :
@@ -7712,26 +7748,22 @@ Class is_parallel_relationC {TC} (O : OneOutput) Σ := {
 
 Class is_parallel_relationE {TC} (I : OneInput) Σ := {
   prel_ielim Γ Γ' t t' T T' :
-    [(H : Σ ;;; Γ | Γ' ⊢ t ~R t' ▹ T | T' with Ri I)] ->
-    [(X : Σ ;;; Γ | Γ' ⊢ t ~R' t' ▹ T | T' on H with Riε I)] ->
-    ((∑ H : Σ ;;; Γ | Γ' ⊢ t ~R t' ▹ T | T' with Rai I, Σ ;;; Γ | Γ' ⊢ t ~R' t' ▹ T | T' on H with IRai I) +
-     (∑ H : Σ ;;; Γ | Γ' ⊢ t ~a t' ▹ T | T' with Rc I, RT I, Rα I, Rs I, Σ ;;; Γ | Γ' ⊢ t ~a t' ▹ T | T' on H with IRc I, IRT I));
+    [(X : Σ ;;; Γ | Γ' ⊢ t ~R t' ▹ T | T' with Riε I)] ->
+    (Σ ;;; Γ | Γ' ⊢ t ~R t' ▹ T | T' with Rai I) +
+    (Σ ;;; Γ | Γ' ⊢ t ~a t' ▹ T | T' with IRc I, IRT I, IRα I, IRs I);
 
   prel_IRiε Γ Γ' t t' T T' :
-    [(H : Σ ;;; Γ | Γ' ⊢ t ~R t' ▹ T | T' with Ri I)] ->
-    [(X : Σ ;;; Γ | Γ' ⊢ t ~R' t' ▹ T | T' on H with IRi I)] ->
-    Σ ;;; Γ | Γ' ⊢ t ~R' t' ▹ T | T' on H with Riε I;
+    [(X : Σ ;;; Γ | Γ' ⊢ t ~R t' ▹ T | T' with IRi I)] ->
+    Σ ;;; Γ | Γ' ⊢ t ~R t' ▹ T | T' with Riε I;
 
   prel_celim Γ Γ' t t' T T' :
-    [(H : Σ ;;; Γ | Γ' ⊢ t ~R t' : T | T' with Rc I)] ->
-    [(X : Σ ;;; Γ | Γ' ⊢ t ~R' t' : T | T' on H with Rcε I)] ->
-    ((∑ H : Σ ;;; Γ | Γ' ⊢ t ~R t' : T | T' with Rac I, Σ ;;; Γ | Γ' ⊢ t ~R' t' : T | T' on H with IRac I) +
-     (∑ H : Σ ;;; Γ | Γ' ⊢ t ~R t' ◃ T | T' with Ri I, Σ ;;; Γ | Γ' ⊢ t ~R t' ◃ T | T' on H with IRi I));
+    [(X : Σ ;;; Γ | Γ' ⊢ t ~R t' : T | T' with Rcε I)] ->
+    (Σ ;;; Γ | Γ' ⊢ t ~R t' : T | T' with Rac I) +
+    (Σ ;;; Γ | Γ' ⊢ t ~R t' ◃ T | T' with IRi I);
 
   prel_IRcε Γ Γ' t t' T T' :
-    [(H : Σ ;;; Γ | Γ' ⊢ t ~R t' : T | T' with Rc I)] ->
-    [(X : Σ ;;; Γ | Γ' ⊢ t ~R' t' : T | T' on H with IRc I)] ->
-    Σ ;;; Γ | Γ' ⊢ t ~R' t' ▹ T | T' on H with Rcε I;
+    [(X : Σ ;;; Γ | Γ' ⊢ t ~R t' ▹ T | T' with IRc I)] ->
+    Σ ;;; Γ | Γ' ⊢ t ~R t' ▹ T | T' with Rcε I;
 }.
 
 
@@ -7787,14 +7819,14 @@ Proof.
   constructor; auto. constructor; auto.
 Defined.
 
-Class Input_noRT (I : OneInput) (H : Output_noRT I) := {
-  irt_of_irc Γ Γ' T T' s s' H :
-    Σ ;;; Γ | Γ' ⊢ T ~R' T' : tSort s | tSort s' on H with IRc I ->
-    Σ ;;; Γ | Γ' ⊢ T ~R' T' : s | s' on rt_of_rc H with IRT I;
+Class Input_noRT I := {
+  irt_of_irc {Γ Γ' T T' s s'} :
+    Σ ;;; Γ | Γ' ⊢ T ~R T' : tSort s | tSort s' with IRc I ->
+    Σ ;;; Γ | Γ' ⊢ T ~R T' : s | s' with IRT I;
 
-  irc_of_irt Γ Γ' T T' s s' H :
-    Σ ;;; Γ | Γ' ⊢ T ~R' T' : s | s' on H with IRT I ->
-    Σ ;;; Γ | Γ' ⊢ T ~R' T' : tSort s | tSort s' on rc_of_rt H with IRc I;
+  irc_of_irt {Γ Γ' T T' s s'} :
+    Σ ;;; Γ | Γ' ⊢ T ~R T' : s | s' with IRT I ->
+    Σ ;;; Γ | Γ' ⊢ T ~R T' : tSort s | tSort s' with IRc I;
 }.
 
 Class is_sort_rel Rs := {
@@ -7833,9 +7865,8 @@ Class is_goodC {TC} (O : OneOutput) Σ := {
 
 Class is_goodE {TC} (I : OneInput) Σ := {
   PRELE :: is_parallel_relationE I Σ;
-  RTJE :: OutputRTj I;
-  SORTRELE :: is_sort_rel (Rs I);
-  ANAMERELE :: is_aname_rel (Rα I);
+  SORTRELE :: is_sort_rel (IRs I);
+  ANAMERELE :: is_aname_rel (IRα I);
 }.
 
 Class good_with_TC {TC} (O : OneOutput) Σ := {
@@ -7862,8 +7893,8 @@ Class Inputs := {
   Inputb : OneInput;
 }.
 
-Notation Ria := (Ri Inputa). Notation Riaε := (Riε Inputa). Notation IRia := (IRi Inputa). Notation Rca := (Rc Inputa). Notation Rcaε := (Rcε Inputa). Notation IRca := (IRc Inputa). Notation RTa := (RT Inputa). Notation IRTa := (IRT Inputa). Notation Rαa := (Rα Inputa). Notation Rsa := (Rs Inputa). Notation Raia := (Rai Inputa). Notation IRaia := (IRai Inputa). Notation Raca := (Rac Inputa). Notation IRaca := (IRac Inputa).
-Notation Rib := (Ri Inputb). Notation Ribε := (Riε Inputb). Notation IRib := (IRi Inputb). Notation Rcb := (Rc Inputb). Notation Rcbε := (Rcε Inputb). Notation IRcb := (IRc Inputb). Notation RTb := (RT Inputb). Notation IRTb := (IRT Inputb). Notation Rαb := (Rα Inputb). Notation Rsb := (Rs Inputb). Notation Raib := (Rai Inputb). Notation IRaib := (IRai Inputb). Notation Racb := (Rac Inputb). Notation IRacb := (IRac Inputb).
+Notation Ria := (IRi Inputa). Notation Riaε := (Riε Inputa). Notation Rca := (IRc Inputa). Notation Rcaε := (Rcε Inputa). Notation RTa := (IRT Inputa). Notation Rαa := (IRα Inputa). Notation Rsa := (IRs Inputa). Notation Raia := (Rai Inputa). Notation Raca := (Rac Inputa).
+Notation Rib := (IRi Inputb). Notation Ribε := (Riε Inputb). Notation Rcb := (IRc Inputb). Notation Rcbε := (Rcε Inputb). Notation RTb := (IRT Inputb). Notation Rαb := (IRα Inputb). Notation Rsb := (IRs Inputb). Notation Raib := (Rai Inputb). Notation Racb := (Rac Inputb).
 
 
 Class Outputs := {
@@ -7922,6 +7953,14 @@ Record GoalΓ (Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ : context) := {
   GoalΓl : wf_local2_mixed Σ Γ₁ ρΓ₁ with Rcl, RTjl, Rαl, Rsl;
   GoalΓm : wf_local2_mixed Σ ρΓ₁ ρΓ₂ with Rcm, RTjm, Rαm, Rsm;
   GoalΓr : wf_local2_mixed Σ Γ₂ ρΓ₂ with Rcr, RTjr, Rαr, Rsr;
+}.
+
+Record Goald Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ j₀ j₁ j₂ ρj₁ ρj₂ := {
+  Goalda': wf_judgment2_mixed Σ Γ₀ ρΓ₁ j₀ ρj₁ with Rca', RTja', Rsa';
+  Goaldb': wf_judgment2_mixed Σ Γ₀ ρΓ₂ j₀ ρj₂ with Rcb', RTjb', Rsb';
+  Goaldl : wf_judgment2_mixed Σ Γ₁ ρΓ₁ j₁ ρj₁ with Rcl, RTjl, Rsl;
+  Goaldm : wf_judgment2_mixed Σ ρΓ₁ ρΓ₂ ρj₁ ρj₂ with Rcm, RTjm, Rsm;
+  Goaldr : wf_judgment2_mixed Σ Γ₂ ρΓ₂ j₂ ρj₂ with Rcr, RTjr, Rsr;
 }.
 
 Record Goalj Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ j₀ j₁ j₂ ρj₁ ρj₂ := {
@@ -8002,6 +8041,9 @@ Record Goals s₀ s₁ s₂ ρs₁ ρs₂ := {
   Goalsr : Rsr s₂ ρs₂;
 }.
 
+Definition PGoalΓ Γ₀ Γ₁ Γ₂ :=
+  ∑ ρΓ₁ ρΓ₂, GoalΓ Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂.
+
 Definition PGoali ρΓ₁ ρΓ₂ Γ₀ Γ₁ Γ₂ t₀ t₁ t₂ T₀ T₁ T₂ :=
   ∑ ρt₁ ρt₂ ρT₁ ρT₂, Goali Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ t₀ t₁ t₂ ρt₁ ρt₂ T₀ T₁ T₂ ρT₁ ρT₂.
 
@@ -8072,17 +8114,13 @@ Class all_good_induction (bi bc ba : bool) := {
   trans_induction_infer (Hb : bi) Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ t₀ t₁ t₂ T₀ T₀ₐ T₁ T₂ :
     [(wfΓ : GoalΓ Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂)] ->
     [(Xa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~R t₁ ▹ T₀ | T₁ with Ria)] ->
-    [(IXa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~R' t₁ ▹ T₀ | T₁ on Xa with IRia)] ->
     [(Xb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~R t₂ ▹ T₀ₐ | T₂ with Rib)] ->
-    [(IXb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~R' t₂ ▹ T₀ₐ | T₂ on Xb with IRib)] ->
     PGoali ρΓ₁ ρΓ₂ Γ₀ Γ₁ Γ₂ t₀ t₁ t₂ T₀ T₁ T₂;
 
   trans_induction_check (Hb : bc) Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ t₀ t₁ t₂ T₀ T₁ T₂ ρT₁ ρT₂ s₀ s₁ s₂ ρs₁ ρs₂ :
     [(wfΓ : GoalΓ Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂)] ->
     [(Xa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~R t₁ : T₀ | T₁ with Rca)] ->
-    [(IXa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~R' t₁ : T₀ | T₁ on Xa with IRca)] ->
     [(Xb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~R t₂ : T₀ | T₂ with Rcb)] ->
-    [(IXb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~R' t₂ : T₀ | T₂ on Xb with IRcb)] ->
     [(XT : GoalTj Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ T₀ T₁ T₂ ρT₁ ρT₂ s₀ s₁ s₂ ρs₁ ρs₂)] ->
     [(Xs : Goals s₀ s₁ s₂ ρs₁ ρs₂)] ->
     PGoalc Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ t₀ t₁ t₂ T₀ T₁ T₂ ρT₁ ρT₂;
@@ -8090,40 +8128,12 @@ Class all_good_induction (bi bc ba : bool) := {
   trans_induction_annots (Hb : ba) Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ T₀ T₁ T₂ s₀ s₁ s₂ ρs₁ ρs₂ :
     [(wfΓ : GoalΓ Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂)] ->
     [(Xa : Σ ;;; Γ₀ | Γ₁ ⊢ T₀ ~R T₁ : s₀ | s₁ with RTa)] ->
-    [(IXa : Σ ;;; Γ₀ | Γ₁ ⊢ T₀ ~R' T₁ : s₀ | s₁ on Xa with IRTa)] ->
     [(Xb : Σ ;;; Γ₀ | Γ₂ ⊢ T₀ ~R T₂ : s₀ | s₂ with RTb)] ->
-    [(IXb : Σ ;;; Γ₀ | Γ₂ ⊢ T₀ ~R' T₂ : s₀ | s₂ on Xb with IRTb)] ->
     [(Xs : Goals s₀ s₁ s₂ ρs₁ ρs₂)] ->
     PGoalT Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ T₀ T₁ T₂ s₀ s₁ s₂ ρs₁ ρs₂;
 
   trans_induction_sorts s₀ s₁ s₂ : wf_sort Σ s₀ -> wf_sort Σ s₁ -> wf_sort Σ s₂ -> Rsa s₀ s₁ -> Rsb s₀ s₂ -> PGoals s₀ s₁ s₂;
   trans_induction_aname na₀ na₁ na₂ : Rαa na₀ na₁ -> Rαb na₀ na₂ -> PGoalα na₀ na₁ na₂;
-}.
-
-Class all_good_proofs := {
-  trans_infer Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ t₀ t₁ t₂ T₀ T₀ₐ T₁ T₂ :
-    [(wfΓ : GoalΓ Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂)] ->
-    [(Xa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~R t₁ ▹ T₀ | T₁ with Ria)] ->
-    [(Xb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~R t₂ ▹ T₀ₐ | T₂ with Rib)] ->
-    PGoali ρΓ₁ ρΓ₂ Γ₀ Γ₁ Γ₂ t₀ t₁ t₂ T₀ T₁ T₂;
-
-  trans_check Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ t₀ t₁ t₂ T₀ T₁ T₂ ρT₁ ρT₂ s₀ s₁ s₂ ρs₁ ρs₂ :
-    [(wfΓ : GoalΓ Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂)] ->
-    [(Xa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~R t₁ : T₀ | T₁ with Rca)] ->
-    [(Xb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~R t₂ : T₀ | T₂ with Rcb)] ->
-    [(XT : GoalTj Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ T₀ T₁ T₂ ρT₁ ρT₂ s₀ s₁ s₂ ρs₁ ρs₂)] ->
-    [(Xs : Goals s₀ s₁ s₂ ρs₁ ρs₂)] ->
-    PGoalc Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ t₀ t₁ t₂ T₀ T₁ T₂ ρT₁ ρT₂;
-
-  trans_annots Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ T₀ T₁ T₂ s₀ s₁ s₂ ρs₁ ρs₂ :
-    [(wfΓ : GoalΓ Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂)] ->
-    [(Xa : Σ ;;; Γ₀ | Γ₁ ⊢ T₀ ~R T₁ : s₀ | s₁ with RTa)] ->
-    [(Xb : Σ ;;; Γ₀ | Γ₂ ⊢ T₀ ~R T₂ : s₀ | s₂ with RTb)] ->
-    [(Xs : Goals s₀ s₁ s₂ ρs₁ ρs₂)] ->
-    PGoalT Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ T₀ T₁ T₂ s₀ s₁ s₂ ρs₁ ρs₂;
-
-  trans_sorts s₀ s₁ s₂ : wf_sort Σ s₀ -> wf_sort Σ s₁ -> wf_sort Σ s₂ -> Rsa s₀ s₁ -> Rsb s₀ s₂ -> PGoals s₀ s₁ s₂;
-  trans_aname na₀ na₁ na₂ : Rαa na₀ na₁ -> Rαb na₀ na₂ -> PGoalα na₀ na₁ na₂;
 }.
 
 Lemma trans_induction_RTRC `{Input_noRT Inputa} `{Input_noRT Inputb} {allnoRT : all_noRT Os} bi bc :
@@ -8133,9 +8143,9 @@ Proof using ALLGOOD.
   intro X.
   split; try apply X.
   intro.
-  intros * wfΓ Xa IXa%irc_of_irt Xb IXb%irc_of_irt Xs.
+  intros * wfΓ Xa%irc_of_irt Xb%irc_of_irt Xs.
   apply PGoalc_PGoalT.
-  eapply trans_induction_check; tas. 1,2: eassumption.
+  eapply trans_induction_check; tas.
   1: apply GoalT_GoalTj, Goals_GoalT; tas.
   by apply Goals_super.
 Qed.
@@ -8145,36 +8155,28 @@ Class SideConditionRaiaRaib :=
   trans_Raia_Raib Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ t₀ t₁ t₂ T₀ T₀ₐ T₁ T₂ :
     [(wfΓ : GoalΓ Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂)] ->
     [(Xa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~R t₁ ▹ T₀ | T₁ with Raia)] ->
-    [(IXa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~R' t₁ ▹ T₀ | T₁ on Xa with IRaia)] ->
     [(Xb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~R t₂ ▹ T₀ₐ | T₂ with Raib)] ->
-    [(IXb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~R' t₂ ▹ T₀ₐ | T₂ on Xb with IRaib)] ->
     PGoali ρΓ₁ ρΓ₂ Γ₀ Γ₁ Γ₂ t₀ t₁ t₂ T₀ T₁ T₂.
 
 Class SideConditionRaiaCongr :=
   trans_Raia_congr Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ t₀ t₁ t₂ T₀ T₀ₐ T₁ T₂ :
     [(wfΓ : GoalΓ Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂)] ->
     [(Xa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~R t₁ ▹ T₀ | T₁ with Raia)] ->
-    [(IXa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~R' t₁ ▹ T₀ | T₁ on Xa with IRaia)] ->
     [(Xb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~a t₂ ▹ T₀ₐ | T₂ with Rcb, RTb, Rαb, Rsb)] ->
-    [(IXb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~a t₂ ▹ T₀ₐ | T₂ on Xb with IRcb, IRTb)] ->
     PGoali ρΓ₁ ρΓ₂ Γ₀ Γ₁ Γ₂ t₀ t₁ t₂ T₀ T₁ T₂.
 
 Class SideConditionRaibCongr :=
   trans_Raib_congr Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ t₀ t₁ t₂ T₀ T₀ₐ T₁ T₂ :
     [(wfΓ : GoalΓ Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂)] ->
     [(Xa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~a t₁ ▹ T₀ | T₁ with Rca, RTa, Rαa, Rsa)] ->
-    [(IXa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~a t₁ ▹ T₀ | T₁ on Xa with IRca, IRTa)] ->
     [(Xb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~R t₂ ▹ T₀ₐ | T₂ with Raib)] ->
-    [(IXb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~R' t₂ ▹ T₀ₐ | T₂ on Xb with IRaib)] ->
     PGoali ρΓ₁ ρΓ₂ Γ₀ Γ₁ Γ₂ t₀ t₁ t₂ T₀ T₁ T₂.
 
 Class SideConditionRacaRacb :=
   trans_Raca_Racb Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ t₀ t₁ t₂ T₀ T₁ T₂ ρT₁ ρT₂ s₀ s₁ s₂ ρs₁ ρs₂ :
     [(wfΓ : GoalΓ Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂)] ->
     [(Xa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~R t₁ : T₀ | T₁ with Raca)] ->
-    [(IXa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~R' t₁ : T₀ | T₁ on Xa with IRaca)] ->
     [(Xb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~R t₂ : T₀ | T₂ with Racb)] ->
-    [(IXb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~R' t₂ : T₀ | T₂ on Xb with IRacb)] ->
     [(XT : GoalTj Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ T₀ T₁ T₂ ρT₁ ρT₂ s₀ s₁ s₂ ρs₁ ρs₂)] ->
     [(Xs : Goals s₀ s₁ s₂ ρs₁ ρs₂)] ->
     PGoalc Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ t₀ t₁ t₂ T₀ T₁ T₂ ρT₁ ρT₂.
@@ -8183,9 +8185,7 @@ Class SideConditionRacaCongr :=
   trans_Raca_congr Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ t₀ t₁ t₂ T₀ T₁ T₂ ρT₁ ρT₂ s₀ s₁ s₂ ρs₁ ρs₂ :
     [(wfΓ : GoalΓ Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂)] ->
     [(Xa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~R t₁ : T₀ | T₁ with Raca)] ->
-    [(IXa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~R' t₁ : T₀ | T₁ on Xa with IRaca)] ->
     [(Xb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~R t₂ ◃ T₀ | T₂ with Rib)] ->
-    [(IXb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~R t₂ ◃ T₀ | T₂ on Xb with IRib)] ->
     [(XT : GoalTj Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ T₀ T₁ T₂ ρT₁ ρT₂ s₀ s₁ s₂ ρs₁ ρs₂)] ->
     [(Xs : Goals s₀ s₁ s₂ ρs₁ ρs₂)] ->
     PGoalc Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ t₀ t₁ t₂ T₀ T₁ T₂ ρT₁ ρT₂.
@@ -8194,9 +8194,7 @@ Class SideConditionRacbCongr :=
   trans_Racb_congr Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ t₀ t₁ t₂ T₀ T₁ T₂ ρT₁ ρT₂ s₀ s₁ s₂ ρs₁ ρs₂ :
     [(wfΓ : GoalΓ Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂)] ->
     [(Xa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~R t₁ ◃ T₀ | T₁ with Ria)] ->
-    [(IXa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~R t₁ ◃ T₀ | T₁ on Xa with IRia)] ->
     [(Xb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~R t₂ : T₀ | T₂ with Racb)] ->
-    [(IXb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~R' t₂ : T₀ | T₂ on Xb with IRacb)] ->
     [(XT : GoalTj Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ T₀ T₁ T₂ ρT₁ ρT₂ s₀ s₁ s₂ ρs₁ ρs₂)] ->
     [(Xs : Goals s₀ s₁ s₂ ρs₁ ρs₂)] ->
     PGoalc Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ t₀ t₁ t₂ T₀ T₁ T₂ ρT₁ ρT₂.
@@ -8302,30 +8300,28 @@ Qed.
 
 
 Lemma congr_trans_P Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ t₀ t₁ t₂ T₀ T₀ₐ T₁ T₂ :
-  [(onIR Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ t₀ t₁ t₂ T₀ T₁ T₂ ρT₁ ρT₂ s₀ s₁ s₂ ρs₁ ρs₂ Hca Hcb :
+  [(onIR Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ t₀ t₁ t₂ T₀ T₁ T₂ ρT₁ ρT₂ s₀ s₁ s₂ ρs₁ ρs₂ :
     GoalΓ Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ ->
-    IRca Γ₀ Γ₁ t₀ t₁ T₀ T₁ Hca ->
-    IRcb Γ₀ Γ₂ t₀ t₂ T₀ T₂ Hcb ->
+    Rca Γ₀ Γ₁ t₀ t₁ T₀ T₁ ->
+    Rcb Γ₀ Γ₂ t₀ t₂ T₀ T₂ ->
     GoalTj Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ T₀ T₁ T₂ ρT₁ ρT₂ s₀ s₁ s₂ ρs₁ ρs₂ ->
     Goals s₀ s₁ s₂ ρs₁ ρs₂ ->
     PGoalc Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ t₀ t₁ t₂ T₀ T₁ T₂ ρT₁ ρT₂)] ->
-  [(onIRT Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ T₀ T₁ T₂ s₀ s₁ s₂ ρs₁ ρs₂ HTa HTb :
+  [(onIRT Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ T₀ T₁ T₂ s₀ s₁ s₂ ρs₁ ρs₂ :
     GoalΓ Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ ->
-    IRTa Γ₀ Γ₁ T₀ T₁ s₀ s₁ HTa ->
-    IRTb Γ₀ Γ₂ T₀ T₂ s₀ s₂ HTb ->
+    RTa Γ₀ Γ₁ T₀ T₁ s₀ s₁ ->
+    RTb Γ₀ Γ₂ T₀ T₂ s₀ s₂ ->
     Goals s₀ s₁ s₂ ρs₁ ρs₂ ->
     PGoalT Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ T₀ T₁ T₂ s₀ s₁ s₂ ρs₁ ρs₂)] ->
   [(onRs s₀ s₁ s₂ : wf_sort Σ s₀ -> wf_sort Σ s₁ -> wf_sort Σ s₂ -> Rsa s₀ s₁ -> Rsb s₀ s₂ -> PGoals s₀ s₁ s₂)] ->
   [(onRα na₀ na₁ na₂ : Rαa na₀ na₁ -> Rαb na₀ na₂ -> PGoalα na₀ na₁ na₂)] ->
   [(wfΓ : GoalΓ Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂)] ->
   [(Xa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~a t₁ ▹ T₀ | T₁ with Rca, RTa, Rαa, Rsa)] ->
-  [(IXa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~a t₁ ▹ T₀ | T₁ on Xa with IRca, IRTa)] ->
   [(Xb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~a t₂ ▹ T₀ₐ | T₂ with Rcb, RTb, Rαb, Rsb)] ->
-  [(IXb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~a t₂ ▹ T₀ₐ | T₂ on Xb with IRcb, IRTb)] ->
   ∑ ρt₁ ρt₂ ρT₁ ρT₂, Goala Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ t₀ t₁ t₂ ρt₁ ρt₂ T₀ T₁ T₂ ρT₁ ρT₂.
 Proof.
   intros.
-  destruct IXa; depelim IXb; ltac2:(rename_trailing_zero ()).
+  destruct Xa; depelim Xb; ltac2:(rename_trailing_zero ()).
 
   - rewrite hnth in hnth0; injection hnth0 as [= <-].
     apply GoalΓa' in wfΓ as X.
@@ -8342,10 +8338,10 @@ Proof.
   - rename T₀ₐ into ty₀. assert (s = s0) as <- by todo "annots".
     have {Xs Xs'} [ρs₁ [ρs₂ Xs]] := onRs _ _ _ wfs wfs' wfs'' Xs Xs'.
 
-    have {Xty IXty Xty' IXty'} [ρty₁ [ρty₂ Xty]] : PGoalT Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ ty₀ ty' ty'' s s' s'' ρs₁ ρs₂
+    have {Xty Xty'} [ρty₁ [ρty₂ Xty]] : PGoalT Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ ty₀ ty' ty'' s s' s'' ρs₁ ρs₂
       by eauto.
 
-    have {Xc IXc Xc' IXc'} [ρc₁ [ρc₂ Xc]] : PGoalc Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ c c' c'' ty₀ ty' ty'' ρty₁ ρty₂
+    have {Xc Xc'} [ρc₁ [ρc₂ Xc]] : PGoalc Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ c c' c'' ty₀ ty' ty'' ρty₁ ρty₂
       by eauto using GoalT_GoalTj.
 
     exists (tCast ρc₁ ρty₁), (tCast ρc₂ ρty₂), ρty₁, ρty₂; split.
@@ -8355,13 +8351,13 @@ Proof.
     have {Xs Xs'} [ρs₁ [ρs₂ Xs]] := onRs _ _ _ wfs wfs' wfs'' Xs Xs'.
     have {Xα Xα'} [ρna₁ [ρna₂ Xα]] := onRα _ _ _ Xα Xα'.
 
-    have {Xj IXj Xj' IXj'} [s₀ [s₀' [s₀'' [ρs₀₁ [ρs₀₂ [ρA₁ [ρA₂ Xj₀]]]]]]] :
+    have {Xj Xj'} [s₀ [s₀' [s₀'' [ρs₀₁ [ρs₀₂ [ρA₁ [ρA₂ Xj₀]]]]]]] :
       ∑ s s' s'' ρs₁ ρs₂ ρA₁ ρA₂,
       Goalj Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ (j_vass_s na A s) (j_vass_s na' A' s') (j_vass_s na'' A'' s'') (j_vass_s ρna₁ ρA₁ ρs₁)  (j_vass_s ρna₂ ρA₂ ρs₂).
-    { clear -TC ALLGOOD Xα onIRT onRs IXj IXj' wfΓ.
-      destruct IXj, IXj'; cbn in *. assert (s = s0) as <- by todo "annots".
+    { clear -TC ALLGOOD Xα onIRT onRs Xj Xj' wfΓ.
+      destruct Xj, Xj'; cbn in *. assert (s = s0) as <- by todo "annots".
       have [ρs₁ [ρs₂ Xs]] := onRs _ _ _ wfs wfs' wfs'0 Hss' Hss'0.
-      have {HT IHT HT0 IHT0} [ρT₁ [ρT₂ XT]] : PGoalT Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ A A' A'' s s' s'0 ρs₁ ρs₂
+      have {HT HT0} [ρT₁ [ρT₂ XT]] : PGoalT Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ A A' A'' s s' s'0 ρs₁ ρs₂
         by eauto.
       do 7 eexists. apply Pj_vass_s; tea; try by apply Xs. }
     apply Pj_forget_univ in Xj₀ as Xj.
@@ -8370,9 +8366,9 @@ Proof.
     have wfΓ' : GoalΓ (Γ₀ ,, vass na A) (Γ₁ ,, vass na' A') (Γ₂ ,, vass na'' A'') (ρΓ₁ ,, vass ρna₁ ρA₁) (ρΓ₂ ,, vass ρna₂ ρA₂)
       by eapply PΓ_snoc; tea.
 
-    have {XB IXB XB' IXB'} [ρB₁ [ρB₂ XB]] : PGoalT (Γ₀ ,, vass na A) (Γ₁ ,, vass na' A') (Γ₂ ,, vass na'' A'') (ρΓ₁ ,, vass ρna₁ ρA₁) (ρΓ₂ ,, vass ρna₂ ρA₂) B B' B'' s s' s'' ρs₁ ρs₂
+    have {XB XB'} [ρB₁ [ρB₂ XB]] : PGoalT (Γ₀ ,, vass na A) (Γ₁ ,, vass na' A') (Γ₂ ,, vass na'' A'') (ρΓ₁ ,, vass ρna₁ ρA₁) (ρΓ₂ ,, vass ρna₂ ρA₂) B B' B'' s s' s'' ρs₁ ρs₂
       by eauto.
-    have {Xt IXt Xt' IXt'} [ρt₁ [ρt₂ Xt]] : PGoalc (Γ₀ ,, vass na A) (Γ₁ ,, vass na' A') (Γ₂ ,, vass na'' A'') (ρΓ₁ ,, vass ρna₁ ρA₁) (ρΓ₂ ,, vass ρna₂ ρA₂) t t' t'' B B' B'' ρB₁ ρB₂
+    have {Xt Xt'} [ρt₁ [ρt₂ Xt]] : PGoalc (Γ₀ ,, vass na A) (Γ₁ ,, vass na' A') (Γ₂ ,, vass na'' A'') (ρΓ₁ ,, vass ρna₁ ρA₁) (ρΓ₂ ,, vass ρna₂ ρA₂) t t' t'' B B' B'' ρB₁ ρB₂
       by eauto using GoalT_GoalTj with fmap.
 
     exists (tLambda ρna₁ ρA₁ ρt₁), (tLambda ρna₂ ρA₂ ρt₂), (tProd ρna₁ ρA₁ ρB₁), (tProd ρna₂ ρA₂ ρB₂); repeat split.
@@ -8383,13 +8379,13 @@ Proof.
     have {Xs Xs'} [ρs₁ [ρs₂ Xs]] := onRs _ _ _ wfs wfs' wfs'' Xs Xs'.
     have {Xα Xα'} [ρna₁ [ρna₂ Xα]] := onRα _ _ _ Xα Xα'.
 
-    have {Xj IXj Xj' IXj'} [s₀ [s₀' [s₀'' [ρs₀₁ [ρs₀₂ [ρA₁ [ρA₂ Xj₀]]]]]]] :
+    have {Xj Xj'} [s₀ [s₀' [s₀'' [ρs₀₁ [ρs₀₂ [ρA₁ [ρA₂ Xj₀]]]]]]] :
       ∑ s s' s'' ρs₁ ρs₂ ρA₁ ρA₂,
       Goalj Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ (j_vass_s na A s) (j_vass_s na' A' s') (j_vass_s na'' A'' s'') (j_vass_s ρna₁ ρA₁ ρs₁) (j_vass_s ρna₂ ρA₂ ρs₂).
-    { clear -TC ALLGOOD Xα onIRT onRs IXj IXj' wfΓ.
-      destruct IXj, IXj'; cbn in *. assert (s = s0) as <- by todo "annots".
+    { clear -TC ALLGOOD Xα onIRT onRs Xj Xj' wfΓ.
+      destruct Xj, Xj'; cbn in *. assert (s = s0) as <- by todo "annots".
       have [ρs₁ [ρs₂ Xs]] := onRs _ _ _ wfs wfs' wfs'0 Hss' Hss'0.
-      have {HT IHT HT0 IHT0} [ρT₁ [ρT₂ XT]] : PGoalT Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ A A' A'' s s' s'0 ρs₁ ρs₂
+      have {HT HT0} [ρT₁ [ρT₂ XT]] : PGoalT Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ A A' A'' s s' s'0 ρs₁ ρs₂
         by eauto.
       do 7 eexists. apply Pj_vass_s; tea; try by apply Xs. }
     apply Pj_extract_typsort in Xj₀ as XA.
@@ -8399,15 +8395,15 @@ Proof.
     have wfΓ' : GoalΓ (Γ₀ ,, vass na A) (Γ₁ ,, vass na' A') (Γ₂ ,, vass na'' A'') (ρΓ₁ ,, vass ρna₁ ρA₁) (ρΓ₂ ,, vass ρna₂ ρA₂)
       by eapply PΓ_snoc; tea.
 
-    have {XB IXB XB' IXB'} [ρB₁ [ρB₂ XB]] : PGoalT (Γ₀ ,, vass na A) (Γ₁ ,, vass na' A') (Γ₂ ,, vass na'' A'') (ρΓ₁ ,, vass ρna₁ ρA₁) (ρΓ₂ ,, vass ρna₂ ρA₂) B B' B'' s s' s'' ρs₁ ρs₂
+    have {XB XB'} [ρB₁ [ρB₂ XB]] : PGoalT (Γ₀ ,, vass na A) (Γ₁ ,, vass na' A') (Γ₂ ,, vass na'' A'') (ρΓ₁ ,, vass ρna₁ ρA₁) (ρΓ₂ ,, vass ρna₂ ρA₂) B B' B'' s s' s'' ρs₁ ρs₂
       by eauto.
 
     eassert (XPAB : _). { apply GoalTProd with (3 := Xj₀); tea. }
     eapply GoalT_GoalTj, onIR in XPAB; tea.
     2: by apply Goals_product.
-    have {Xt IXt Xt' IXt' XPAB} [ρf₁ [ρf₂ Xt]] := XPAB.
+    have {Xt Xt' XPAB} [ρf₁ [ρf₂ Xt]] := XPAB.
 
-    have {Xu IXu Xu' IXu'} [ρa₁ [ρa₂ Xu]] : PGoalc Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ u u' u'' A A' A'' ρA₁ ρA₂
+    have {Xu Xu'} [ρa₁ [ρa₂ Xu]] : PGoalc Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ u u' u'' A A' A'' ρA₁ ρA₂
       by eauto using GoalT_GoalTj with fmap.
 
     exists (tApp ρf₁ ρa₁), (tApp ρf₂ ρa₂), (ρB₁ {0 := tCast ρa₁ ρA₁}), (ρB₂ {0 := tCast ρa₂ ρA₂}); split.
@@ -8417,13 +8413,13 @@ Proof.
 
     have {Xα Xα'} [ρna₁ [ρna₂ Xα]] := onRα _ _ _ Xα Xα'.
 
-    have {Xj IXj Xj' IXj'} [ρs₀ [ρs₀' [ρA₁ [ρA₂ Xj₀]]]] :
+    have {Xj Xj'} [ρs₀ [ρs₀' [ρA₁ [ρA₂ Xj₀]]]] :
       ∑ ρs₀ ρs₀' ρA₁ ρA₂,
       Goaljc Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ (j_vass_s na A s₀) (j_vass_s na' A' s₀') (j_vass_s na'' A'' s₀'') (j_vass_s ρna₁ ρA₁ ρs₀)  (j_vass_s ρna₂ ρA₂ ρs₀').
-    { clear -TC ALLGOOD Xα onIR onRs IXj IXj' wfΓ.
-      destruct IXj, IXj'; cbn in *. subst s s' s0 s'0.
+    { clear -TC ALLGOOD Xα onIR onRs Xj Xj' wfΓ.
+      destruct Xj, Xj'; cbn in *. subst s s' s0 s'0.
       have [ρs₀ [ρs₀' Xs]] := onRs _ _ _ wfs wfs' wfs'0 Hss' Hss'0.
-      have {HT IHT HT0 IHT0} [ρT₁ [ρT₂ XT]] : PGoalc Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ A A' A'' (tSort s₀) (tSort s₀') (tSort s₀'') (tSort ρs₀) (tSort ρs₀'). {
+      have {HT HT0} [ρT₁ [ρT₂ XT]] : PGoalc Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ A A' A'' (tSort s₀) (tSort s₀') (tSort s₀'') (tSort ρs₀) (tSort ρs₀'). {
         eapply onIR; [tas|tea|tea| |].
         - by apply GoalT_GoalTj, Goals_GoalT.
         - by apply Goals_super.
@@ -8439,7 +8435,7 @@ Proof.
       all: cbn; by intros; apply rtj_of_rc.
     }
 
-    have {XB IXB XB' IXB'} [ρB₁ [ρB₂ XB]] : PGoalc (Γ₀ ,, vass na A) (Γ₁ ,, vass na' A') (Γ₂ ,, vass na'' A'') (ρΓ₁ ,, vass ρna₁ ρA₁) (ρΓ₂ ,, vass ρna₂ ρA₂) B B' B'' (tSort s₁) (tSort s₁') (tSort s₁'') (tSort ρs₁) (tSort ρs₁'). {
+    have {XB XB'} [ρB₁ [ρB₂ XB]] : PGoalc (Γ₀ ,, vass na A) (Γ₁ ,, vass na' A') (Γ₂ ,, vass na'' A'') (ρΓ₁ ,, vass ρna₁ ρA₁) (ρΓ₂ ,, vass ρna₂ ρA₂) B B' B'' (tSort s₁) (tSort s₁') (tSort s₁'') (tSort ρs₁) (tSort ρs₁'). {
       eapply onIR; [tas | eassumption | eassumption | ..].
       - by apply GoalT_GoalTj, Goals_GoalT.
       - by apply Goals_super.
@@ -8474,23 +8470,19 @@ Qed.
 Lemma check_trans {GTC : all_good_with_TC Os Σ} Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ t₀ t₁ t₂ T₀ T₁ T₂ ρT₁ ρT₂ s₀ s₁ s₂ ρs₁ ρs₂ :
   [(on_infer T₀ T₀ₐ T₁ T₂ :
     [(Xa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~R t₁ ▹ T₀ | T₁ with Ria)] ->
-    [(IXa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~R' t₁ ▹ T₀ | T₁ on Xa with IRia)] ->
     [(Xb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~R t₂ ▹ T₀ₐ | T₂ with Rib)] ->
-    [(IXb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~R' t₂ ▹ T₀ₐ | T₂ on Xb with IRib)] ->
     PGoali ρΓ₁ ρΓ₂ Γ₀ Γ₁ Γ₂ t₀ t₁ t₂ T₀ T₁ T₂)] ->
   [(wfΓ : GoalΓ Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂)] ->
   [(Xa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~R t₁ ◃ T₀ | T₁ with Ria)] ->
-  [(IXa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~R t₁ ◃ T₀ | T₁ on Xa with IRia)] ->
   [(Xb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~R t₂ ◃ T₀ | T₂ with Rib)] ->
-  [(IXb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~R t₂ ◃ T₀ | T₂ on Xb with IRib)] ->
   [(XT : GoalTj Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ T₀ T₁ T₂ ρT₁ ρT₂ s₀ s₁ s₂ ρs₁ ρs₂)] ->
   [(Xs : Goals s₀ s₁ s₂ ρs₁ ρs₂)] ->
   PGoalc Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ t₀ t₁ t₂ T₀ T₁ T₂ ρT₁ ρT₂.
 Proof.
   intros.
-  destruct IXa as [T₀₀ T₁₀ Xa IXa XT₀ XT₁].
-  destruct IXb as [T₀₀ₐ T₂₀ Xb IXb XT₀ₐ XT₂].
-  have [ρt₁ [ρt₂ [ρT₁₀ [ρT₂₀ XG]]]] := on_infer _ _ _ _ Xa IXa Xb IXb.
+  destruct Xa as [T₀₀ T₁₀ Xa XT₀ XT₁].
+  destruct Xb as [T₀₀ₐ T₂₀ Xb XT₀ₐ XT₂].
+  have [ρt₁ [ρt₂ [ρT₁₀ [ρT₂₀ XG]]]] := on_infer _ _ _ _ Xa Xb.
   have [ρXT₁ ρXT₂] : Σ ;;; ρΓ₁ ⊢ ρT₁₀ ≤T ρT₁ × Σ ;;; ρΓ₂ ⊢ ρT₂₀ ≤T ρT₂
     by now eapply trans_push_TC.
   exists ρt₁, ρt₂.
@@ -8499,20 +8491,18 @@ Proof.
 Qed.
 
 
-Arguments prel_ielim {_ _ _ _ _ _ _ _ _ _ _ } X.
-Arguments prel_celim {_ _ _ _ _ _ _ _ _ _ _ } X.
+Arguments prel_ielim {_ _ _ _ _ _ _ _ _ _ } X.
+Arguments prel_celim {_ _ _ _ _ _ _ _ _ _ } X.
 
 Lemma infer_trans_pre {bi} {AGInd : all_good_induction bi true true} {SIDES : trans_side_conditions_infer} Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ t₀ t₁ t₂ T₀ T₀ₐ T₁ T₂ :
   [(wfΓ : GoalΓ Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂)] ->
-  [(Xa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~R t₁ ▹ T₀ | T₁ with Ria)] ->
-  [(IXa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~R' t₁ ▹ T₀ | T₁ on Xa with Riaε)] ->
-  [(Xb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~R t₂ ▹ T₀ₐ | T₂ with Rib)] ->
-  [(IXb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~R' t₂ ▹ T₀ₐ | T₂ on Xb with Ribε)] ->
+  [(Xa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~R t₁ ▹ T₀ | T₁ with Riaε)] ->
+  [(Xb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~R t₂ ▹ T₀ₐ | T₂ with Ribε)] ->
   PGoali ρΓ₁ ρΓ₂ Γ₀ Γ₁ Γ₂ t₀ t₁ t₂ T₀ T₁ T₂.
 Proof.
   intros.
-  have {Xa IXa} [[Xa IXa] | [Xa IXa]] := prel_ielim IXa;
-  have {Xb IXb} [[Xb IXb] | [Xb IXb]] := prel_ielim IXb.
+  have {Xa} [Xa | Xa] := prel_ielim Xa;
+  have {Xb} [Xb | Xb] := prel_ielim Xb.
   - eapply trans_Raia_Raib; tea.
   - eapply trans_Raia_congr; tea.
   - eapply trans_Raib_congr; tea.
@@ -8528,17 +8518,15 @@ Qed.
 
 Lemma check_trans_pre {bc ba} {GTC : all_good_with_TC Os Σ} {AGInd : all_good_induction true bc ba} {SIDES : trans_side_conditions_check} Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ t₀ t₁ t₂ T₀ T₁ T₂ ρT₁ ρT₂ s₀ s₁ s₂ ρs₁ ρs₂ :
   [(wfΓ : GoalΓ Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂)] ->
-  [(Xa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~R t₁ : T₀ | T₁ with Rca)] ->
-  [(IXa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~R' t₁ : T₀ | T₁ on Xa with Rcaε)] ->
-  [(Xb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~R t₂ : T₀ | T₂ with Rcb)] ->
-  [(IXb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~R' t₂ : T₀ | T₂ on Xb with Rcbε)] ->
+  [(Xa : Σ ;;; Γ₀ | Γ₁ ⊢ t₀ ~R t₁ : T₀ | T₁ with Rcaε)] ->
+  [(Xb : Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ~R t₂ : T₀ | T₂ with Rcbε)] ->
   [(XT : GoalTj Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ T₀ T₁ T₂ ρT₁ ρT₂ s₀ s₁ s₂ ρs₁ ρs₂)] ->
   [(Xs : Goals s₀ s₁ s₂ ρs₁ ρs₂)] ->
   PGoalc Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ t₀ t₁ t₂ T₀ T₁ T₂ ρT₁ ρT₂.
 Proof.
   intros.
-  have {Xa IXa} [[Xa IXa] | [Xa IXa]] := prel_celim IXa;
-  have {Xb IXb} [[Xb IXb] | [Xb IXb]] := prel_celim IXb.
+  have {Xa} [Xa | Xa] := prel_celim Xa;
+  have {Xb} [Xb | Xb] := prel_celim Xb.
   - eapply trans_Raca_Racb; tea.
   - eapply trans_Raca_congr; tea.
   - eapply trans_Racb_congr; tea.
@@ -8551,7 +8539,7 @@ Lemma trans_induction_add_Rc {AGTC : all_good_with_TC Os Σ} {SIDESC : trans_sid
 Proof.
   intro. split; try now unshelve apply X.
   intros.
-  apply prel_IRcε in IXa, IXb.
+  apply prel_IRcε in Xa, Xb.
   eapply check_trans_pre; eassumption.
 Qed.
 
@@ -8560,9 +8548,59 @@ Lemma trans_induction_add_Ri {SIDESI : trans_side_conditions_infer} :
 Proof.
   intro. split; try now unshelve apply X.
   intros.
-  apply prel_IRiε in IXa, IXb.
+  apply prel_IRiε in Xa, Xb.
   eapply infer_trans_pre; eassumption.
 Qed.
+
+Lemma context_decl_trans_pre {bi} {AGInd : all_good_induction bi true true} {Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ d₀ d₁ d₂ ρna₁ ρna₂} :
+  [(wfΓ : GoalΓ Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂)] ->
+  [(Xd : wf_judgment2_mixed Σ Γ₀ Γ₁ (j_decl d₀) (j_decl d₁) with Rca, RTa, Rsa)] ->
+  [(Xd' : wf_judgment2_mixed Σ Γ₀ Γ₂ (j_decl d₀) (j_decl d₂) with Rcb, RTb, Rsb)] ->
+  [(Xα : Goalα (decl_name d₀) (decl_name d₁) (decl_name d₂) ρna₁ ρna₂)] ->
+  ∑ ρd₁ ρd₂ : context_decl,
+    Goald Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ (j_decl d₀) (j_decl d₁) (j_decl d₂) (j_decl ρd₁) (j_decl ρd₂)
+    × decl_name ρd₁ = ρna₁ × decl_name ρd₂ = ρna₂.
+Proof using ALLGOOD.
+  intros.
+  destruct Xd, Xd'; cbn in *. clear eqs eqs' eqs0 eqs'0.
+  assert (s = s0) as <- by todo "annots".
+  eapply trans_induction_sorts in Hss' as (ρs₁ & ρs₂ & Xs); tea. clear Hss'0 wfs wfs' wfs0 wfs'0.
+  eapply trans_induction_annots in HT as (ρT₁ & ρT₂ & XT); trea. clear HT0.
+  apply GoalT_GoalTj in XT.
+  have Hρs : isSortRel ρs₁ (binder_relevance ρna₁).
+  { apply Goalsa' in Xs. apply Goalαa' in Xα. apply to_eq_annot in Xα as <-. apply to_sort_rel in Xs as <-. assumption. }
+  have Hρs' : isSortRel ρs₂ ρna₂.(binder_relevance).
+  { apply Goalsb' in Xs. apply Goalαb' in Xα. apply to_eq_annot in Xα as <-. apply to_sort_rel in Xs as <-. assumption. }
+  destruct Ht; depelim Ht0.
+  1: eapply trans_induction_check in X as (ρt₁ & ρt₂ & X); trea; clear X0.
+  all: eexists {| decl_name := ρna₁; decl_type := ρT₁ |}, {| decl_name := ρna₂; decl_type := ρT₂ |}.
+  all: split; [|split; reflexivity].
+  all: split; econstructor; try apply Xs; try apply XT; cbnr; tea.
+  all: rewrite ?H.
+  all: econstructor => //.
+  all: apply X.
+Qed.
+
+Lemma context_trans_pre {bi} {AGInd : all_good_induction bi true true} Γ₀ Γ₁ Γ₂ :
+  [(wfΓ : wf_local2_mixed Σ Γ₀ Γ₁ with Rca, RTa, Rαa, Rsa)] ->
+  [(wfΓ' : wf_local2_mixed Σ Γ₀ Γ₂ with Rcb, RTb, Rαb, Rsb)] ->
+  PGoalΓ Γ₀ Γ₁ Γ₂.
+Proof using ALLGOOD.
+  intros.
+  induction wfΓ in Γ₂, wfΓ'; depelim wfΓ'.
+  1: by exists [], []; repeat split; constructor.
+  rename Γ into Γ₀, Γ' into Γ₁, Γ'0 into Γ₂.
+  destruct Xd as (Xα & Xd), Xd0 as (Xα' & Xd').
+  specialize (IHwfΓ _ wfΓ') as (ρΓ₁ & ρΓ₂ & XΓ); clear wfΓ wfΓ'.
+  eapply trans_induction_aname in Xα as (ρna₁ & ρna₂ & Xα); tea. clear Xα'.
+  pose proof (context_decl_trans_pre XΓ Xd Xd' Xα) as (ρd₁ & ρd₂ & Xj & Xα₁ & Xα₂).
+  eexists (ρΓ₁ ,, ρd₁), (ρΓ₂ ,, ρd₂).
+  repeat split; constructor; try apply XΓ.
+  all: split; try apply Xj.
+  all: rewrite ?Xα₁ ?Xα₂; apply Xα.
+Qed.
+
+
 End Σ.
 End context_closure_trans.
 
@@ -8964,12 +9002,10 @@ Class SubstitutiveOutput {TC} (O : OneOutput) Σ := {
 
 Class RaiIsFalse {TC} (I : OneInput) Σ := {
   rai_false {Γ Γ' t t' T T'} : Rai I Γ Γ' t t' T T' -> False;
-  irai_false {Γ Γ' t t' T T' H} : IRai I Γ Γ' t t' T T' H -> False;
 }.
 
 Class RacIsFalse {TC} (I : OneInput) Σ := {
   rac_false {Γ Γ' t t' T T'} : Rac I Γ Γ' t t' T T' -> False;
-  irac_false {Γ Γ' t t' T T' H} : IRac I Γ Γ' t t' T T' H -> False;
 }.
 
 Class RiHasPred0 {TC} (O : OneOutput) Σ := {
@@ -8977,9 +9013,8 @@ Class RiHasPred0 {TC} (O : OneOutput) Σ := {
 }.
 
 Class RaiIsPred0 {TC} (I : OneInput) Σ := {
-  PRED0RCRT :: Output_noRT I;
-  rai_pred0 {Γ Γ' t t' T T'} : Rai I Γ Γ' t t' T T' -> pred0 Σ (Rc I) (RT I) (Rα I) (Rs I) Γ Γ' t t' T T';
-  irai_pred0 {Γ Γ' t t' T T' H} : IRai I Γ Γ' t t' T T' H -> pred0ε Σ (Rc I) (IRc I) (RT I) (IRT I) (Rα I) (Rs I) Γ Γ' t t' T T' (rai_pred0 H);
+  PRED0RCRT :: Input_noRT I;
+  rai_pred0 {Γ Γ' t t' T T'} : Rai I Γ Γ' t t' T T' -> pred0 Σ (IRc I) (IRT I) (IRα I) (IRs I) Γ Γ' t t' T T';
 }.
 
 Class RacNoHasLambda {TC} (I : OneInput) Σ := {
@@ -9068,37 +9103,35 @@ Lemma pred0_beta_confluence {bi} {XAG : all_good Os Σ} {XAGTC : all_good_with_T
   {Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ na₀ na₁ na₂ A₀ A₁ A₂ B₀ B₁ B₂ s₀ s₁ s₂ t₀ t₁ t₂ u₀ u₁ u₂ na₀' na₁' na₂' A₀' A₁' A₂' B₀' B₁' B₂' s₀' s₁' s₂'} :
   [(wfΓ : GoalΓ Σ Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂)] ->
   [(X  : on_beta_redex Σ Rca RTa Rαa Rsa Γ₀ Γ₁ na₀ na₁ A₀ A₁ B₀ B₁ s₀ s₁ t₀ t₁ u₀ u₁ na₀' na₁' A₀' A₁' B₀' B₁' s₀' s₁')] ->
-  [(IX : on_beta_redexε Σ Rca IRca RTa IRTa Rαa Rsa Γ₀ Γ₁ na₀ na₁ A₀ A₁ B₀ B₁ s₀ s₁ t₀ t₁ u₀ u₁ na₀' na₁' A₀' A₁' B₀' B₁' s₀' s₁' X)] ->
   [(X' : on_beta_redex Σ Rcb RTb Rαb Rsb Γ₀ Γ₂ na₀ na₂ A₀ A₂ B₀ B₂ s₀ s₂ t₀ t₂ u₀ u₂ na₀' na₂' A₀' A₂' B₀' B₂' s₀' s₂')] ->
-  [(IX': on_beta_redexε Σ Rcb IRcb RTb IRTb Rαb Rsb Γ₀ Γ₂ na₀ na₂ A₀ A₂ B₀ B₂ s₀ s₂ t₀ t₂ u₀ u₂ na₀' na₂' A₀' A₂' B₀' B₂' s₀' s₂' X')] ->
   PGoalβ Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ na₀ na₁ na₂ A₀ A₁ A₂ B₀ B₁ B₂ s₀ s₁ s₂ t₀ t₁ t₂ u₀ u₁ u₂ na₀' na₁' na₂' A₀' A₁' A₂' B₀' B₁' B₂' s₀' s₁' s₂'.
 Proof.
   intros.
-  destruct IX, IX'.
+  destruct X, X'.
 
   have {Hs₀ Hs₀0} [ρs₁ [ρs₂ Xs₀]] := trans_induction_sorts _ _ _ _ wfs₀ wfs₀' wfs₀'0 Hs₀ Hs₀0.
   have {Hs Hs0} [ρs₁' [ρs₂' Xs]] := trans_induction_sorts _ _ _ _ wfs wfs' wfs'0 Hs Hs0.
   have {Xα₀ Xα₀0} [ρna₁ [ρna₂ Xα₀]] := trans_induction_aname _ _ _ _ Xα₀ Xα₀0.
   have {Xα Xα0} [ρna₁' [ρna₂' Xα]] := trans_induction_aname _ _ _ _ Xα Xα0.
 
-  have {Xj₀ IXj₀ Xj₀0 IXj₀0} [s₀₀ [s₀₁ [s₀₂ [ρs₀₁ [ρs₀₂ [ρA₁ [ρA₂ Xj₀]]]]]]] :
+  have {Xj₀ Xj₀0} [s₀₀ [s₀₁ [s₀₂ [ρs₀₁ [ρs₀₂ [ρA₁ [ρA₂ Xj₀]]]]]]] :
     ∑ s₀ s₁ s₂ ρs₁ ρs₂ ρA₁ ρA₂,
     Goalj Σ Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ (j_vass_s na₀ A₀ s₀) (j_vass_s na₁ A₁ s₁) (j_vass_s na₂ A₂ s₂) (j_vass_s ρna₁ ρA₁ ρs₁) (j_vass_s ρna₂ ρA₂ ρs₂).
-  { clear -TC XAG XC Xα₀ IXj₀ IXj₀0 wfΓ.
-    destruct IXj₀, IXj₀0; cbn in *. assert (s = s0) as <- by todo "annots".
+  { clear -TC XAG XC Xα₀ Xj₀ Xj₀0 wfΓ.
+    destruct Xj₀, Xj₀0; cbn in *. assert (s = s0) as <- by todo "annots".
     have [ρs₁ [ρs₂ Xs]] := trans_induction_sorts _ _ _ _ wfs wfs' wfs'0 Hss' Hss'0.
-    have {HT IHT HT0 IHT0} [ρT₁ [ρT₂ XT]] : PGoalT Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ A₀ A₁ A₂ s s' s'0 ρs₁ ρs₂.
+    have {HT HT0} [ρT₁ [ρT₂ XT]] : PGoalT Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ A₀ A₁ A₂ s s' s'0 ρs₁ ρs₂.
     { eapply trans_induction_annots; tea; auto. }
     do 7 eexists. apply Pj_vass_s; tea; try by apply Xs. }
   apply Pj_forget_univ in Xj₀.
 
-  have {Xj IXj Xj0 IXj0} [s₀₀' [s₀₁' [s₀₂' [ρs₀₁' [ρs₀₂' [ρA₁' [ρA₂' Xj]]]]]]] :
+  have {Xj Xj0} [s₀₀' [s₀₁' [s₀₂' [ρs₀₁' [ρs₀₂' [ρA₁' [ρA₂' Xj]]]]]]] :
     ∑ s₀ s₁ s₂ ρs₁ ρs₂ ρA₁ ρA₂,
     Goalj Σ Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ (j_vass_s na₀' A₀' s₀) (j_vass_s na₁' A₁' s₁) (j_vass_s na₂' A₂' s₂) (j_vass_s ρna₁' ρA₁ ρs₁) (j_vass_s ρna₂' ρA₂ ρs₂).
-  { clear -TC XAG XC Xα IXj IXj0 wfΓ.
-    destruct IXj, IXj0; cbn in *. assert (s = s0) as <- by todo "annots".
+  { clear -TC XAG XC Xα Xj Xj0 wfΓ.
+    destruct Xj, Xj0; cbn in *. assert (s = s0) as <- by todo "annots".
     have [ρs₁ [ρs₂ Xs]] := trans_induction_sorts _ _ _ _ wfs wfs' wfs'0 Hss' Hss'0.
-    have {HT IHT HT0 IHT0} [ρT₁ [ρT₂ XT]] : PGoalT Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ A₀' A₁' A₂' s s' s'0 ρs₁ ρs₂
+    have {HT HT0} [ρT₁ [ρT₂ XT]] : PGoalT Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ A₀' A₁' A₂' s s' s'0 ρs₁ ρs₂
       by eapply trans_induction_annots; eauto.
     do 7 eexists. apply Pj_vass_s; tea; try by apply Xs. }
   apply Pj_extract_typsort in Xj as XA'.
@@ -9108,16 +9141,16 @@ Proof.
   have wfΓ' : GoalΓ Σ (Γ₀ ,, vass na₀ A₀) (Γ₁ ,, vass na₁ A₁) (Γ₂ ,, vass na₂ A₂) (ρΓ₁ ,, vass ρna₁ ρA₁) (ρΓ₂ ,, vass ρna₂ ρA₂)
     by eapply PΓ_snoc; tea.
 
-  have {XB₀ IXB₀ XB₀0 IXB₀0} [ρB₁ [ρB₂ XB₀]] : PGoalT (Γ₀ ,, vass na₀ A₀) (Γ₁ ,, vass na₁ A₁) (Γ₂ ,, vass na₂ A₂) (ρΓ₁ ,, vass ρna₁ ρA₁) (ρΓ₂ ,, vass ρna₂ ρA₂) B₀ B₁ B₂ s₀ s₁ s₂ ρs₁ ρs₂
+  have {XB₀ XB₀0} [ρB₁ [ρB₂ XB₀]] : PGoalT (Γ₀ ,, vass na₀ A₀) (Γ₁ ,, vass na₁ A₁) (Γ₂ ,, vass na₂ A₂) (ρΓ₁ ,, vass ρna₁ ρA₁) (ρΓ₂ ,, vass ρna₂ ρA₂) B₀ B₁ B₂ s₀ s₁ s₂ ρs₁ ρs₂
     by eapply trans_induction_annots; eauto.
-  have {Xt IXt Xt0 IXt0} [ρt₁ [ρt₂ Xt]] : PGoalc (Γ₀ ,, vass na₀ A₀) (Γ₁ ,, vass na₁ A₁) (Γ₂ ,, vass na₂ A₂) (ρΓ₁ ,, vass ρna₁ ρA₁) (ρΓ₂ ,, vass ρna₂ ρA₂) t₀ t₁ t₂ B₀ B₁ B₂ ρB₁ ρB₂
+  have {Xt Xt0} [ρt₁ [ρt₂ Xt]] : PGoalc (Γ₀ ,, vass na₀ A₀) (Γ₁ ,, vass na₁ A₁) (Γ₂ ,, vass na₂ A₂) (ρΓ₁ ,, vass ρna₁ ρA₁) (ρΓ₂ ,, vass ρna₂ ρA₂) t₀ t₁ t₂ B₀ B₁ B₂ ρB₁ ρB₂
     by eapply trans_induction_check; eauto using GoalT_GoalTj.
 
 
   have wfΓ'' : GoalΓ Σ (Γ₀ ,, vass na₀' A₀') (Γ₁ ,, vass na₁' A₁') (Γ₂ ,, vass na₂' A₂') (ρΓ₁ ,, vass ρna₁' ρA₁') (ρΓ₂ ,, vass ρna₂' ρA₂')
     by eapply PΓ_snoc; tea.
 
-  have {XB IXB XB0 IXB0} [ρB₁' [ρB₂' XB]] : PGoalT (Γ₀ ,, vass na₀' A₀') (Γ₁ ,, vass na₁' A₁') (Γ₂ ,, vass na₂' A₂') (ρΓ₁ ,, vass ρna₁' ρA₁') (ρΓ₂ ,, vass ρna₂' ρA₂') B₀' B₁' B₂' s₀' s₁' s₂' ρs₁' ρs₂'
+  have {XB XB0} [ρB₁' [ρB₂' XB]] : PGoalT (Γ₀ ,, vass na₀' A₀') (Γ₁ ,, vass na₁' A₁') (Γ₂ ,, vass na₂' A₂') (ρΓ₁ ,, vass ρna₁' ρA₁') (ρΓ₂ ,, vass ρna₂' ρA₂') B₀' B₁' B₂' s₀' s₁' s₂' ρs₁' ρs₂'
     by eapply trans_induction_annots; eauto.
 
   have [ρXT₁ ρXT₂] : Σ ;;; ρΓ₁ ⊢ tProd ρna₁ ρA₁ ρB₁ ≤T tProd ρna₁' ρA₁' ρB₁' × Σ ;;; ρΓ₂ ⊢ tProd ρna₂ ρA₂ ρB₂ ≤T tProd ρna₂' ρA₂' ρB₂'. {
@@ -9130,7 +9163,7 @@ Proof.
     - by eapply Goals_product.
   }
 
-  have {Xu IXu Xu0 IXu0} [ρu₁ [ρu₂ Xu]] : PGoalc Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ u₀ u₁ u₂ A₀' A₁' A₂' ρA₁' ρA₂'
+  have {Xu Xu0} [ρu₁ [ρu₂ Xu]] : PGoalc Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ u₀ u₁ u₂ A₀' A₁' A₂' ρA₁' ρA₂'
     by eapply trans_induction_check; eauto using GoalT_GoalTj.
 
   exists ρna₁, ρna₂, ρA₁, ρA₂, ρB₁, ρB₂, ρs₁, ρs₂, ρt₁, ρt₂, ρu₁, ρu₂, ρna₁', ρna₂', ρA₁', ρA₂', ρB₁', ρB₂', ρs₁', ρs₂'; split.
@@ -9149,12 +9182,12 @@ Lemma pred0_pred0 {Pred0a : RaiIsPred0 Inputa Σ} {Pred0b : RaiIsPred0 Inputb Σ
   SideConditionRaiaRaib Σ.
 Proof.
   intros ** ? **.
-  apply irai_pred0 in IXa, IXb.
-  destruct IXa; depelim IXb. clear Xa Xb H.
-  assert (B₀ = B₀0) as <- by todo "annots". assert (s₀ = s₀0) as <- by todo "annot".
-  assert (na = na0) as <- by todo "annot".
-  assert (A = A0) as <- by todo "annots". assert (B = B0) as <- by todo "annots". assert (s = s0) as <- by todo "annot".
-  pose proof (XConfluence := pred0_beta_confluence wfΓ _ IX _ IX0); clear X2 IX X3 IX0.
+  apply rai_pred0 in Xa, Xb.
+  destruct Xa; depelim Xb.
+  assert (B₀ = B₀0) as <- by todo "annots". assert (s₀ = s₀0) as <- by todo "annots".
+  assert (na = na0) as <- by todo "annots".
+  assert (A = A0) as <- by todo "annots". assert (B = B0) as <- by todo "annots". assert (s = s0) as <- by todo "annots".
+  pose proof (XConfluence := pred0_beta_confluence wfΓ X2 X3); clear X2 X3.
   repeat (hnf in XConfluence; match type of XConfluence with ∑ ρt, _ => destruct XConfluence as [?ρt XConfluence] end).
   eexists _, _, _, _; split.
   1,2: eapply beta_reduce_Output; tea; tc; by apply XConfluence.
@@ -9162,26 +9195,24 @@ Proof.
 Qed.
 
 Lemma pred0_congr_inv {I} {Pre : is_parallel_relationE I Σ} {OnRacb : RacNoHasLambda I Σ} {OnRaib : RaiNoHasLambda I Σ} {Γ₀ Γ₁ na₀ A₀ t₀ u₀ t₁ T₀ T₁} :
-  [(X : Σ ;;; Γ₀ | Γ₁ ⊢ tApp (tLambda na₀ A₀ t₀) u₀ ~a t₁ ▹ T₀ | T₁ with Rc I, RT I, Rα I, Rs I)] ->
-  [(IX : Σ ;;; Γ₀ | Γ₁ ⊢ tApp (tLambda na₀ A₀ t₀) u₀ ~a t₁ ▹ T₀ | T₁ on X with IRc I, IRT I)] ->
-  ∑ na₀' A₀' B₀ B₀' s₀ s₀' t₀' u₀' na na' A A' B B' s s' X,
+  [(X : Σ ;;; Γ₀ | Γ₁ ⊢ tApp (tLambda na₀ A₀ t₀) u₀ ~a t₁ ▹ T₀ | T₁ with IRc I, IRT I, IRα I, IRs I)] ->
+  ∑ na₀' A₀' B₀ B₀' s₀ s₀' t₀' u₀' na na' A A' B B' s s',
   t₁ = tApp (tLambda na₀' A₀' t₀') u₀' ×
   T₁ = B' {0 := tCast u₀' A'} ×
-  on_beta_redexε Σ (Rc I) (IRc I) (RT I) (IRT I) (Rα I) (Rs I)
-    Γ₀ Γ₁ na₀ na₀' A₀ A₀' B₀ B₀' s₀ s₀' t₀ t₀' u₀ u₀' na na' A A' B B' s s' X.
+  on_beta_redex Σ (IRc I) (IRT I) (IRα I) (IRs I)
+    Γ₀ Γ₁ na₀ na₀' A₀ A₀' B₀ B₀' s₀ s₀' t₀ t₀' u₀ u₀' na na' A A' B B' s s'.
 Proof.
   intros.
-  depelim IX.
-  apply prel_IRcε, prel_celim in IXt. move: IXt {Xt} => [] [Xt IXt].
-  1: clear IXt; exfalso; eapply rac_lambda_false; trea; cbnr.
-  destruct IXt as [?? Xt IXt].
-  apply prel_IRiε, prel_ielim in IXt. move: IXt {Xt} => [] [Xt IXt].
-  1: clear IXt; exfalso; eapply rai_lambda_false; trea; cbnr.
-  depelim IXt.
-  repeat unshelve eexists _; cycle -2.
-  2: split; [reflexivity|].
-  2: split; [reflexivity|].
-  1,2: split; revgoals; eassumption.
+  depelim X.
+  apply prel_IRcε, prel_celim in Xt. move: Xt => [] Xt.
+  1: exfalso; eapply rac_lambda_false; trea; cbnr.
+  destruct Xt as [?? Xt].
+  apply prel_IRiε, prel_ielim in Xt. move: Xt => [] Xt.
+  1: exfalso; eapply rai_lambda_false; trea; cbnr.
+  depelim Xt.
+  repeat eexists _.
+  do 2 (split; cbnr).
+  split; revgoals; eassumption.
 Qed.
 
 
@@ -9194,15 +9225,15 @@ Lemma pred0_congr {Pred0a : RaiIsPred0 Inputa Σ} {OnRacb : RacNoHasLambda Input
   SideConditionRaiaCongr Σ.
 Proof.
   intros ** ? **.
-  apply irai_pred0 in IXa.
-  destruct IXa. clear Xa.
-  apply pred0_congr_inv in IXb. clear Xb.
-  repeat (match type of IXb with ∑ ρt, _ => destruct IXb as [?ρt IXb] end).
-  destruct IXb as (-> & -> & IXb).
-  assert (B₀ = B₀0) as <- by todo "annots". assert (s₀ = s₀0) as <- by todo "annot".
-  assert (na = na0) as <- by todo "annot".
-  assert (A = A0) as <- by todo "annots". assert (B = B0) as <- by todo "annots". assert (s = s0) as <- by todo "annot".
-  pose proof (XConfluence := pred0_beta_confluence wfΓ _ IX _ IXb); clear X3 IX X4 IXb.
+  apply rai_pred0 in Xa.
+  destruct Xa.
+  apply pred0_congr_inv in Xb.
+  repeat (match type of Xb with ∑ ρt, _ => destruct Xb as [?ρt Xb] end).
+  destruct Xb as (-> & -> & Xb).
+  assert (B₀ = B₀0) as <- by todo "annots". assert (s₀ = s₀0) as <- by todo "annots".
+  assert (na = na0) as <- by todo "annots".
+  assert (A = A0) as <- by todo "annots". assert (B = B0) as <- by todo "annots". assert (s = s0) as <- by todo "annots".
+  pose proof (XConfluence := pred0_beta_confluence wfΓ X3 Xb); clear X3 Xb.
   repeat (hnf in XConfluence; match type of XConfluence with ∑ ρt, _ => destruct XConfluence as [?ρt XConfluence] end).
   eexists _, _, _, _; split.
   1,2,5: eapply beta_reduce_Output; tea; tc; by apply XConfluence.
@@ -9331,25 +9362,24 @@ Qed.
 Definition pred1_output : OneOutput :=
   makeOutput_noRT (pred1 Σ) (checking2₂ Σ (pred1 Σ)) eq eq.
 
-Definition pred1_IRi IR := fun Γ Γ' t t' T T' H => IR Γ Γ' t t' T T' H × pred1ε Σ IR Γ Γ' t t' T T' H.
-Definition pred1_IRc IR := checking2ε₂ Σ _ (pred1_IRi IR).
-Definition pred1_IRT IR := fun Γ Γ' T T' s s' H => pred1_IRc IR Γ Γ' T T' (tSort s) (tSort s') H.
+Notation pred1_IRi IR := (conj6 IR (pred1ε Σ IR)) (IR in scope function).
+Notation pred1_IRc IR := (checking2₂ Σ (pred1_IRi IR)).
+Notation pred1_IRT IR := (typing_sort3 (pred1_IRc IR)).
 
 Definition pred1_input IR : OneInput := {|
-  OIC := pred1_output;
-  IRi := pred1_IRi IR;
+  IRi := conj6 IR (pred1ε Σ IR);
   Riε := pred1ε Σ IR;
   IRc := pred1_IRc IR;
   Rcε := pred1_IRc IR;
   IRT := pred1_IRT IR;
-  Rai := pred0 Σ (Rc pred1_output) (RT pred1_output) (Rα pred1_output) (Rs pred1_output);
-  IRai := pred0ε Σ _ (pred1_IRc IR) _ (pred1_IRT IR) _ _;
+  Rai := pred0 Σ (pred1_IRc IR) (pred1_IRT IR) eq eq;
   Rac _ _ _ _ _ _ := False;
-  IRac _ _ _ _ _ _ (_ : False) := False;
+  IRα := eq;
+  IRs := eq;
 |}.
 
 Instance RTRCpred : Output_noRT pred1_output := _.
-Instance IRTIRCpred IR : Input_noRT (pred1_input IR) _.
+Instance IRTIRCpred IR : Input_noRT (pred1_input IR).
 Proof. split; auto. Defined.
 
 Instance Pred1HasPred0 : SideConditions.RiHasPred0 pred1_output Σ.
@@ -9394,7 +9424,7 @@ Proof.
 Qed.
 
 Definition good_with_TC_pred1 : good_with_TC pred1_output Σ.
-Proof.
+Proof using TCH.
   split. cbn.
   intros.
   apply wf_local2_eq_output in wfΓ.
@@ -9417,13 +9447,13 @@ Defined.
 Definition is_goodE_pred1 IR : is_goodE (pred1_input IR) Σ.
 Proof.
   split; tc. split; cbn.
-  - intros. destruct X; try (econstructor; now eexists).
-    apply context_closure_to_annotsε in IX.
-    right. eexists.
-    eauto with fmap.
-  - now intros * [].
-  - intros. right. now eexists.
-  - intros. assumption.
+  - intros.
+    destruct X. 1: by left.
+    apply context_closure_to_annots in X.
+    by right.
+  - intros. by destruct X.
+  - intros. by right.
+  - auto.
 Qed.
 
 #[local] Instance confluence_all_good_i IR IR' : all_good_i (confluence_Inputs IR IR') Σ.
@@ -9442,40 +9472,56 @@ Qed.
 
 Import Flip.
 
-Theorem pred1_pred1_trans_pre (Γ Γ' Γ'' ρΓ : context) t t' t'' T T' T'' :
-  [(wfΓ : wf_local2 Σ Γ ρΓ with checking2₂ Σ (pred1 Σ), eq, eq)] ->
-  [(wfΓ' : wf_local2 Σ Γ' ρΓ with checking2₂ Σ (pred1 Σ), eq, eq)] ->
-  [(wfΓ'' : wf_local2 Σ Γ'' ρΓ with checking2₂ Σ (pred1 Σ), eq, eq)] ->
+Theorem pred1_pred1_trans (Γ Γ' Γ'' : context) t t' t'' T T' T'' :
+  [(wfΓ : wf_local2 Σ Γ Γ' with checking2₂ Σ (pred1 Σ), eq, eq)] ->
+  [(wfΓ' : wf_local2 Σ Γ Γ'' with checking2₂ Σ (pred1 Σ), eq, eq)] ->
   [(X : Σ ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T')] ->
   [(X' : Σ ;;; Γ | Γ'' ⊢ t ≡> t'' ▹ T | T'')] ->
-  ∑ ρt ρT, Σ ;;; Γ | ρΓ ⊢ t ≡> ρt ▹ T | ρT × Σ ;;; Γ' | ρΓ ⊢ t' ≡> ρt ▹ T' | ρT × Σ ;;; Γ'' | ρΓ ⊢ t'' ≡> ρt ▹ T'' | ρT.
-Proof.
-  intros.
-  enough (PGoali ρΓ ρΓ Γ Γ' Γ'' t t' t'' T T' T'').
-  { destruct X0 as (ρt & ρt' & ρT & ρT' & [??? (? & ? & <- & <-) ?]). cbn in *. exists ρt, ρT. repeat (split; tas). }
+  ∑ ρΓ ρt ρT, Σ ;;; Γ | ρΓ ⊢ t ≡> ρt ▹ T | ρT × Σ ;;; Γ' | ρΓ ⊢ t' ≡> ρt ▹ T' | ρT × Σ ;;; Γ'' | ρΓ ⊢ t'' ≡> ρt ▹ T'' | ρT.
+Proof using TCH tcH.
+  revert Γ Γ' Γ'' t t' t'' T T' T''.
 
-  have {wfΓ' wfΓ''} wfΓ : GoalΓ Σ Γ Γ' Γ'' ρΓ ρΓ.
-  { split; try by apply wf_local2_eq_output. apply All2_fold_eq_output; split; trea. eapply wf_local2_wf_right in wfΓ; tc; assumption. }
-  set (ρΓ' := ρΓ) in wfΓ at 2 |- * at 2. clearbody ρΓ'.
-  set (Tₐ := T) in X'. clearbody Tₐ.
-  induction X using pred1_strong_rect in Γ'', ρΓ, ρΓ', t'', Tₐ, T'', X', wfΓ. rename X0 into IX.
-  set (IRa Γ Γ' t t' T T' (H : Σ ;;; Γ | Γ' ⊢ t ≡> t' ▹ T | T') := forall Γ'' ρΓ t'' T'' Tₐ, Σ ;;; Γ | Γ'' ⊢ t ≡> t'' ▹ Tₐ | T'' -> forall ρΓ', GoalΓ Σ Γ Γ' Γ'' ρΓ ρΓ' -> PGoali ρΓ ρΓ' Γ Γ' Γ'' t t' t'' T T' T'').
-  rewrite -/IRa in IX. move IRa at top.
-  have IX' : Σ ;;; Γ | Γ'' ⊢ t ≡> t'' ▹ Tₐ | T'' on X' with ⊤₇.
-  { clear. induction X' in |- *; econstructor; eauto 7 with fmap. }
-  set (IRb := ⊤₇) in IX'. move IRb before IRa.
+  enough (IXIX : all_good_induction (Is := confluence_Inputs ⊤₆ ⊤₆) Σ true true true). {
+    intros.
+    have [ρΓ [ρΓ' XΓ]] : PGoalΓ Σ Γ Γ' Γ''.
+    { eapply context_trans_pre; tc; tea.
+      all: eapply All2_fold_fmap; tea.
+      all: intros ???? _ _ [<- Xd]; split; [reflexivity|].
+      all: eapply lift_sorting2_fmap; tea; eauto with fmap.
+      all: unfold confluence_Inputs; cbn; eauto with fmap. }
+    have Xt : PGoali ρΓ ρΓ' Γ Γ' Γ'' t t' t'' T T' T''.
+    { eapply trans_induction_infer; trea.
+      all: unfold confluence_Inputs; cbn; eauto with fmap. }
+    destruct Xt as (ρt & ρt' & ρT & ρT' & Xt).
+    exists ρΓ, ρt, ρT.
+    assert (ρΓ = ρΓ' × ρt = ρt' × ρT = ρT') as (<- & <- & <-) by by apply Goalim in Xt as [].
+    repeat split; apply Xt.
+  }
+  apply trans_induction_RTRC; tc.
+  apply trans_induction_add_Rc; tc.
+  1: by split; intros => //.
+  split; intro => //=; cycle 1.
+  { eexists s₀, s₀; split; tas; congruence. }
+  { eexists na₀, na₀; split; congruence. }
+
+  intros * XΓ [_ X] [_ X']. clear Hb.
+  set (IRb := ⊤₆) in X'.
+  set (IRa Γ₀ Γ₁ t₀ t₁ T₀ T₁ := forall Γ₂ ρΓ₁ ρΓ₂ t₂ T₀ₐ T₂, GoalΓ Σ Γ₀ Γ₁ Γ₂ ρΓ₁ ρΓ₂ -> Σ ;;; Γ₀ | Γ₂ ⊢ t₀ ≡> t₂ ▹ T₀ₐ | T₂ with IRb -> PGoali ρΓ₁ ρΓ₂ Γ₀ Γ₁ Γ₂ t₀ t₁ t₂ T₀ T₁ T₂).
+  move IRa at top. move IRb before IRa.
   pose (Is := confluence_Inputs IRa IRb). move Is before IRb.
-  assert (IXIX : all_good_induction Σ true false false).
-  { split; intro => //=.
-  - intros. eapply IXa; tea.
-  - eexists s₀, s₀; split; tas; congruence.
-  - eexists na₀, na₀; split; congruence. }
-  clearbody IRa IRb.
-  eapply trans_induction_add_Rc in IXIX; tc.
-  2: by split; intros => //.
+  induction X in Γ₂, ρΓ₁, ρΓ₂, t₂, T₀ₐ, T₂, X', XΓ. rewrite -/IRa in X.
+  revert Γ Γ' Γ₂ ρΓ₁ ρΓ₂ t t' t₂ T T₀ₐ T' T₂ XΓ X X'.
 
-  eapply trans_induction_RTRC in IXIX; tc.
-  eapply infer_trans_pre; tc; tea.
+  assert (IXIX : all_good_induction (Is := Is) Σ true true true). {
+    apply trans_induction_RTRC; tc.
+    apply trans_induction_add_Rc; tc.
+    1: by split; intros => //=.
+    split; intro => //=.
+    - intros. eapply Xa; tas. apply Xb.
+    - eexists s₀, s₀; split; tas; congruence.
+    - eexists na₀, na₀; split; congruence.
+  }
+  eapply infer_trans_pre with (Is := Is); tc.
 
   split.
   - eapply SideConditions.pred0_pred0; tc.
@@ -9489,34 +9535,10 @@ Proof.
 Admitted.
 
 
-Theorem wf_pred1_pred1_trans (Γ Γ' Γ'' : context) :
-  [(wfΓ : wf_local2 Σ Γ Γ' with checking2₂ Σ (pred1 Σ), eq, eq)] ->
-  [(wfΓ' : wf_local2 Σ Γ Γ'' with checking2₂ Σ (pred1 Σ), eq, eq)] ->
-  ∑ ρΓ, wf_local2 Σ Γ ρΓ with checking2₂ Σ (pred1 Σ), eq, eq ×
-    wf_local2 Σ Γ' ρΓ with checking2₂ Σ (pred1 Σ), eq, eq ×
-    wf_local2 Σ Γ'' ρΓ with checking2₂ Σ (pred1 Σ), eq, eq.
-Proof.
-  intros.
-  induction wfΓ in Γ'', wfΓ'; depelim wfΓ'.
-  - exists []. repeat split; constructor.
-  - have {wfΓ wfΓ' IHwfΓ} [ρΓ IHX] := IHwfΓ _ wfΓ'.
-    destruct Xd as (Xα & Xd), Xd0 as (Xα' & Xd').
-    eenough (∑ ρd, decl_name d = decl_name ρd × Goalj Σ Γ Γ' Γ'0 ρΓ ρΓ (j_decl d) (j_decl d') (j_decl d'0) (j_decl ρd) (j_decl ρd)) as (ρd & Xρα & Xρd).
-    + exists (ρΓ ,, ρd).
-      repeat split; constructor; try apply IHX.
-      all: split; [try congruence|].
-      all: apply Xρd.
-    + destruct IHX as (wfΓ & wfΓ' & wfΓ'').
-      eexists {| decl_name := decl_name d |}.
-      split; cbnr.
-
-      destruct Xd, Xd'; cbn in *.
-      assert (s = s0) as <- by todo "annots".
-
-
-
-
-
+End Σ.
+End ConfluenceInstance.
+End BinBinRelations.
+Check ConfluenceInstance.pred1_pred1_trans.
 
 
 

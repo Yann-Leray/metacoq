@@ -22,7 +22,7 @@ Liste des rédexes :
             Γ ⊢ Π (x : A₀), B₀ ≤T Π (x : A₀'), B₀'
             Γ ⊢ Π (x : A₁), B₁ ≤T Π (x : A₁'), B₁' (hypothèses inclues dans la réduction ci-dessus)
   -------------------------------------------------------------------------------------
-  (λ (x : A₀), t : B₀){Π (x : A₀'), B₀'} u ≡>β (t' : B₁')[x := (u' : A₁')]
+  (λ (x : A₀), t : B₀){Π (x : A₀'), B₀'} u ≡>β ((t' : B₁) : B₁')[x := (u' : A₁')]
                       ▹ B₀'[x := (u : A₀')] | B₁'[x := (u' : A₁')]
   ```
   (injectivité des produits requise pour le typage)

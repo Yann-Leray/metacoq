@@ -114,4 +114,16 @@ theories/PCUICWeakeningConfig.v
 
 theories/PCUICCasesHelper.v
 
+theories/Typed/TypedBasicAst.v
+theories/Typed/TypedReflect.v
+theories/Typed/Environment.v
+theories/Typed/EnvironmentTyping.v
+theories/Typed/TypedAst.v
+theories/Typed/TypedAstUtils.v
+# theories/Typed/TypedCases.v
+theories/Typed/TypedInduction.v
+theories/Typed/LiftSubst.v
+theories/Typed/PCUICTypedCumulativity.v
+
+
 # theories/All.v

@@ -795,7 +795,7 @@ Qed.
 Lemma All_refl {A} (P : A -> Type) l : (forall x, P x) -> All P l.
 Proof.
   intros Hp; induction l; constructor; auto.
-Qed.
+Defined.
 
 Lemma All_rev_map {A B} (P : A -> Type) f (l : list B) : All (fun x => P (f x)) l -> All P (rev_map f l).
 Proof. induction 1. constructor. rewrite rev_map_cons. apply All_app_inv; auto. Qed.
@@ -821,14 +821,14 @@ Lemma Alli_impl_Alli {A} {P Q} (l : list A) {n} : Alli P n l -> Alli (fun n x =>
 Proof. induction 1; inversion 1; constructor; intuition auto. Defined.
 
 Lemma All_impl {A} {P Q} {l : list A} : All P l -> (forall x, P x -> Q x) -> All Q l.
-Proof. induction 1; try constructor; intuition auto. Qed.
+Proof. intros X ?. induction X; try constructor; intuition auto. Defined.
 
 Lemma Alli_impl {A} {P Q} (l : list A) {n} : Alli P n l -> (forall n x, P n x -> Q n x) -> Alli Q n l.
 Proof. induction 1; try constructor; intuition auto. Defined.
 
 Lemma All_map {A B} {P : B -> Type} {f : A -> B} {l : list A} :
   All (fun x => P (f x)) l -> All P (map f l).
-Proof. induction 1; constructor; auto. Qed.
+Proof. induction 1; constructor; auto. Defined.
 
 Lemma All_map_inv {A B} (P : B -> Type) (f : A -> B) l : All P (map f l) -> All (fun x => P (f x)) l.
 Proof. induction l; intros Hf; inv Hf; try constructor; eauto. Qed.
